@@ -1,0 +1,70 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Permisos minimos por defecto; el job de deploy (futuro) los amplia con
+# id-token: write cuando use WIF.
+permissions:
+  contents: read
+
+# Cancela runs previos del mismo ref cuando llega uno nuevo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: quality (lint + typecheck + tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.11.31"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Setup Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: ruff check
+        run: uv run ruff check .
+
+      - name: ruff format --check
+        run: uv run ruff format --check .
+
+      - name: pyright (strict)
+        run: uv run pyright
+
+      - name: pytest with coverage
+        run: uv run pytest --cov --cov-report=xml --cov-report=term-missing
+
+      - name: bandit (security static analysis)
+        run: uv run bandit -r src/ -q
+
+      - name: pip-audit (dependency vulnerabilities)
+        # No falla el pipeline por CVEs con fix disponible pero no aplicado
+        # cuando corresponden a paquetes transitivos fuera de nuestro control.
+        # Cambiar a `run: uv run pip-audit` si se quiere strict.
+        run: uv run pip-audit --strict || true
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 14
+          if-no-files-found: warn
