@@ -1,0 +1,20 @@
+select
+    a.cod_art,
+    a.modelo,
+    a.upc      as codigo_barras,
+    a.nom_art,
+    a.cod_dep,
+    a.cod_sec,
+    a.cod_mar,
+    a.cod_pro,
+    a.cod_uni1,
+    a.peso,
+    a.volumen  as fraccion,
+    a.cap_lic  as cap_bulto,
+    a.gra_lic,
+    a.precio1  as precio,
+    a.cos_ult1,
+    a.cod_imp,
+    a.status,
+    a.fec_ini
+from articulos a

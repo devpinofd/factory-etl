@@ -1,0 +1,147 @@
+[project]
+name = "factory-etl"
+version = "0.1.0"
+description = "ETL Cloud Run Job que ingesta datos desde la API generica de FactorySoft hacia el data lake en GCP (Bronze en GCS, control en BigQuery)."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "Proprietary" }
+authors = [
+    { name = "BD-SORT" },
+]
+
+dependencies = [
+    "httpx>=0.27,<0.28",
+    "tenacity>=9.0,<10",
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.5,<3",
+    "structlog>=24.4,<25",
+    "typer>=0.12,<0.13",
+    "pyarrow>=17,<18",
+    "google-cloud-storage>=2.18,<3",
+    "google-cloud-bigquery>=3.25,<4",
+    "google-cloud-secret-manager>=2.20,<3",
+]
+
+[project.scripts]
+factory-etl = "factory_etl.cli:app"
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/factory_etl"]
+
+# --------------------------------------------------------------------------
+# uv
+# --------------------------------------------------------------------------
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3,<9",
+    "pytest-cov>=5,<6",
+    "pytest-httpx>=0.32,<0.33",
+    "respx>=0.21,<0.22",
+    "ruff>=0.6,<0.7",
+    "pyright>=1.1.380,<2",
+    "bandit>=1.7,<2",
+    "pip-audit>=2.7,<3",
+    "detect-secrets>=1.5,<2",
+]
+
+# --------------------------------------------------------------------------
+# ruff
+# --------------------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # bugbear
+    "UP",   # pyupgrade
+    "SIM",  # simplify
+    "S",    # bandit-lite (security)
+    "C4",   # comprehensions
+    "PIE",  # misc improvements
+    "RET",  # return values
+    "PTH",  # use pathlib
+    "TID",  # tidy imports
+    "ARG",  # unused arguments
+    "N",    # pep8 naming
+]
+ignore = [
+    "E501",  # line length handled by formatter
+    "S101",  # asserts in tests are fine
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S", "ARG"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# --------------------------------------------------------------------------
+# pyright
+# --------------------------------------------------------------------------
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
+# tests son mas permisivos
+executionEnvironments = [
+    { root = "tests", reportMissingTypeStubs = false, reportPrivateUsage = false },
+]
+
+# --------------------------------------------------------------------------
+# pytest
+# --------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=factory_etl",
+    "--cov-report=term-missing",
+    "--cov-fail-under=70",
+]
+markers = [
+    "unit: pruebas unitarias",
+    "integration: pruebas de integracion (usan mocks de red y GCS)",
+    "security: pruebas de seguridad (inyeccion SQL, path traversal, etc.)",
+]
+
+[tool.coverage.run]
+source = ["src/factory_etl"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+# --------------------------------------------------------------------------
+# bandit
+# --------------------------------------------------------------------------
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101"]  # asserts en no-tests son intencionales cuando aparecen

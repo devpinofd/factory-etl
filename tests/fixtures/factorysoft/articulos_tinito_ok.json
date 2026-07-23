@@ -1,0 +1,28 @@
+{
+  "d": {
+    "laTablas": [
+      [
+        {
+          "cod_art": "0000000001                    ",
+          "modelo": "m159                          ",
+          "codigo_barras": "000                           ",
+          "nom_art": "REGISTRO MODELO (CLIC EN DUPLICAR)                                                                  ",
+          "cod_dep": "TTN       ",
+          "cod_sec": "TTN       ",
+          "cod_mar": "TTN       ",
+          "cod_pro": "0001      ",
+          "cod_uni1": "UNI       ",
+          "peso": 0.0000000000,
+          "fraccion": 0.0000000000,
+          "cap_bulto": 0.0000000000,
+          "gra_lic": 0.0000000000,
+          "precio": 0.0000000000,
+          "cos_ult1": 0.0000000000,
+          "cod_imp": "16        ",
+          "status": "A",
+          "fec_ini": "2021-09-13T14:53:04.9170000"
+        }
+      ]
+    ]
+  }
+}

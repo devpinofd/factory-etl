@@ -1,0 +1,24 @@
+# Copiar a prod.tfvars y completar con valores reales.
+# NUNCA commitear prod.tfvars al repo.
+
+project_id             = "factory-etl-prod-XXXXXX"
+region                 = "us-central1"
+environment            = "prod"
+
+bronze_bucket_name     = "factory-etl-prod-bronze-XXXXXX"
+quarantine_bucket_name = "factory-etl-prod-quarantine-XXXXXX"
+
+control_dataset_id       = "factory_etl_control"
+control_dataset_location = "US"
+
+service_account_name = "factory-etl-runtime"
+
+# Workload Identity Federation
+wif_enabled         = true
+github_owner        = "mi-org"
+github_repo         = "bd-sort"
+github_allowed_refs = ["refs/heads/main"]
+
+# Retention
+bronze_retention_days    = 365
+enable_object_versioning = true

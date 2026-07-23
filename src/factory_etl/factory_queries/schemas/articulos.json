@@ -1,0 +1,46 @@
+{
+  "entity": "articulos",
+  "version": "1.0.0",
+  "natural_key": ["_source_empresa", "cod_art"],
+  "reject_empty": true,
+  "load_strategy": "full_snapshot",
+  "columns": [
+    { "name": "cod_art",       "type": "string",  "required": true,  "trim_in_silver": true },
+    { "name": "modelo",        "type": "string",  "trim_in_silver": true },
+    { "name": "codigo_barras", "type": "string",  "trim_in_silver": true },
+    { "name": "nom_art",       "type": "string",  "required": true,  "trim_in_silver": true },
+    { "name": "cod_dep",       "type": "string",  "trim_in_silver": true },
+    { "name": "cod_sec",       "type": "string",  "trim_in_silver": true },
+    { "name": "cod_mar",       "type": "string",  "trim_in_silver": true },
+    { "name": "cod_pro",       "type": "string",  "trim_in_silver": true },
+    {
+      "name": "cod_uni1",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true,
+      "silver_default": "UNI",
+      "silver_default_when": ["null", "empty_after_trim"]
+    },
+    { "name": "peso",      "type": "number", "silver_type": "decimal(28,10)", "min": 0 },
+    { "name": "fraccion",  "type": "number", "silver_type": "decimal(28,10)", "min": 0 },
+    { "name": "cap_bulto", "type": "number", "silver_type": "decimal(28,10)", "min": 0 },
+    { "name": "gra_lic",   "type": "number", "silver_type": "decimal(28,10)", "min": 0 },
+    { "name": "precio",    "type": "number", "silver_type": "decimal(28,10)", "min": 0 },
+    { "name": "cos_ult1",  "type": "number", "silver_type": "decimal(28,10)", "min": 0 },
+    { "name": "cod_imp",   "type": "string", "trim_in_silver": true },
+    {
+      "name": "status",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true,
+      "domain": ["A", "I"]
+    },
+    {
+      "name": "fec_ini",
+      "type": "string",
+      "silver_type": "timestamp",
+      "silver_format": "iso8601_dotnet",
+      "semantics": "fecha_alta"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+# Copiar a dev.tfvars y completar con valores reales.
+# NUNCA commitear dev.tfvars al repo.
+
+project_id             = "factory-etl-dev-XXXXXX"
+region                 = "us-central1"
+environment            = "dev"
+
+bronze_bucket_name     = "factory-etl-dev-bronze-XXXXXX"
+quarantine_bucket_name = "factory-etl-dev-quarantine-XXXXXX"
+
+control_dataset_id       = "factory_etl_control"
+control_dataset_location = "US"
+
+service_account_name = "factory-etl-runtime"
+
+# Workload Identity Federation
+# Se activa en un segundo apply, DESPUES de crear el repo en GitHub.
+wif_enabled         = false
+github_owner        = ""     # completar cuando el repo exista
+github_repo         = "factory-etl"
+github_allowed_refs = ["refs/heads/main"]
+
+# Retention
+bronze_retention_days    = 90
+enable_object_versioning = true

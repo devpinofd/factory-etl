@@ -1,0 +1,15 @@
+# Terraform state y variables locales — nunca al repo.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+# NOTA: .terraform.lock.hcl SI se versiona (documenta versiones exactas de providers).
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
