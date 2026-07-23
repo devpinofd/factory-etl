@@ -62,9 +62,7 @@ class TestRenderErrorSubHierarchy:
             ForbiddenContent,
         ],
     )
-    def test_render_subtypes_inherit_from_render_error(
-        self, cls: type[Exception]
-    ) -> None:
+    def test_render_subtypes_inherit_from_render_error(self, cls: type[Exception]) -> None:
         assert issubclass(cls, RenderError)
 
 

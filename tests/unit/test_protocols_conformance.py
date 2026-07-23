@@ -184,12 +184,15 @@ class TestFakesSatisfyProtocols:
         impl: ControlTablesProtocol = FakeControl()
         impl.start_run(run_id="r1")
         impl.finish_run(run_id="r1", status=RunStatus.SUCCESS)
-        assert impl.find_batch_by_hash(
-            source_empresa="tinito",
-            query_id="articulos_v1",
-            dt="2026-07-22",
-            payload_hash="x",
-        ) is None
+        assert (
+            impl.find_batch_by_hash(
+                source_empresa="tinito",
+                query_id="articulos_v1",
+                dt="2026-07-22",
+                payload_hash="x",
+            )
+            is None
+        )
 
     def test_fake_quarantine(self) -> None:
         class FakeQuarantine:

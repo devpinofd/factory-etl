@@ -47,7 +47,7 @@ class TestArticulosFixtureShape:
         payload = json.loads(factorysoft_articulos_ok)
         row = payload["d"]["laTablas"][0][0]
         for col in ("peso", "fraccion", "cap_bulto", "gra_lic", "precio", "cos_ult1"):
-            assert isinstance(row[col], (int, float)), f"{col} no es numerico: {type(row[col])}"
+            assert isinstance(row[col], int | float), f"{col} no es numerico: {type(row[col])}"
 
     def test_fec_ini_formato_iso_dotnet(self, factorysoft_articulos_ok: bytes) -> None:
         payload = json.loads(factorysoft_articulos_ok)

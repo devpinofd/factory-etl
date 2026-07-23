@@ -42,7 +42,13 @@ from factory_etl.factory_queries.models import ParamSpec, ParamType
 _PLACEHOLDER_RE = re.compile(r"\{\{\s*([a-z_][a-z0-9_]*)\s*\}\}")
 
 # Tokens de inyeccion prohibidos en cualquier valor string. Insensibles a mayusculas.
+# NOTA: `'` (apostrofe) es el token mas peligroso: _format_string_enum envuelve
+# el valor en `'...'`, y una comilla interna rompe el escape y permite inyeccion
+# aun cuando el valor pase la validacion de allowed_values. Los codigos de
+# FactorySoft (articulo, serie, sucursal) no contienen comillas legitimas.
 _FORBIDDEN_TOKENS: tuple[str, ...] = (
+    "'",
+    '"',
     ";",
     "--",
     "/*",
@@ -118,9 +124,7 @@ def _preflight_forbidden_content(values: Mapping[str, object]) -> None:
         lowered = value.lower()
         for token in _FORBIDDEN_TOKENS:
             if token in lowered:
-                raise ForbiddenContent(
-                    f"parametro '{name}' contiene token prohibido: {token!r}"
-                )
+                raise ForbiddenContent(f"parametro '{name}' contiene token prohibido: {token!r}")
 
 
 def _format_value(spec: ParamSpec, value: object) -> str:
@@ -136,17 +140,11 @@ def _format_string_enum(spec: ParamSpec, value: object) -> str:
     if not isinstance(value, str):
         raise InvalidParameterValue(f"{spec.name}: se esperaba str")
     if spec.allowed_values is None:
-        raise InvalidParameterValue(
-            f"{spec.name}: STRING_ENUM requiere allowed_values"
-        )
+        raise InvalidParameterValue(f"{spec.name}: STRING_ENUM requiere allowed_values")
     if value not in spec.allowed_values:
-        raise InvalidParameterValue(
-            f"{spec.name}: '{value}' no esta en allowed_values"
-        )
+        raise InvalidParameterValue(f"{spec.name}: '{value}' no esta en allowed_values")
     if not _ALLOWED_STRING_RE.match(value):
-        raise InvalidParameterValue(
-            f"{spec.name}: contiene caracteres fuera de ASCII imprimible"
-        )
+        raise InvalidParameterValue(f"{spec.name}: contiene caracteres fuera de ASCII imprimible")
     return f"'{value}'"
 
 
@@ -154,9 +152,7 @@ def _format_date(spec: ParamSpec, value: object) -> str:
     if not isinstance(value, str):
         raise InvalidParameterValue(f"{spec.name}: se esperaba str YYYY-MM-DD")
     if not _DATE_RE.match(value):
-        raise InvalidParameterValue(
-            f"{spec.name}: formato invalido, se esperaba YYYY-MM-DD"
-        )
+        raise InvalidParameterValue(f"{spec.name}: formato invalido, se esperaba YYYY-MM-DD")
     return f"'{value}'"
 
 
@@ -165,13 +161,9 @@ def _format_int(spec: ParamSpec, value: object) -> str:
     if isinstance(value, bool) or not isinstance(value, int):
         raise InvalidParameterValue(f"{spec.name}: se esperaba int")
     if spec.min_value is not None and value < spec.min_value:
-        raise InvalidParameterValue(
-            f"{spec.name}: {value} < min_value {spec.min_value}"
-        )
+        raise InvalidParameterValue(f"{spec.name}: {value} < min_value {spec.min_value}")
     if spec.max_value is not None and value > spec.max_value:
-        raise InvalidParameterValue(
-            f"{spec.name}: {value} > max_value {spec.max_value}"
-        )
+        raise InvalidParameterValue(f"{spec.name}: {value} > max_value {spec.max_value}")
     return str(value)
 
 

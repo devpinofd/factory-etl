@@ -42,7 +42,9 @@ class Settings(BaseSettings):
     # --- GCP -----------------------------------------------------------------
 
     gcp_project: str = Field(description="ID del proyecto GCP donde vive el bucket y BQ.")
-    gcp_region: str = Field(default="us-central1", description="Region primaria. Alineada con ConciliApp.")
+    gcp_region: str = Field(
+        default="us-central1", description="Region primaria. Alineada con ConciliApp."
+    )
 
     bronze_bucket: str = Field(description="Nombre del bucket GCS para Bronze.")
     quarantine_bucket: str = Field(

@@ -54,7 +54,15 @@ class BronzeWriter:
         raise NotImplementedError("BronzeWriter.promote pendiente (Fase 1 Etapa 4).")
 
     @staticmethod
-    def _final_prefix(*, bucket: str, entity: str, source_empresa: str, dt: str, run_id: str) -> str:
+    def _final_prefix(
+        *, bucket: str, entity: str, source_empresa: str, dt: str, run_id: str
+    ) -> str:
         """Calcula el prefijo GCS final segun el layout canonico."""
-        path = PurePosixPath("bronze") / entity / f"source_empresa={source_empresa}" / f"dt={dt}" / f"run_id={run_id}"
+        path = (
+            PurePosixPath("bronze")
+            / entity
+            / f"source_empresa={source_empresa}"
+            / f"dt={dt}"
+            / f"run_id={run_id}"
+        )
         return f"gs://{bucket}/{path}/"

@@ -26,8 +26,8 @@ from typing import TYPE_CHECKING, Any, Protocol
 if TYPE_CHECKING:
     from factory_etl.bronze_writer import WriteResult
     from factory_etl.control_tables import BatchStatus, RunStatus
-    from factory_etl.query_runner import HttpResult
     from factory_etl.quarantine import QuarantineReason
+    from factory_etl.query_runner import HttpResult
 
 
 class SecretResolverProtocol(Protocol):

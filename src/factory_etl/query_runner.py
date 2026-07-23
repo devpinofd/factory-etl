@@ -41,6 +41,4 @@ class QueryRunner:
 
     def execute(self, *, sql_rendered: str, source_empresa: str) -> HttpResult:  # noqa: ARG002
         """Envia el POST y devuelve el payload crudo con su hash."""
-        raise NotImplementedError(
-            "QueryRunner.execute pendiente de implementar (Fase 1 Etapa 4)."
-        )
+        raise NotImplementedError("QueryRunner.execute pendiente de implementar (Fase 1 Etapa 4).")

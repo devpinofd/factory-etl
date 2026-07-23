@@ -35,7 +35,9 @@ class TestForbiddenTokensInStringParams:
     )
     def test_rechaza_token_prohibido(self, malicious_value: str) -> None:
         """Cualquier token peligroso dispara ForbiddenContent aun con dominio abierto."""
-        specs = (ParamSpec(name="e", type=ParamType.STRING_ENUM, allowed_values=(malicious_value,)),)
+        specs = (
+            ParamSpec(name="e", type=ParamType.STRING_ENUM, allowed_values=(malicious_value,)),
+        )
         with pytest.raises(ForbiddenContent):
             render("{{e}}", specs, {"e": malicious_value})
 
@@ -62,9 +64,7 @@ class TestStringEnumCharsetHardening:
     def test_rechaza_caracteres_no_ascii(self) -> None:
         # Aunque el valor este en allowed_values, un no-ASCII se rechaza para
         # evitar sorpresas por normalizacion unicode o characters de control.
-        specs = (
-            ParamSpec(name="e", type=ParamType.STRING_ENUM, allowed_values=("tinito\u200b",)),
-        )
+        specs = (ParamSpec(name="e", type=ParamType.STRING_ENUM, allowed_values=("tinito\u200b",)),)
         with pytest.raises(InvalidParameterValue, match="ASCII"):
             render("{{e}}", specs, {"e": "tinito\u200b"})
 

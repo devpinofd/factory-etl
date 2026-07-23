@@ -28,6 +28,4 @@ class SecretResolver:
         """Devuelve el valor del secreto. Lanza si no existe o no hay permisos."""
         if secret_name in self._cache:
             return self._cache[secret_name]
-        raise NotImplementedError(
-            "SecretResolver.get pendiente de implementar (Fase 1 Etapa 4)."
-        )
+        raise NotImplementedError("SecretResolver.get pendiente de implementar (Fase 1 Etapa 4).")

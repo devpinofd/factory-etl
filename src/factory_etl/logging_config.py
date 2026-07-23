@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import MutableMapping
 from typing import Any
 
 import structlog
@@ -74,9 +75,13 @@ _REDACT_KEYS = frozenset(
 def _redact_sensitive(
     _logger: Any,  # noqa: ARG001
     _method: str,  # noqa: ARG001
-    event_dict: dict[str, Any],
-) -> dict[str, Any]:
-    """Elimina o enmascara campos sensibles antes de emitir el log."""
+    event_dict: MutableMapping[str, Any],
+) -> MutableMapping[str, Any]:
+    """Elimina o enmascara campos sensibles antes de emitir el log.
+
+    La firma coincide con `structlog.typing.Processor` (EventDict es
+    `MutableMapping[str, Any]`, no `dict`).
+    """
 
     for key in list(event_dict.keys()):
         if key.lower() in _REDACT_KEYS:

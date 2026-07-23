@@ -22,8 +22,11 @@ log = structlog.get_logger(__name__)
 
 
 @app.callback()
-def _root() -> None:
-    """Punto de entrada. Configura logging antes de cualquier comando."""
+def _root() -> None:  # pyright: ignore[reportUnusedFunction]
+    """Punto de entrada. Configura logging antes de cualquier comando.
+
+    typer registra la funcion via el decorador; pyright no lo detecta.
+    """
 
 
 @app.command()

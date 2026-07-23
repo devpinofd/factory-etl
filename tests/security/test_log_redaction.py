@@ -11,7 +11,6 @@ import pytest
 
 from factory_etl.logging_config import _REDACT_KEYS, _redact_sensitive
 
-
 REDACTED = "***REDACTED***"
 
 

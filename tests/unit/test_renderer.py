@@ -50,9 +50,7 @@ class TestSuccessfulRendering:
 
     def test_placeholder_con_espacios_es_valido(self) -> None:
         template = "select * from t where c = {{  empresa  }}"
-        specs = (
-            ParamSpec(name="empresa", type=ParamType.STRING_ENUM, allowed_values=("tinito",)),
-        )
+        specs = (ParamSpec(name="empresa", type=ParamType.STRING_ENUM, allowed_values=("tinito",)),)
         rendered = render(template, specs, {"empresa": "tinito"})
         assert rendered == "select * from t where c = 'tinito'"
 
@@ -93,17 +91,13 @@ class TestPlaceholderErrors:
 
     def test_parametro_declarado_faltante_falla(self) -> None:
         template = "select * from t where c = {{empresa}}"
-        specs = (
-            ParamSpec(name="empresa", type=ParamType.STRING_ENUM, allowed_values=("tinito",)),
-        )
+        specs = (ParamSpec(name="empresa", type=ParamType.STRING_ENUM, allowed_values=("tinito",)),)
         with pytest.raises(MissingParameter, match="empresa"):
             render(template, specs, {})
 
     def test_parametro_declarado_pero_no_usado_falla(self) -> None:
         template = "select * from articulos"
-        specs = (
-            ParamSpec(name="empresa", type=ParamType.STRING_ENUM, allowed_values=("tinito",)),
-        )
+        specs = (ParamSpec(name="empresa", type=ParamType.STRING_ENUM, allowed_values=("tinito",)),)
         with pytest.raises(RenderError, match="empresa"):
             render(template, specs, {"empresa": "tinito"})
 

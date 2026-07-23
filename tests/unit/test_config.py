@@ -17,7 +17,6 @@ from pydantic import ValidationError
 
 from factory_etl.config import Settings
 
-
 REQUIRED_ENV: dict[str, str] = {
     "FACTORY_ETL_GCP_PROJECT": "test-project",
     "FACTORY_ETL_BRONZE_BUCKET": "test-bucket",
@@ -60,9 +59,7 @@ class TestEnvPrefix:
 
 
 class TestFrozen:
-    def test_cannot_mutate_after_construction(
-        self, clean_env: pytest.MonkeyPatch
-    ) -> None:
+    def test_cannot_mutate_after_construction(self, clean_env: pytest.MonkeyPatch) -> None:
         for k, v in REQUIRED_ENV.items():
             clean_env.setenv(k, v)
         settings = Settings.load()
@@ -95,9 +92,7 @@ class TestRequiredFields:
         with pytest.raises(ValidationError):
             Settings.load()
 
-    def test_fails_without_control_dataset(
-        self, clean_env: pytest.MonkeyPatch
-    ) -> None:
+    def test_fails_without_control_dataset(self, clean_env: pytest.MonkeyPatch) -> None:
         clean_env.setenv("FACTORY_ETL_GCP_PROJECT", "p")
         clean_env.setenv("FACTORY_ETL_BRONZE_BUCKET", "b")
 
@@ -106,9 +101,7 @@ class TestRequiredFields:
 
 
 class TestNumericValidators:
-    def test_http_timeout_seconds_rejects_zero(
-        self, clean_env: pytest.MonkeyPatch
-    ) -> None:
+    def test_http_timeout_seconds_rejects_zero(self, clean_env: pytest.MonkeyPatch) -> None:
         for k, v in REQUIRED_ENV.items():
             clean_env.setenv(k, v)
         clean_env.setenv("FACTORY_ETL_HTTP_TIMEOUT_SECONDS", "0")
@@ -116,9 +109,7 @@ class TestNumericValidators:
         with pytest.raises(ValidationError):
             Settings.load()
 
-    def test_http_timeout_seconds_rejects_above_600(
-        self, clean_env: pytest.MonkeyPatch
-    ) -> None:
+    def test_http_timeout_seconds_rejects_above_600(self, clean_env: pytest.MonkeyPatch) -> None:
         for k, v in REQUIRED_ENV.items():
             clean_env.setenv(k, v)
         clean_env.setenv("FACTORY_ETL_HTTP_TIMEOUT_SECONDS", "601")
@@ -126,9 +117,7 @@ class TestNumericValidators:
         with pytest.raises(ValidationError):
             Settings.load()
 
-    def test_http_max_retries_rejects_negative(
-        self, clean_env: pytest.MonkeyPatch
-    ) -> None:
+    def test_http_max_retries_rejects_negative(self, clean_env: pytest.MonkeyPatch) -> None:
         for k, v in REQUIRED_ENV.items():
             clean_env.setenv(k, v)
         clean_env.setenv("FACTORY_ETL_HTTP_MAX_RETRIES", "-1")
@@ -138,9 +127,7 @@ class TestNumericValidators:
 
 
 class TestDefaults:
-    def test_defaults_are_documented_contract(
-        self, clean_env: pytest.MonkeyPatch
-    ) -> None:
+    def test_defaults_are_documented_contract(self, clean_env: pytest.MonkeyPatch) -> None:
         for k, v in REQUIRED_ENV.items():
             clean_env.setenv(k, v)
 
@@ -153,9 +140,7 @@ class TestDefaults:
         assert settings.http_max_retries == 3
         assert settings.factorysoft_api_key_secret == "factory-api-key"
 
-    def test_env_rejects_invalid_literal(
-        self, clean_env: pytest.MonkeyPatch
-    ) -> None:
+    def test_env_rejects_invalid_literal(self, clean_env: pytest.MonkeyPatch) -> None:
         for k, v in REQUIRED_ENV.items():
             clean_env.setenv(k, v)
         clean_env.setenv("FACTORY_ETL_ENV", "production")
