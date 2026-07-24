@@ -19,6 +19,8 @@ externa (HTTP body de FactorySoft) y no puede concatenarse en el SQL.
 
 from __future__ import annotations
 
+import json
+import uuid
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Protocol, cast
@@ -69,11 +71,18 @@ class ControlTablesError(Exception):
     """Error al escribir/consultar tablas de control."""
 
 
+# Umbral de tamano (en bytes) del JSON serializado de `extras` a partir del
+# cual se sustituye por un marcador de truncado. Evita filas de auditoria
+# desproporcionadas y potencial fuga de payloads grandes.
+_EXTRAS_MAX_BYTES = 2048
+
+
 class ControlTables:
     """Interfaz para escribir eventos de auditoria."""
 
     _TABLE_RUNS = "etl_runs"
     _TABLE_BATCHES = "etl_batches"
+    _TABLE_EVENTS = "etl_events"
 
     def __init__(
         self,
@@ -110,6 +119,7 @@ class ControlTables:
         run_id: str,
         status: RunStatus,
         error: str | None = None,
+        extras: dict[str, Any] | None = None,
     ) -> None:
         """Cierra la corrida con el status final y timestamp.
 
@@ -123,7 +133,7 @@ class ControlTables:
             "started_at": None,
             "ended_at": _now_iso(),
             "error": error,
-            "extras": {},
+            "extras": extras or {},
         }
         # row_id distinto al de start_run para permitir la segunda insercion.
         self._insert(self._table_runs(), [row], row_ids=[f"{run_id}:finish"])
@@ -213,6 +223,47 @@ class ControlTables:
             return str(row[0])
         return None
 
+    # -- events ---------------------------------------------------------------
+
+    def log_event(
+        self,
+        *,
+        run_id: str,
+        event_type: str,
+        phase: str,
+        batch_id: str | None = None,
+        entity: str | None = None,
+        duration_ms: int | None = None,
+        extras: dict[str, Any] | None = None,
+    ) -> None:
+        """Inserta un evento de auditoria en ``etl_events``.
+
+        El campo ``extras`` se serializa con ``json.dumps(sort_keys=True,
+        default=str)`` para producir un string estable. Si el tamano
+        supera ``_EXTRAS_MAX_BYTES`` (2 KB) se sustituye por un marcador
+        de truncado; nunca se persiste el contenido original en ese caso,
+        para evitar filas de auditoria desmedidas y potencial fuga de
+        payloads grandes en logs.
+
+        La fila se inserta con ``row_ids=[event_id]`` para deduplicacion
+        en la ventana de streaming de BigQuery.
+        """
+        event_id = uuid.uuid4().hex
+        extras_serialized = _serialize_extras(extras)
+
+        row: dict[str, Any] = {
+            "event_id": event_id,
+            "run_id": run_id,
+            "batch_id": batch_id,
+            "entity": entity,
+            "phase": phase,
+            "event_type": event_type,
+            "duration_ms": duration_ms,
+            "extras": extras_serialized,
+            "inserted_at": _now_iso(),
+        }
+        self._insert(self._table_events(), [row], row_ids=[event_id])
+
     # -- helpers privados -----------------------------------------------------
 
     def _insert(
@@ -237,6 +288,9 @@ class ControlTables:
     def _table_batches(self) -> str:
         return f"{self._project}.{self._dataset}.{self._TABLE_BATCHES}"
 
+    def _table_events(self) -> str:
+        return f"{self._project}.{self._dataset}.{self._TABLE_EVENTS}"
+
     def _get_client(self) -> _BigQueryClient:
         if self._client is None:
             from google.cloud import bigquery  # noqa: PLC0415
@@ -254,3 +308,21 @@ class ControlTables:
 def _now_iso() -> str:
     """Timestamp UTC en formato ISO 8601 (BigQuery TIMESTAMP-friendly)."""
     return datetime.now(UTC).isoformat()
+
+
+def _serialize_extras(extras: dict[str, Any] | None) -> str:
+    """Serializa ``extras`` a JSON estable; trunca si supera ``_EXTRAS_MAX_BYTES``.
+
+    El contenido original no se persiste cuando se trunca: se reemplaza por
+    ``{"__truncated": true, "size_bytes": <n>}`` para dejar rastro del
+    tamano sin filtrar datos.
+    """
+    if not extras:
+        return "{}"
+    serialized = json.dumps(extras, sort_keys=True, default=str)
+    if len(serialized.encode("utf-8")) > _EXTRAS_MAX_BYTES:
+        return json.dumps(
+            {"__truncated": True, "size_bytes": len(serialized)},
+            sort_keys=True,
+        )
+    return serialized

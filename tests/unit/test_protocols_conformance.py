@@ -153,6 +153,7 @@ class TestFakesSatisfyProtocols:
                 run_id: str,
                 status: RunStatus,
                 error: str | None = None,  # noqa: ARG002
+                extras: dict[str, Any] | None = None,  # noqa: ARG002
             ) -> None:
                 self.events.append(f"finish:{run_id}:{status}")
 
@@ -180,6 +181,19 @@ class TestFakesSatisfyProtocols:
                 payload_hash: str,  # noqa: ARG002
             ) -> str | None:
                 return None
+
+            def log_event(
+                self,
+                *,
+                run_id: str,  # noqa: ARG002
+                event_type: str,  # noqa: ARG002
+                phase: str,  # noqa: ARG002
+                batch_id: str | None = None,  # noqa: ARG002
+                entity: str | None = None,  # noqa: ARG002
+                duration_ms: int | None = None,  # noqa: ARG002
+                extras: dict[str, Any] | None = None,  # noqa: ARG002
+            ) -> None:
+                self.events.append("event")
 
         impl: ControlTablesProtocol = FakeControl()
         impl.start_run(run_id="r1")

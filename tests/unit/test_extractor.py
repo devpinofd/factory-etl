@@ -36,6 +36,21 @@ def _envelope(rows: list[dict[str, Any]]) -> bytes:
     return json.dumps({"d": {"laTablas": [rows]}}).encode("utf-8")
 
 
+def _ok_row(cod_art: str, **overrides: Any) -> dict[str, Any]:
+    """Fila con todas las columnas ``required`` del esquema ``articulos_v1``.
+
+    Cualquier campo se puede sobreescribir via ``**overrides``.
+    """
+    row: dict[str, Any] = {
+        "cod_art": cod_art,
+        "nom_art": f"nombre {cod_art}",
+        "cod_uni1": "UNI",
+        "status": "A",
+    }
+    row.update(overrides)
+    return row
+
+
 class _FakeRunner:
     """Runner en memoria: retorna el ``HttpResult`` configurado."""
 
@@ -114,6 +129,7 @@ class _FakeControl:
         self.finishes: list[dict[str, Any]] = []
         self.registered: list[dict[str, Any]] = []
         self.find_calls: list[dict[str, str]] = []
+        self.events: list[dict[str, Any]] = []
 
     def start_run(self, *, run_id: str, extras: dict[str, Any] | None = None) -> None:
         self.starts.append(run_id)
@@ -124,8 +140,39 @@ class _FakeControl:
         run_id: str,
         status: Any,
         error: str | None = None,
+        extras: dict[str, Any] | None = None,
     ) -> None:
-        self.finishes.append({"run_id": run_id, "status": status, "error": error})
+        self.finishes.append(
+            {
+                "run_id": run_id,
+                "status": status,
+                "error": error,
+                "extras": extras,
+            }
+        )
+
+    def log_event(
+        self,
+        *,
+        run_id: str,
+        event_type: str,
+        phase: str,
+        batch_id: str | None = None,
+        entity: str | None = None,
+        duration_ms: int | None = None,
+        extras: dict[str, Any] | None = None,
+    ) -> None:
+        self.events.append(
+            {
+                "run_id": run_id,
+                "event_type": event_type,
+                "phase": phase,
+                "batch_id": batch_id,
+                "entity": entity,
+                "duration_ms": duration_ms,
+                "extras": extras,
+            }
+        )
 
     def register_batch(
         self,
@@ -222,7 +269,7 @@ def _build_extractor(
 
 class TestHappyPath:
     def test_flujo_completo_end_to_end(self) -> None:
-        rows = [{"cod_art": "0001", "nom_art": "Uno"}, {"cod_art": "0002", "nom_art": "Dos"}]
+        rows = [_ok_row("0001", nom_art="Uno"), _ok_row("0002", nom_art="Dos")]
         runner = _FakeRunner(_envelope(rows))
         ex, _writer, _control, _quarantine = _build_extractor(runner=runner)
 
@@ -241,7 +288,7 @@ class TestHappyPath:
         assert "bronze/" in outcome.object_uri
 
     def test_registra_written_luego_success_en_ese_orden(self) -> None:
-        runner = _FakeRunner(_envelope([{"cod_art": "0001"}]))
+        runner = _FakeRunner(_envelope([_ok_row("0001")]))
         ex, _, control, _ = _build_extractor(runner=runner)
 
         ex.run_batch(
@@ -255,7 +302,7 @@ class TestHappyPath:
         assert statuses == [BatchStatus.WRITTEN, BatchStatus.SUCCESS]
 
     def test_writer_stage_recibe_rows_parseadas(self) -> None:
-        rows = [{"cod_art": "0001"}, {"cod_art": "0002"}, {"cod_art": "0003"}]
+        rows = [_ok_row("0001"), _ok_row("0002"), _ok_row("0003")]
         runner = _FakeRunner(_envelope(rows))
         ex, writer, _, _ = _build_extractor(runner=runner)
 
@@ -271,7 +318,7 @@ class TestHappyPath:
         assert len(writer.promote_calls) == 1
 
     def test_batch_id_deterministico_por_hash(self) -> None:
-        rows = [{"cod_art": "0001"}]
+        rows = [_ok_row("0001")]
         payload = _envelope(rows)
         runner = _FakeRunner(payload)
         ex, _, _, _ = _build_extractor(runner=runner)
@@ -292,7 +339,7 @@ class TestHappyPath:
 
     def test_soporta_sobre_heredado_con_datos(self) -> None:
         # sobre viejo con clave "datos" en lugar de "d"
-        payload = json.dumps({"datos": {"laTablas": [[{"cod_art": "0001"}]]}}).encode("utf-8")
+        payload = json.dumps({"datos": {"laTablas": [[_ok_row("0001")]]}}).encode("utf-8")
         runner = _FakeRunner(payload)
         ex, _, _, _ = _build_extractor(runner=runner)
 
@@ -306,7 +353,7 @@ class TestHappyPath:
         assert outcome.record_count == 1
 
     def test_utf8_bom_en_payload(self) -> None:
-        payload = b"\xef\xbb\xbf" + _envelope([{"cod_art": "0001"}])
+        payload = b"\xef\xbb\xbf" + _envelope([_ok_row("0001")])
         runner = _FakeRunner(payload)
         ex, _, _, _ = _build_extractor(runner=runner)
 
@@ -321,7 +368,7 @@ class TestHappyPath:
 
 class TestDuplicate:
     def test_hash_ya_existente_retorna_skipped_sin_escribir(self) -> None:
-        rows = [{"cod_art": "0001"}]
+        rows = [_ok_row("0001")]
         runner = _FakeRunner(_envelope(rows))
         control = _FakeControl(existing_batch_id="batch-previo")
         ex, writer, _, quarantine = _build_extractor(runner=runner, control=control)
@@ -425,7 +472,7 @@ class TestCatalogValidation:
             )
 
     def test_empresa_no_autorizada_dispara_error(self) -> None:
-        runner = _FakeRunner(_envelope([{"cod_art": "0001"}]))
+        runner = _FakeRunner(_envelope([_ok_row("0001")]))
         ex, _, _, _ = _build_extractor(runner=runner)
 
         with pytest.raises(CompanyNotAllowedError):
@@ -439,7 +486,7 @@ class TestCatalogValidation:
 
 class TestRequestShape:
     def test_runner_recibe_source_empresa_correcto(self) -> None:
-        runner = _FakeRunner(_envelope([{"cod_art": "0001"}]))
+        runner = _FakeRunner(_envelope([_ok_row("0001")]))
         ex, _, _, _ = _build_extractor(runner=runner)
 
         ex.run_batch(
@@ -451,7 +498,7 @@ class TestRequestShape:
         assert runner.calls[0]["empresa"] == "tinito"
 
     def test_find_batch_by_hash_recibe_hash_correcto(self) -> None:
-        payload = _envelope([{"cod_art": "0001"}])
+        payload = _envelope([_ok_row("0001")])
         runner = _FakeRunner(payload)
         ex, _, control, _ = _build_extractor(runner=runner)
 

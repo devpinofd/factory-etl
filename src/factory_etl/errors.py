@@ -69,6 +69,20 @@ class EmptyResponseError(FactoryEtlError):
     """La respuesta esta vacia y la consulta tiene `reject_empty=True`."""
 
 
+class SchemaValidationError(FactoryEtlError):
+    """Una fila del payload no cumple el schema (columnas requeridas ausentes).
+
+    El mensaje es intencionalmente neutro: no incluye valores de la fila
+    para evitar fuga de PII en logs. Solo se expone el conjunto de columnas
+    faltantes y el indice posicional de la primera fila ofensora.
+    """
+
+    def __init__(self, *, missing_columns: frozenset[str], row_index: int) -> None:
+        self.missing_columns = missing_columns
+        self.row_index = row_index
+        super().__init__(f"fila {row_index} omite columnas requeridas: {sorted(missing_columns)}")
+
+
 # --- Ciclo de vida del batch -------------------------------------------------
 
 

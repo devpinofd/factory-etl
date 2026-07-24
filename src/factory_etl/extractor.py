@@ -25,13 +25,17 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from factory_etl import ids
 from factory_etl.config import Settings
 from factory_etl.control_tables import BatchStatus
-from factory_etl.errors import InvalidPayloadError
+from factory_etl.errors import InvalidPayloadError, SchemaValidationError
 from factory_etl.factory_queries.catalog import get as get_query_definition
+from factory_etl.factory_queries.models import QueryDefinition
 from factory_etl.factory_queries.renderer import render as render_sql
 from factory_etl.protocols import (
     BronzeWriterProtocol,
@@ -111,6 +115,7 @@ class Extractor:
             qdef.parameters,
             parameter_values or {},
         )
+        sql_hash_hex = ids.sql_hash(sql_rendered)
 
         http_result = self.runner.execute(
             sql_rendered=sql_rendered,
@@ -126,6 +131,13 @@ class Extractor:
             payload_hash=http_result.payload_hash,
         )
         if existing_batch_id is not None:
+            self.control.log_event(
+                run_id=run_id,
+                event_type="DUPLICATE_SKIPPED",
+                phase="validate",
+                batch_id=existing_batch_id,
+                entity=entity,
+            )
             return BatchOutcome(
                 batch_id=existing_batch_id,
                 status=BatchStatus.SKIPPED_DUPLICATE.value,
@@ -146,6 +158,9 @@ class Extractor:
                 payload_bytes=http_result.payload_bytes,
                 payload_hash=http_result.payload_hash,
                 reason=QuarantineReason.SCHEMA_MISMATCH,
+                event_type="QUARANTINED_SCHEMA",
+                event_phase="parse",
+                event_extras=None,
             )
 
         # Payload vacio: cuarentena si la consulta asi lo declara.
@@ -158,6 +173,36 @@ class Extractor:
                 payload_bytes=http_result.payload_bytes,
                 payload_hash=http_result.payload_hash,
                 reason=QuarantineReason.EMPTY_REJECTED,
+                event_type="QUARANTINED_EMPTY",
+                event_phase="validate",
+                event_extras=None,
+            )
+
+        # Validacion de esquema: filas incompletas van a cuarentena; columnas
+        # extra solo emiten un evento de SCHEMA_DRIFT una unica vez.
+        try:
+            _validate_required_columns(
+                rows,
+                qdef,
+                control=self.control,
+                run_id=run_id,
+                entity=entity,
+            )
+        except SchemaValidationError as exc:
+            return self._quarantine_and_register(
+                run_id=run_id,
+                entity=entity,
+                source_empresa=source_empresa,
+                dt=dt,
+                payload_bytes=http_result.payload_bytes,
+                payload_hash=http_result.payload_hash,
+                reason=QuarantineReason.SCHEMA_MISMATCH,
+                event_type="QUARANTINED_SCHEMA",
+                event_phase="validate",
+                event_extras={
+                    "row_index": exc.row_index,
+                    "missing_columns": sorted(exc.missing_columns),
+                },
             )
 
         # A partir de aqui es un batch valido.
@@ -168,12 +213,24 @@ class Extractor:
             payload_hash_hex=http_result.payload_hash,
         )
 
+        enriched_rows = _enrich_rows(
+            rows,
+            entity=entity,
+            source_empresa=source_empresa,
+            dt=dt,
+            run_id=run_id,
+            batch_id_str=computed_batch_id,
+            sql_hash_hex=sql_hash_hex,
+            payload_hash_hex=http_result.payload_hash,
+            query_version=qdef.version,
+        )
+
         write_result = self.writer.stage(
             run_id=run_id,
             entity=entity,
             source_empresa=source_empresa,
             dt=dt,
-            rows=rows,
+            rows=enriched_rows,
         )
 
         # WRITTEN: objeto ya en _staging/. Si algo falla en promote queda la
@@ -189,12 +246,26 @@ class Extractor:
             object_uri=write_result.object_uri,
             payload_hash=http_result.payload_hash,
         )
+        self.control.log_event(
+            run_id=run_id,
+            event_type="BATCH_STAGED",
+            phase="stage",
+            batch_id=computed_batch_id,
+            entity=entity,
+        )
 
         final_uri = self.writer.promote(
             run_id=run_id,
             entity=entity,
             source_empresa=source_empresa,
             dt=dt,
+        )
+        self.control.log_event(
+            run_id=run_id,
+            event_type="BATCH_PROMOTED",
+            phase="promote",
+            batch_id=computed_batch_id,
+            entity=entity,
         )
 
         self.control.register_batch(
@@ -207,6 +278,13 @@ class Extractor:
             record_count=write_result.record_count,
             object_uri=final_uri,
             payload_hash=http_result.payload_hash,
+        )
+        self.control.log_event(
+            run_id=run_id,
+            event_type="BATCH_SUCCESS",
+            phase="finalize",
+            batch_id=computed_batch_id,
+            entity=entity,
         )
 
         return BatchOutcome(
@@ -227,8 +305,11 @@ class Extractor:
         payload_bytes: bytes,
         payload_hash: str,
         reason: QuarantineReason,
+        event_type: str,
+        event_phase: str,
+        event_extras: dict[str, Any] | None,
     ) -> BatchOutcome:
-        """Vuelca a cuarentena y registra el batch en control. Devuelve el outcome."""
+        """Vuelca a cuarentena, registra el batch y emite el evento correspondiente."""
         quarantine_uri = self.quarantine.dump(
             run_id=run_id,
             entity=entity,
@@ -253,6 +334,14 @@ class Extractor:
             record_count=None,
             object_uri=quarantine_uri,
             payload_hash=payload_hash,
+        )
+        self.control.log_event(
+            run_id=run_id,
+            event_type=event_type,
+            phase=event_phase,
+            batch_id=computed_batch_id,
+            entity=entity,
+            extras=event_extras,
         )
         return BatchOutcome(
             batch_id=computed_batch_id,
@@ -306,6 +395,136 @@ def _parse_payload(payload_bytes: bytes) -> list[dict[str, object]]:
             raise InvalidPayloadError("fila no-dict en laTablas[0]")
         rows.append(row)
     return rows
+
+
+@lru_cache(maxsize=64)
+def _load_schema_columns(schema_path: str) -> tuple[frozenset[str], frozenset[str]]:
+    """Lee ``columns`` del esquema y devuelve ``(required, known)``.
+
+    - ``required``: nombres con ``required: true`` (fila que los omita va a
+      cuarentena).
+    - ``known``: todos los nombres declarados en el esquema. Cualquier
+      columna en la fila fuera de este set dispara un evento
+      ``SCHEMA_DRIFT`` (informativo, no bloquea).
+
+    Cacheado por ruta: el esquema se empaqueta con el codigo y no cambia
+    en runtime. ``frozenset`` para asegurar que ningun caller lo mute.
+    """
+    content = Path(schema_path).read_text(encoding="utf-8")
+    document = json.loads(content)
+    columns = document.get("columns", [])
+    if not isinstance(columns, list):
+        return frozenset(), frozenset()
+    required: set[str] = set()
+    known: set[str] = set()
+    for entry in columns:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("name")
+        if not isinstance(name, str):
+            continue
+        known.add(name)
+        if entry.get("required") is True:
+            required.add(name)
+    return frozenset(required), frozenset(known)
+
+
+def _validate_required_columns(
+    rows: list[dict[str, object]],
+    qdef: QueryDefinition,
+    *,
+    control: ControlTablesProtocol,
+    run_id: str,
+    entity: str,
+) -> None:
+    """Verifica que cada fila contenga todas las columnas requeridas.
+
+    - Si una fila omite columnas requeridas: levanta :class:`SchemaValidationError`
+      con el indice y el conjunto de columnas faltantes (para cuarentena).
+    - Si aparecen columnas no declaradas en el esquema (drift):
+      emite **una unica** entrada ``SCHEMA_DRIFT`` con el listado ordenado
+      y continua sin fallar.
+    """
+    schema_path = qdef.schema_path
+    required, known = _load_schema_columns(str(schema_path))
+    if not required and not known:
+        return
+
+    extras_seen: set[str] = set()
+    for idx, row in enumerate(rows):
+        row_keys = set(row.keys())
+        missing = required - row_keys
+        if missing:
+            raise SchemaValidationError(
+                missing_columns=frozenset(missing),
+                row_index=idx,
+            )
+        extras_seen.update(row_keys - known)
+
+    if extras_seen:
+        control.log_event(
+            run_id=run_id,
+            event_type="SCHEMA_DRIFT",
+            phase="validate",
+            entity=entity,
+            extras={"extra_columns": sorted(extras_seen)},
+        )
+
+
+def _enrich_rows(
+    rows: list[dict[str, object]],
+    *,
+    entity: str,
+    source_empresa: str,
+    dt: str,
+    run_id: str,
+    batch_id_str: str,
+    sql_hash_hex: str,
+    payload_hash_hex: str,
+    query_version: str,
+) -> list[dict[str, object]]:
+    """Devuelve una nueva lista con las 9 columnas de sistema ``_*``.
+
+    Columnas anadidas (todas con prefijo ``_``):
+
+    - ``_ingested_at``: timestamp UTC unico para el batch entero.
+    - ``_source_empresa``, ``_dt``, ``_query_id``, ``_query_version``.
+    - ``_run_id``, ``_batch_id``.
+    - ``_sql_hash``, ``_payload_hash``.
+    - ``_row_hash``: SHA-256 canonico de la fila **original** (sin las
+      columnas ``_*``), estable para deduplicacion.
+
+    :raises ValueError: si dos filas producen el mismo ``_row_hash``
+        (colision inesperada; indica payload duplicado a nivel de fila).
+    """
+    ingested_at = datetime.now(UTC).isoformat()
+    seen_row_hashes: set[str] = set()
+    enriched: list[dict[str, object]] = []
+    for row in rows:
+        # Hash canonico: (clave, valor) ordenados por clave para estabilidad
+        # ante reordenamientos del backend.
+        canonical_pairs: list[object] = []
+        for key in sorted(row.keys()):
+            canonical_pairs.append(key)
+            canonical_pairs.append(row[key])
+        row_hash = ids.row_hash(canonical_pairs)
+        if row_hash in seen_row_hashes:
+            raise ValueError(f"colision de _row_hash dentro del batch {batch_id_str}")
+        seen_row_hashes.add(row_hash)
+
+        enriched_row: dict[str, object] = dict(row)
+        enriched_row["_ingested_at"] = ingested_at
+        enriched_row["_source_empresa"] = source_empresa
+        enriched_row["_dt"] = dt
+        enriched_row["_query_id"] = entity
+        enriched_row["_query_version"] = query_version
+        enriched_row["_run_id"] = run_id
+        enriched_row["_batch_id"] = batch_id_str
+        enriched_row["_sql_hash"] = sql_hash_hex
+        enriched_row["_payload_hash"] = payload_hash_hex
+        enriched_row["_row_hash"] = row_hash
+        enriched.append(enriched_row)
+    return enriched
 
 
 __all__ = [

@@ -86,6 +86,7 @@ class ControlTablesProtocol(Protocol):
         run_id: str,
         status: RunStatus,
         error: str | None = None,
+        extras: dict[str, Any] | None = None,
     ) -> None:
         """Cierra la corrida (UPDATE etl_runs con status final y ended_at)."""
         ...
@@ -115,6 +116,28 @@ class ControlTablesProtocol(Protocol):
         payload_hash: str,
     ) -> str | None:
         """Devuelve el batch_id existente con exito para ese hash, si existe."""
+        ...
+
+    def log_event(
+        self,
+        *,
+        run_id: str,
+        event_type: str,
+        phase: str,
+        batch_id: str | None = None,
+        entity: str | None = None,
+        duration_ms: int | None = None,
+        extras: dict[str, Any] | None = None,
+    ) -> None:
+        """Inserta un evento de auditoria en ``etl_events``.
+
+        :param event_type: enumeracion textual (``DUPLICATE_SKIPPED``,
+            ``QUARANTINED_EMPTY``, ``QUARANTINED_SCHEMA``, ``SCHEMA_DRIFT``,
+            ``BATCH_STAGED``, ``BATCH_PROMOTED``, ``BATCH_SUCCESS``,
+            ``BATCH_FAILED``).
+        :param phase: fase logica (``extract``, ``parse``, ``validate``,
+            ``stage``, ``promote``, ``finalize``).
+        """
         ...
 
 
