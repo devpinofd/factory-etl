@@ -15,12 +15,11 @@ _SYSTEM_COLUMNS = frozenset(
     {
         "_ingested_at",
         "_source_empresa",
-        "_dt",
         "_query_id",
         "_query_version",
+        "_query_sql_hash",
         "_run_id",
-        "_batch_id",
-        "_sql_hash",
+        "_lote_id",
         "_payload_hash",
         "_row_hash",
     }
@@ -33,7 +32,6 @@ def _enrich(rows: list[dict[str, object]]) -> list[dict[str, object]]:
         rows,
         entity="articulos_v1",
         source_empresa="tinito",
-        dt="2025-01-15",
         run_id="run-abc",
         batch_id_str="batch-xyz",
         sql_hash_hex="a" * 64,
@@ -47,7 +45,9 @@ class TestEnrichRows:
         rows: list[dict[str, object]] = [{"cod_art": "0001"}]
         result = _enrich(rows)
         assert len(result) == 1
-        assert _SYSTEM_COLUMNS.issubset(result[0].keys())
+        system_keys_present = _SYSTEM_COLUMNS & set(result[0].keys())
+        assert system_keys_present == _SYSTEM_COLUMNS
+        assert len(_SYSTEM_COLUMNS) == 9
 
     def test_preserva_las_columnas_originales(self) -> None:
         rows: list[dict[str, object]] = [{"cod_art": "0001", "nom_art": "Uno"}]
@@ -85,22 +85,32 @@ class TestEnrichRows:
         ingested = {row["_ingested_at"] for row in result}
         assert len(ingested) == 1
 
-    def test_colision_de_row_hash_dispara_value_error(self) -> None:
+    def test_fila_con_clave_prefijo_underscore_lanza_value_error(self) -> None:
+        # Contrato: las columnas de sistema son exclusivamente responsabilidad
+        # de _enrich_rows. Si el payload trae ya una clave con `_` inicial es
+        # un error de programacion (o payload malicioso) y debe fallar ruidoso.
+        rows: list[dict[str, object]] = [{"cod_art": "0001", "_run_id": "spoofed"}]
+        with pytest.raises(ValueError, match="clave reservada"):
+            _enrich(rows)
+
+    def test_filas_duplicadas_no_disparan_error(self) -> None:
+        # El spec no obliga a detectar duplicados a nivel de fila en enrichment;
+        # esa responsabilidad, si aplica, vive en la capa Silver.
         rows: list[dict[str, object]] = [
             {"cod_art": "0001"},
-            {"cod_art": "0001"},  # duplicado exacto
+            {"cod_art": "0001"},
         ]
-        with pytest.raises(ValueError, match="colision de _row_hash"):
-            _enrich(rows)
+        result = _enrich(rows)
+        assert len(result) == 2
+        assert result[0]["_row_hash"] == result[1]["_row_hash"]
 
     def test_metadatos_estaticos_se_propagan(self) -> None:
         rows: list[dict[str, object]] = [{"cod_art": "0001"}]
         result = _enrich(rows)
         assert result[0]["_source_empresa"] == "tinito"
-        assert result[0]["_dt"] == "2025-01-15"
         assert result[0]["_query_id"] == "articulos_v1"
         assert result[0]["_query_version"] == "1.0.0"
         assert result[0]["_run_id"] == "run-abc"
-        assert result[0]["_batch_id"] == "batch-xyz"
-        assert result[0]["_sql_hash"] == "a" * 64
+        assert result[0]["_lote_id"] == "batch-xyz"
+        assert result[0]["_query_sql_hash"] == "a" * 64
         assert result[0]["_payload_hash"] == "b" * 64

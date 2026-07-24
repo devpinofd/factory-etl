@@ -217,7 +217,6 @@ class Extractor:
             rows,
             entity=entity,
             source_empresa=source_empresa,
-            dt=dt,
             run_id=run_id,
             batch_id_str=computed_batch_id,
             sql_hash_hex=sql_hash_hex,
@@ -476,7 +475,6 @@ def _enrich_rows(
     *,
     entity: str,
     source_empresa: str,
-    dt: str,
     run_id: str,
     batch_id_str: str,
     sql_hash_hex: str,
@@ -487,40 +485,41 @@ def _enrich_rows(
 
     Columnas anadidas (todas con prefijo ``_``):
 
-    - ``_ingested_at``: timestamp UTC unico para el batch entero.
-    - ``_source_empresa``, ``_dt``, ``_query_id``, ``_query_version``.
-    - ``_run_id``, ``_batch_id``.
-    - ``_sql_hash``, ``_payload_hash``.
+    - ``_ingested_at``: timestamp UTC unico para el batch entero, formateado
+      con ``timespec="microseconds"`` para producir un string estable.
+    - ``_source_empresa``, ``_query_id``, ``_query_version``.
+    - ``_query_sql_hash``, ``_run_id``, ``_lote_id``.
+    - ``_payload_hash``.
     - ``_row_hash``: SHA-256 canonico de la fila **original** (sin las
-      columnas ``_*``), estable para deduplicacion.
+      columnas ``_*``), calculado sobre los **valores** ordenados por
+      clave. Estable para deduplicacion cruzada.
 
-    :raises ValueError: si dos filas producen el mismo ``_row_hash``
-        (colision inesperada; indica payload duplicado a nivel de fila).
+    La fecha logica ``dt`` **no** se persiste como columna de sistema
+    (el spec define exactamente 9 columnas); solo aguas arriba se usa
+    para el ``_lote_id`` (via ``batch_id_str``) y el particionado del
+    bucket.
+
+    :raises ValueError: si alguna fila trae una clave con prefijo ``_``,
+        que colisionaria con las columnas de sistema.
     """
-    ingested_at = datetime.now(UTC).isoformat()
-    seen_row_hashes: set[str] = set()
+    ingested_at = datetime.now(UTC).isoformat(timespec="microseconds")
     enriched: list[dict[str, object]] = []
     for row in rows:
-        # Hash canonico: (clave, valor) ordenados por clave para estabilidad
-        # ante reordenamientos del backend.
-        canonical_pairs: list[object] = []
-        for key in sorted(row.keys()):
-            canonical_pairs.append(key)
-            canonical_pairs.append(row[key])
-        row_hash = ids.row_hash(canonical_pairs)
-        if row_hash in seen_row_hashes:
-            raise ValueError(f"colision de _row_hash dentro del batch {batch_id_str}")
-        seen_row_hashes.add(row_hash)
+        for key in row:
+            if key.startswith("_"):
+                raise ValueError(f"la fila trae la clave reservada {key!r} con prefijo '_'")
+        # Hash canonico: solo los valores, ordenados por clave. Estable ante
+        # reordenamientos del backend y sin filtrar los nombres de columna.
+        row_hash = ids.row_hash(v for _, v in sorted(row.items()))
 
         enriched_row: dict[str, object] = dict(row)
         enriched_row["_ingested_at"] = ingested_at
         enriched_row["_source_empresa"] = source_empresa
-        enriched_row["_dt"] = dt
         enriched_row["_query_id"] = entity
         enriched_row["_query_version"] = query_version
+        enriched_row["_query_sql_hash"] = sql_hash_hex
         enriched_row["_run_id"] = run_id
-        enriched_row["_batch_id"] = batch_id_str
-        enriched_row["_sql_hash"] = sql_hash_hex
+        enriched_row["_lote_id"] = batch_id_str
         enriched_row["_payload_hash"] = payload_hash_hex
         enriched_row["_row_hash"] = row_hash
         enriched.append(enriched_row)

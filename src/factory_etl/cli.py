@@ -120,6 +120,23 @@ def run_batch(
             error_type=error_type,
             error_id=error_id,
         )
+        # BATCH_FAILED en `etl_events` para dejar rastro auditable del fallo.
+        # Best-effort: si el propio `log_event` fallase (BQ caido, red, etc.)
+        # NO debe enmascarar el error original ni impedir el `finish_run`.
+        try:
+            control.log_event(
+                run_id=effective_run_id,
+                event_type="BATCH_FAILED",
+                phase="finalize",
+                entity=query_id,
+                extras={"error_type": error_type, "error_id": error_id},
+            )
+        except Exception:  # noqa: BLE001
+            log.error(
+                "log_event_batch_failed_error",
+                run_id=effective_run_id,
+                error_id=error_id,
+            )
         control.finish_run(
             run_id=effective_run_id,
             status=RunStatus.FAILED,

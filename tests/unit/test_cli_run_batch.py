@@ -306,6 +306,20 @@ class TestRunBatchCommand:
         assert "error_id" in finish["extras"]
         assert sensitive_msg not in json.dumps(finish["extras"])
 
+        # BATCH_FAILED debe emitirse en etl_events con solo tipo + correlator.
+        failed_events = [e for e in control.events if e.get("event_type") == "BATCH_FAILED"]
+        assert len(failed_events) == 1
+        failed = failed_events[0]
+        assert failed["run_id"] == "run-err"
+        assert failed["phase"] == "finalize"
+        assert failed["entity"] == "articulos_v1"
+        assert failed["extras"] == {
+            "error_type": "RuntimeError",
+            "error_id": finish["extras"]["error_id"],
+        }
+        # El evento tampoco debe filtrar el mensaje sensible.
+        assert sensitive_msg not in json.dumps(failed)
+
     def test_status_quarantined_es_exit_0(
         self,
         _env: None,  # noqa: PT019
