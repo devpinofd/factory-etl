@@ -25,7 +25,7 @@ class TestGet:
 
     def test_rechaza_empresa_no_autorizada(self) -> None:
         with pytest.raises(CompanyNotAllowedError):
-            get("articulos_v1", source_empresa="ctb")
+            get("articulos_v1", source_empresa="empresa_invalida")
 
 
 class TestArticulosV1:
@@ -37,7 +37,8 @@ class TestArticulosV1:
         assert ARTICULOS_V1.transport is Transport.GENERIC_SQL_API
         assert ARTICULOS_V1.load_strategy is LoadStrategy.FULL_SNAPSHOT
         assert ARTICULOS_V1.natural_key == ("_source_empresa", "cod_art")
-        assert ARTICULOS_V1.allowed_companies == ("tinito",)
+        assert "tinito" in ARTICULOS_V1.allowed_companies
+        assert "ctb" in ARTICULOS_V1.allowed_companies
         assert ARTICULOS_V1.reject_empty is True
         assert ARTICULOS_V1.parameters == ()
 

@@ -25,6 +25,7 @@ Las excepciones de este modulo son sub-clases de ``RenderError`` (ver
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import re
 from collections.abc import Callable, Mapping
 from types import MappingProxyType
@@ -151,8 +152,10 @@ def _format_string_enum(spec: ParamSpec, value: object) -> str:
 def _format_date(spec: ParamSpec, value: object) -> str:
     if not isinstance(value, str):
         raise InvalidParameterValue(f"{spec.name}: se esperaba str YYYY-MM-DD")
+    if value.upper() == "TODAY":
+        value = datetime.now(UTC).strftime("%Y-%m-%d")
     if not _DATE_RE.match(value):
-        raise InvalidParameterValue(f"{spec.name}: formato invalido, se esperaba YYYY-MM-DD")
+        raise InvalidParameterValue(f"{spec.name}: formato invalido, se esperaba YYYY-MM-DD o TODAY")
     return f"'{value}'"
 
 

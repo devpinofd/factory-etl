@@ -1,0 +1,54 @@
+{
+  "entity": "vendedores",
+  "version": "1.0.0",
+  "natural_key": [
+    "_source_empresa",
+    "cod_ven"
+  ],
+  "reject_empty": true,
+  "load_strategy": "full_snapshot",
+  "columns": [
+    {
+      "name": "cod_ven",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "nom_ven",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "correo",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "cod_pai",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "cod_ciu",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "cod_suc",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true,
+      "domain": [
+        "A",
+        "I"
+      ]
+    }
+  ]
+}

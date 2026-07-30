@@ -27,3 +27,24 @@ output "wif_service_account_email" {
   description = "SA que GitHub Actions puede asumir via WIF."
   value       = try(module.wif[0].service_account_email, null)
 }
+
+output "artifact_registry_repository_url" {
+  description = "URL del repositorio Artifact Registry."
+  value       = module.artifact_registry.repository_url
+}
+
+output "cloud_run_job_name" {
+  description = "Nombre del Cloud Run Job."
+  value       = module.cloud_run_job.job_name
+}
+
+output "workflow_name" {
+  description = "Nombre del Cloud Workflow."
+  value       = module.workflows.workflow_name
+}
+
+output "scheduler_name" {
+  description = "Nombre del Cloud Scheduler Job."
+  value       = module.cloud_scheduler.scheduler_name
+}
+

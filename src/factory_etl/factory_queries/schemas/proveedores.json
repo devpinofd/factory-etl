@@ -1,0 +1,44 @@
+{
+  "entity": "proveedores",
+  "version": "1.0.0",
+  "natural_key": [
+    "_source_empresa",
+    "cod_pro"
+  ],
+  "reject_empty": true,
+  "load_strategy": "full_snapshot",
+  "columns": [
+    {
+      "name": "cod_pro",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "nom_pro",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "rif",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "dir_fis",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true,
+      "domain": [
+        "A",
+        "I"
+      ]
+    }
+  ]
+}

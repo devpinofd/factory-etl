@@ -54,6 +54,32 @@ resource "google_secret_manager_secret_iam_member" "accessor" {
   member    = "serviceAccount:${google_service_account.runtime.email}"
 }
 
+# --- Cloud Run & Workflows: invocador y ejecutor -----------------------------
+
+resource "google_project_iam_member" "run_developer" {
+  project = var.project_id
+  role    = "roles/run.developer"
+  member  = "serviceAccount:${google_service_account.runtime.email}"
+}
+
+resource "google_project_iam_member" "run_invoker" {
+  project = var.project_id
+  role    = "roles/run.invoker"
+  member  = "serviceAccount:${google_service_account.runtime.email}"
+}
+
+resource "google_project_iam_member" "workflows_invoker" {
+  project = var.project_id
+  role    = "roles/workflows.invoker"
+  member  = "serviceAccount:${google_service_account.runtime.email}"
+}
+
+resource "google_project_iam_member" "sa_token_creator" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${google_service_account.runtime.email}"
+}
+
 output "email" {
   value = google_service_account.runtime.email
 }
@@ -61,3 +87,4 @@ output "email" {
 output "name" {
   value = google_service_account.runtime.name
 }
+

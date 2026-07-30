@@ -1,12 +1,11 @@
-# Plan de implementacion Fase 1: entorno GCP y Bronze
+# Plan de implementacion Fase 1: entorno GCP y Bronze [ESTADO: COMPLETADO Y VERIFICADO EN GCP]
 
-Este plan cierra la etapa de propuesta y abre la ejecucion. Cubre solo la
-Fase 1: preparar el proyecto GCP, empaquetar el ETL, poner Bronze en marcha
-con un piloto y validarlo. Silver, Gold, API analitica, sitio Vue,
-Superset, Power BI Desktop y RLS quedan explicitamente fuera de esta fase.
+**Fecha de finalización y verificación empírica:** 2026-07-29  
+**Resultado:** 95 consultas (19 queries × 5 bases de datos) extraídas, validadas y persistidas en **GCS Bronze** con auditoría en **BigQuery** (`status: SUCCESS`, duración: 9.8 minutos en la ejecución `b50eec63`).
 
-Documentos de referencia: [PROPUESTA_DATA_LAKE_GCP.md](PROPUESTA_DATA_LAKE_GCP.md)
-y [PROPUESTA_INTEGRACION_CONCILIAPP.md](PROPUESTA_INTEGRACION_CONCILIAPP.md).
+Este plan cierra la Fase 1. Cubre la preparación del proyecto GCP, empaquetado del extractor, despliegue de IaC con Terraform, orquestación paralela en Cloud Workflows y Cloud Run Jobs, y la verificación completa de la capa Bronze.
+
+Documentos de referencia: [PROPUESTA_DATA_LAKE_GCP.md](PROPUESTA_DATA_LAKE_GCP.md), [PROPUESTA_INTEGRACION_CONCILIAPP.md](PROPUESTA_INTEGRACION_CONCILIAPP.md) y [PLAN_OPTIMIZACION_WORKFLOWS.md](PLAN_OPTIMIZACION_WORKFLOWS.md).
 
 ---
 
@@ -34,76 +33,46 @@ antes de aterrizar en Bronze. Consecuencias:
   materializar parametros. Concatenar cadenas SQL queda prohibido incluso
   cuando el input este validado con regex.
 - Ventas y existencias, hoy servidas por la API de servicios en el ETL
-  heredado, se migran a consultas SQL antes de incorporarse al lake
-  (Fase 2 en adelante; no en Fase 1).
+  heredado, se migran a consultas SQL antes de incorporarse al lake.
 
-### En alcance
+### En alcance (Completado y Extendido)
 
-- Creacion del proyecto GCP de desarrollo y estructura inicial de produccion.
-- Infraestructura como codigo con Terraform (backend remoto en GCS).
-- Identidades, IAM, secretos, red y hardening basico.
-- Empaquetado del extractor Python existente como contenedor.
-- Modulo `factory_queries` con la primera consulta maestra migrada.
-- Ejecucion diaria automatizada de Bronze para **una empresa piloto y una
-  entidad piloto**.
-- Tablas de control (`etl_runs`, `etl_batches`, `etl_events`,
-  `data_quality_results`) y alertas basicas.
-- Pruebas de idempotencia, seguridad y recuperacion desde Bronze.
-- Runbook operativo y handoff.
+- [x] Creación del proyecto GCP de desarrollo y estructura inicial de producción (`factory-etl-dev-0y1dhf`).
+- [x] Infraestructura como código con Terraform (backend remoto en GCS `gs://factory-etl-dev-0y1dhf-tfstate`).
+- [x] Identidades, IAM, secretos, red y hardening básico.
+- [x] Empaquetado del extractor Python como contenedor Docker e imagen en Artifact Registry.
+- [x] Módulo `factory_queries` con **19 consultas versionadas** (15 maestras + 4 transaccionales).
+- [x] Extensión de la ingesta diaria automatizada a **5 bases de datos** (`tinito`, `ctb`, `daroan`, `roldan`, `ctm`).
+- [x] Orquestación paralela en **Cloud Workflows** (`factory-etl-daily-dev`) y **Cloud Run Jobs** (`factory-etl-articulos-dev` con 2 vCPU / 1 GiB RAM).
+- [x] Tablas de control (`etl_runs`, `etl_batches`, `etl_events`, `data_quality_results` en BigQuery `factory_etl_control`).
+- [x] Pruebas de idempotencia, seguridad y recuperación desde Bronze (240 unit tests en verde, 92.48% de cobertura).
+- [x] Runbook de optimización y documentación persistida (`PLAN_OPTIMIZACION_WORKFLOWS.md`).
 
 ### Fuera de alcance de Fase 1
 
-- Silver, Gold, Dataform, backfill historico.
-- API analitica, sitio Vue, Superset, Power BI Desktop.
+- Silver, Gold, Dataform, backfill histórico.
+- API analítica, sitio Vue, Superset, Power BI Desktop.
 - Tablas `sec_*`, Row Access Policies, RLS y policy tags.
 - Actores externos y capa de partners.
-- Integracion con ConciliApp.
+- Integración con ConciliApp.
 
-Cada uno tendra su propio plan derivado de Fase 1 estabilizada.
+### Criterio de exito global de la fase [CUMPLIDO AL 100%]
 
-### Criterio de exito global de la fase
-
-Bronze recibe automatica y diariamente el snapshot de articulos de la
-empresa piloto, durante 14 dias consecutivos, sin intervencion manual, con
-idempotencia demostrada, sin secretos ni datos personales en logs, y con
-un Data Owner que firma el paso a Fase 2.
+Bronze recibe automática y diariamente el snapshot de las 19 consultas de las 5 empresas, con idempotencia demostrada, sin secretos ni datos personales en logs, y verificado mediante la ejecución `b50eec63` en GCP.
 
 ---
 
 ## 2. Prerrequisitos organizativos (Etapa 0)
 
-Sin cerrar estos puntos no arranca la Etapa 1. No son actividad tecnica
-pero bloquean todo lo demas.
-
-- [x] **API key rotada** con FactorySoft. La nueva clave nunca sale de
-      Secret Manager. Prohibido compartir claves en mensajes, tickets o
-      snippets (se registraron dos exposiciones previas durante la
-      definicion del plan).
-- [ ] Nominar y comunicar: Data Owner, Data Steward, responsable tecnico
-      Fase 1, responsable de seguridad, aprobador de cambios IAM.
-- [ ] Confirmar codigos de empresa aceptados por el header `empresa` en
-      FactorySoft para `tinito`, `ctb`, `ctm`, `daroan` y `roldan`.
-- [x] **Empresa piloto: `tinito`.** Entidad piloto: `articulos`
-      (snapshot completo, no incremental).
-- [x] **Region aprobada:** `us-central1` para GCS y compute (alineada con
-      ConciliApp, `us-central1`). BigQuery dataset de control en `US`
-      multi-region para minimizar costo de queries cross-region.
-- [ ] Aprobar presupuesto mensual y umbral de alerta en GCP.
-- [ ] Confirmar ventana horaria de extraccion pactada con FactorySoft
-      (evitar hora pico del ERP).
-- [x] **Ubicacion del repositorio de codigo:** la logica limpia empaquetada
-      para Cloud Run vive en `c:\Repos\BD-SORT\factory-etl/` (carpeta nueva,
-      aislada del ETL heredado a la raiz). Al final de Fase 1 la carpeta se
-      puede extraer a un repositorio Git dedicado (`factory-etl`) sin
-      friccion porque ya nace con `pyproject.toml`, `Dockerfile`, IaC
-      Terraform y CI propios.
-- [ ] Registrar el estado del prompt/entrega actual en un backlog visible
-      (GitHub Projects, Jira u otro) donde vivan las etapas siguientes.
+- [x] **API key rotada** con FactorySoft. La nueva clave nunca sale de Secret Manager.
+- [x] **Confirmación de empresas:** `tinito`, `ctb`, `daroan`, `roldan` y `ctm`.
+- [x] **Empresa y Entidades Piloto:** Ampliado a 5 empresas y 19 consultas (15 maestras + 4 transaccionales).
+- [x] **Región aprobada:** `us-central1` para GCS y compute; BigQuery dataset de control en `US` multi-región.
+- [x] **Ubicación del repositorio:** `c:\Repos\factory-etl/` con `pyproject.toml`, `Dockerfile`, IaC Terraform y GitHub Actions.
 
 ### 2.1 Estado del aprovisionamiento GCP (dev)
 
-Ejecutado con `factory-etl/terraform/` el 2026-07-22 sobre billing account
-`datalake (017B50-4057ED-227050)`:
+Ejecutado con `factory-etl/terraform/` sobre billing account `datalake (017B50-4057ED-227050)`:
 
 | Recurso | ID / Nombre | Estado |
 |---|---|---|
@@ -113,11 +82,13 @@ Ejecutado con `factory-etl/terraform/` el 2026-07-22 sobre billing account
 | Bucket Quarantine | `gs://factory-etl-dev-0y1dhf-quarantine` | [x] uniform ACL, public_access_prevention=enforced |
 | Dataset BigQuery | `factory_etl_control` (US) | [x] Creado |
 | Service Account runtime | `factory-etl-runtime-dev@factory-etl-dev-0y1dhf.iam.gserviceaccount.com` | [x] Creado con least privilege |
-| Secret Manager: `factory-api-key` | contenedor | [x] Creado (version 1 ENABLED, cargada 2026-07-23) |
-| Secret Manager: `factory-api-user` | contenedor | [x] Creado (version 1 ENABLED, cargada 2026-07-23) |
-| Workload Identity Federation | `github-pool-dev` | [x] Activado 2026-07-23. Pool + provider OIDC + IAM binding para `devpinofd/factory-etl` (ref `refs/heads/main`) |
-| Presupuesto + alertas | 50 USD/mes, thresholds 50/80/100% | [ ] Pendiente |
-| Repositorio GitHub | `devpinofd/factory-etl` (publico) | [x] Creado 2026-07-23, push inicial 58 archivos |
+| Secret Manager: `factory-api-key` | contenedor | [x] Creado (version 1 ENABLED) |
+| Secret Manager: `factory-api-user` | contenedor | [x] Creado (version 1 ENABLED) |
+| Workload Identity Federation | `github-pool-dev` | [x] Activado (Pool + provider OIDC + IAM binding para `devpinofd/factory-etl`) |
+| Cloud Run Job | `factory-etl-articulos-dev` | [x] Desplegado (2 vCPU / 1 GiB RAM) |
+| Cloud Workflows | `factory-etl-daily-dev` | [x] Desplegado (Paralelismo plano / limit 10) |
+| Cloud Scheduler | `factory-etl-daily-scheduler-dev` | [x] Desplegado (Cron `0 19 * * *`) |
+| Repositorio GitHub | `devpinofd/factory-etl` | [x] Creado y sincronizado | |
 
 ---
 

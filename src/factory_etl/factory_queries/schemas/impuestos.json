@@ -1,0 +1,39 @@
+{
+  "entity": "impuestos",
+  "version": "1.0.0",
+  "natural_key": [
+    "_source_empresa",
+    "cod_imp"
+  ],
+  "reject_empty": true,
+  "load_strategy": "full_snapshot",
+  "columns": [
+    {
+      "name": "cod_imp",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "nom_imp",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "por_imp1",
+      "type": "number",
+      "silver_type": "decimal(28,10)"
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true,
+      "domain": [
+        "A",
+        "I"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+config {
+  type: "table",
+  database: "factory-etl-dev-0y1dhf",
+  schema: "factory_etl_silver",
+  name: "sil_renglones_monedas",
+  description: "Tabla Silver de tasas de cambio de monedas (limpia y deduplicada)",
+  bigquery: {
+    partitionBy: "DATE(registro)",
+    clusterBy: ["_source_empresa", "cod_mon"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_mon", "renglon"],
+    nonNull: ["_source_empresa", "cod_mon", "renglon", "registro"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("cod_mon")} AS cod_mon,
+  SAFE_CAST(renglon AS INT64) AS renglon,
+  ${helpers.toTimestamp("fecha")} AS fecha,
+  ${helpers.toNumeric("tasa")} AS tasa,
+  ${helpers.trimStr("comentario")} AS comentario,
+  ${helpers.toTimestamp("registro")} AS registro,
+  DATE(${helpers.toTimestamp("registro")}) AS fecha_registro,
+  _ingested_at
+FROM ${ref("stg_renglones_monedas")}
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, cod_mon, renglon
+  ORDER BY _ingested_at DESC
+) = 1

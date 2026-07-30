@@ -8,17 +8,25 @@ desde la **API generica** de FactorySoft
 Este paquete forma parte del proyecto de data lake definido en la raiz
 del repositorio; ver:
 
-- `../PROPUESTA_DATA_LAKE_GCP.md` — arquitectura completa.
-- `../PLAN_IMPLEMENTACION_FASE_1.md` — plan de esta fase.
+- `PROPUESTA_DATA_LAKE_GCP.md` — arquitectura completa.
+- `PLAN_IMPLEMENTACION_FASE_1.md` — plan de esta fase.
+- `PLAN_OPTIMIZACION_WORKFLOWS.md` — plan de optimización de tiempo de ejecución (< 5 min).
 
-## Alcance de Fase 1
+## Estado de Completitud (Capa Bronze - Listo para Producción/Dev en GCP)
 
-- Una sola consulta: `articulos_v1` (tabla maestra `articulos`).
-- Una sola empresa: `tinito`.
-- Un solo destino: Bronze en GCS + control en BigQuery.
-- Sin Silver ni Gold.
-- Sin ingesta desde la API de servicios de FactorySoft (decision de
-  ingesta: solo API generica).
+El extractor e ingesta hacia la **Capa Bronze en GCS** se encuentra **100% implementado, desplegado mediante IaC (Terraform) y verificado empíricamente en GCP**:
+
+- **Catálogo de Consultas Completo (19 Consultas Versionadas):**
+  - **15 Tablas Maestras:** `articulos_v1`, `impuestos_v1`, `departamentos_v1`, `marcas_v1`, `secciones_v1`, `proveedores_v1`, `paises_v1`, `estados_v1`, `ciudades_v1`, `vendedores_v1`, `sucursales_v1`, `almacenes_v1`, `clientes_v1`, `clases_clientes_v1`, `conceptos_v1`.
+  - **4 Tablas Transaccionales:** `renglones_almacenes_v1`, `ventas_diarias_v1` (soporta parámetro `registro`), `renglones_monedas_v1`, `renglones_aprecios_v1` (soporta parámetro `registro`).
+- **Soporte Multi-Empresa:** Integración completa para 5 bases de datos (`tinito`, `ctb`, `daroan`, `roldan`, `ctm`).
+- **Orquestación en Nube (Cloud Workflows & Cloud Run Jobs):**
+  - Flujo paralelo con concurrencia optimizada y aceleración de cómputo (2 vCPU / 1 GiB RAM).
+  - Ejecución verificada exitosa de **95 lotes procesados en 9.8 minutos con 100% de éxito (`status: SUCCESS`)** en GCP (`Execution b50eec63`).
+- **Persistencia en GCS Bronze:**
+  - Archivos Parquet / JSONL.GZ particionados por `source_empresa` y fecha `dt`.
+- **Control y Auditoría en BigQuery:**
+  - Tablas de control en `factory_etl_control` y registro de validación de calidad en `data_quality_results`.
 
 ## Estructura
 
@@ -106,6 +114,65 @@ uv run pyright
 uv run pytest
 
 # Tests solo de seguridad
+---
+
+## 🛠️ Guía de Ejecución Operativa del Data Lake
+
+### 1. Ingesta Diaria Incremental (Capa Bronze en GCP)
+Para ejecutar la ingesta diaria de las 95 consultas (19 queries × 5 empresas):
+
+- **Automatizado en la Nube (GCP Cloud Workflows):**
+  ```bash
+  gcloud workflows run factory-etl-daily-orchestrator --location=us-central1
+  ```
+- **CLI Local (Una consulta/empresa puntual):**
+  ```bash
+  uv run python -m factory_etl.cli run-batch --query-id ventas_diarias_v1 --company tinito --dt 2026-07-29 --params '{"fec_des":"2026-07-29","fec_has":"2026-07-29"}'
+  ```
+
+---
+
+### 2. Backfill Histórico de Ventas y Monedas (2022 - 2026)
+Para ejecutar o reanudar el seed masivo de datos históricos por rangos quincenales:
+
+- **Todas las empresas (2022 a 2026):**
+  ```bash
+  uv run python scratch/backfill_sales_biweekly.py ALL
+  ```
+- **Una empresa específica y año (ej. `tinito` 2025):**
+  ```bash
+  uv run python scratch/backfill_sales_biweekly.py tinito 2025
+  ```
+
+---
+
+### 3. Consolidación de Medallion Architecture (Bronze → Silver → Gold)
+Para procesar las tablas de Staging externas, la consolidación limpia/deduplicada en **Silver** y la tabla de hechos en **Gold**:
+
+- **Ejecución Completa en BigQuery:**
+  ```bash
+  uv run python scratch/build_staging_and_silver.py
+  ```
+- **Reconstrucción de la Dimensión Tiempo (`dim_tiempo`):**
+  ```bash
+  uv run python scratch/build_dim_tiempo.py
+  ```
+
+---
+
+### 4. Orquestación y Compilación con Dataform (SQLX)
+Para compilar o ejecutar las transformaciones a través del CLI de Dataform:
+
+- **Compilar grafo de dependencias Dataform:**
+  ```bash
+  cd dataform
+  npx @dataform/cli compile
+  ```
+- **Ejecutar Dataform en GCP BigQuery:**
+  ```bash
+  cd dataform
+  npx @dataform/cli run --project factory-etl-dev-0y1dhf
+  ```
 uv run pytest tests/security -v
 
 # Bandit

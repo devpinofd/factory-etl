@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  database: "factory-etl-dev-0y1dhf",
+  schema: "factory_etl_bronze_stg",
+  name: "stg_clientes",
+  description: "Tabla externa BigQuery sobre el maestro de clientes en GCS Bronze"
+}

@@ -478,7 +478,7 @@ class TestCatalogValidation:
         with pytest.raises(CompanyNotAllowedError):
             ex.run_batch(
                 query_id="articulos_v1",
-                source_empresa="ctb",  # articulos_v1 solo permite "tinito"
+                source_empresa="empresa_invalida",
                 dt="2025-01-15",
                 run_id="run-abc",
             )

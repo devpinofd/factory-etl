@@ -392,7 +392,9 @@ def _parse_payload(payload_bytes: bytes) -> list[dict[str, object]]:
     for row in first_table:
         if not isinstance(row, dict):
             raise InvalidPayloadError("fila no-dict en laTablas[0]")
-        rows.append(row)
+        # Normalizar claves a minusculas: eFactory devuelve Pascal_Case
+        # (Tipo_Documento, Cod_Suc) pero los esquemas usan snake_case.
+        rows.append({k.lower(): v for k, v in row.items()})
     return rows
 
 

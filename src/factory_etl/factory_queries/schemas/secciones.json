@@ -1,0 +1,34 @@
+{
+  "entity": "secciones",
+  "version": "1.0.0",
+  "natural_key": [
+    "_source_empresa",
+    "cod_sec"
+  ],
+  "reject_empty": true,
+  "load_strategy": "full_snapshot",
+  "columns": [
+    {
+      "name": "cod_sec",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "nom_sec",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true,
+      "domain": [
+        "A",
+        "I"
+      ]
+    }
+  ]
+}

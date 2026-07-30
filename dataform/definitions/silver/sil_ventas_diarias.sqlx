@@ -1,0 +1,56 @@
+config {
+  type: "table",
+  database: "factory-etl-dev-0y1dhf",
+  schema: "factory_etl_silver",
+  name: "sil_ventas_diarias",
+  description: "Tabla Silver consolidada de ventas diarias (limpia, tipada, deduplicada y particionada)",
+  bigquery: {
+    partitionBy: "DATE(registro)",
+    clusterBy: ["_source_empresa", "cod_pro", "cod_suc"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
+    nonNull: ["_source_empresa", "tipo_documento", "cod_suc", "documento", "renglon", "registro"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("tipo_documento")} AS tipo_documento,
+  ${helpers.trimStr("cod_suc")} AS cod_suc,
+  ${helpers.trimStr("documento")} AS documento,
+  SAFE_CAST(renglon AS INT64) AS renglon,
+  ${helpers.toTimestamp("registro")} AS registro,
+  DATE(${helpers.toTimestamp("registro")}) AS fecha_registro,
+  ${helpers.trimStr("cod_ven")} AS cod_ven,
+  ${helpers.trimStr("nom_ven")} AS nom_ven,
+  ${helpers.trimStr("cod_cli")} AS cod_cli,
+  ${helpers.trimStr("nom_cli")} AS nom_cli,
+  ${helpers.trimStr("nom_cla")} AS nom_cla,
+  ${helpers.trimStr("nom_est")} AS nom_est,
+  ${helpers.trimStr("nom_ciu")} AS nom_ciu,
+  ${helpers.trimStr("cod_art")} AS cod_art,
+  ${helpers.trimStr("cod_mar")} AS cod_mar,
+  ${helpers.trimStr("nom_mar")} AS nom_mar,
+  ${helpers.trimStr("nom_dep")} AS nom_dep,
+  ${helpers.trimStr("cod_sec")} AS cod_sec,
+  ${helpers.trimStr("modelo")} AS modelo,
+  ${helpers.trimStr("cod_pro")} AS cod_pro,
+  ${helpers.trimStr("nom_pro")} AS nom_pro,
+  ${helpers.trimStr("nom_art")} AS nom_art,
+  ${helpers.trimStr("cod_uni1")} AS cod_uni1,
+  ${helpers.toNumeric("can_ven")} AS can_ven,
+  ${helpers.toNumeric("monto_bruto")} AS monto_bruto,
+  ${helpers.trimStr("cod_mon")} AS cod_mon,
+  ${helpers.trimStr("rif")} AS rif,  -- INCLUIDO PARA CONSUMO DE RLS
+  ${helpers.trimStr("cod_imp")} AS cod_imp,
+  ${helpers.toNumeric("neto")} AS neto,
+  ${helpers.toNumeric("dcto")} AS dcto,
+  ${helpers.toNumeric("tasa")} AS tasa,
+  ${helpers.toNumeric("neto_dcto")} AS neto_dcto,
+  _ingested_at
+FROM ${ref("stg_ventas_diarias")}
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, tipo_documento, cod_suc, documento, renglon
+  ORDER BY _ingested_at DESC
+) = 1

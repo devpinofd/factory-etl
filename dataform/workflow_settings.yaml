@@ -1,0 +1,11 @@
+defaultProject: factory-etl-dev-0y1dhf
+defaultDataset: factory_etl_silver
+defaultAssertionDataset: factory_etl_assertions
+dataformCoreVersion: 3.0.0
+vars:
+  gcpProject: factory-etl-dev-0y1dhf
+  bronzeBucket: factory-etl-dev-0y1dhf-bronze
+  stagingDataset: factory_etl_bronze_stg
+  silverDataset: factory_etl_silver
+  goldDataset: factory_etl_gold
+  securityDataset: factory_etl_security

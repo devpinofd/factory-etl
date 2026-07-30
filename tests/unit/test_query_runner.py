@@ -72,11 +72,13 @@ class TestExecuteSuccess:
         runner.execute(sql_rendered="select 1", source_empresa="tinito")
 
         assert route.called
-        sent = route.calls.last.request.content.decode("utf-8")
-        assert "test-api-key-value" in sent
-        assert "test-user" in sent
-        assert "select 1" in sent
-        assert "tinito" in sent
+        req = route.calls.last.request
+        assert req.headers["apikey"] == "test-api-key-value"
+        assert req.headers["usuario"] == "test-user"
+        assert req.headers["empresa"] == "tinito"
+        sent_body = req.content.decode("utf-8")
+        assert "select 1" in sent_body
+        assert "json2" in sent_body
 
     def test_endpoint_configurable_via_settings(self, respx_mock: respx.MockRouter) -> None:
         custom_url = "https://mi-otro-endpoint.example.com/api"

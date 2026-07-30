@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  database: "factory-etl-dev-0y1dhf",
+  schema: "factory_etl_bronze_stg",
+  name: "stg_ventas_diarias",
+  description: "Tabla externa BigQuery sobre los archivos de ventas en GCS Bronze"
+}

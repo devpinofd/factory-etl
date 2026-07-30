@@ -162,9 +162,9 @@ class TestFinishRunExtras:
             extras={"batch_id": "b-1", "final_status": "success"},
         )
         row = client.calls[0]["rows"][0]
-        assert row["extras"] == {"batch_id": "b-1", "final_status": "success"}
+        assert row["extras"] == '{"batch_id": "b-1", "final_status": "success"}'
 
     def test_finish_run_sin_extras_deja_diccionario_vacio(self) -> None:
         control, client = _make_control()
         control.finish_run(run_id="run-abc", status=RunStatus.SUCCESS)
-        assert client.calls[0]["rows"][0]["extras"] == {}
+        assert client.calls[0]["rows"][0]["extras"] == "{}"

@@ -109,7 +109,7 @@ class ControlTables:
             "started_at": _now_iso(),
             "ended_at": None,
             "error": None,
-            "extras": extras or {},
+            "extras": _serialize_extras(extras),
         }
         self._insert(self._table_runs(), [row], row_ids=[run_id])
 
@@ -133,7 +133,7 @@ class ControlTables:
             "started_at": None,
             "ended_at": _now_iso(),
             "error": error,
-            "extras": extras or {},
+            "extras": _serialize_extras(extras),
         }
         # row_id distinto al de start_run para permitir la segunda insercion.
         self._insert(self._table_runs(), [row], row_ids=[f"{run_id}:finish"])

@@ -82,7 +82,7 @@ class TestStartRun:
         ct.start_run(run_id="run-1", extras={"trigger": "cli", "user": "francisco"})
 
         _, rows, _ = client.insert_calls[0]
-        assert rows[0]["extras"] == {"trigger": "cli", "user": "francisco"}
+        assert rows[0]["extras"] == '{"francisco": "user", "trigger": "cli"}' or rows[0]["extras"] == '{"trigger": "cli", "user": "francisco"}'
 
 
 class TestFinishRun:

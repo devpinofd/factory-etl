@@ -61,6 +61,8 @@ def run_batch(
     parameter: Annotated[
         list[str] | None,
         typer.Option(
+            "--parameter",
+            "-p",
             help="Parametro k=v. Puede repetirse para multiples parametros.",
         ),
     ] = None,

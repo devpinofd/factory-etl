@@ -91,3 +91,24 @@ variable "enable_object_versioning" {
   type        = bool
   default     = true
 }
+
+# --- Cloud Scheduler & Compute ------------------------------------------------
+
+variable "cron_schedule" {
+  description = "Expresion cron para el disparo del scheduler."
+  type        = string
+  default     = "0 19 * * *" # 07:00 PM diario
+}
+
+variable "time_zone" {
+  description = "Zona horaria del scheduler."
+  type        = string
+  default     = "America/Caracas"
+}
+
+variable "container_image_tag" {
+  description = "Tag de la imagen Docker en Artifact Registry."
+  type        = string
+  default     = "latest"
+}
+

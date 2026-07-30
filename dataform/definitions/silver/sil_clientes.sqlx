@@ -1,0 +1,48 @@
+config {
+  type: "table",
+  database: "factory-etl-dev-0y1dhf",
+  schema: "factory_etl_silver",
+  name: "sil_clientes",
+  description: "Tabla Silver de clientes limpia, deduplicada y con latitud/longitud procesadas a partir de GPS",
+  bigquery: {
+    clusterBy: ["source_empresa", "cod_cli"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_cli"],
+    nonNull: ["source_empresa", "cod_cli"]
+  }
+}
+
+SELECT
+  source_empresa,
+  ${helpers.trimStr("cod_cli")} AS cod_cli,
+  ${helpers.trimStr("nom_cli")} AS nom_cli,
+  ${helpers.trimStr("rif")} AS rif,  -- INCLUIDO PARA RLS
+  ${helpers.trimStr("dir_fis")} AS dir_fis,
+  ${helpers.trimStr("dir_exa")} AS dir_exa,
+  ${helpers.trimStr("cod_pai")} AS cod_pai,
+  ${helpers.trimStr("cod_est")} AS cod_est,
+  ${helpers.trimStr("cod_ciu")} AS cod_ciu,
+  ${helpers.trimStr("nom_mun")} AS nom_mun,
+  ${helpers.trimStr("nom_par")} AS nom_par,
+  
+  -- 📍 LIMPIEZA Y DERIVACIÓN DE GPS (LATITUD Y LONGITUD)
+  ${helpers.trimStr("gps")} AS gps,
+  SAFE_CAST(TRIM(SPLIT(${helpers.trimStr("gps")}, ',')[SAFE_OFFSET(0)]) AS FLOAT64) AS latitud,
+  SAFE_CAST(TRIM(SPLIT(${helpers.trimStr("gps")}, ',')[SAFE_OFFSET(1)]) AS FLOAT64) AS longitud,
+  
+  ${helpers.trimStr("cod_ven")} AS cod_ven,
+  ${helpers.trimStr("segmentacion1")} AS segmentacion1,
+  ${helpers.trimStr("segmentacion2")} AS segmentacion2,
+  ${helpers.toNumeric("mon_sal")} AS mon_sal,
+  ${helpers.trimStr("cod_suc")} AS cod_suc,
+  ${helpers.trimStr("tip_con")} AS tip_con,
+  ${helpers.trimStr("crm_pos")} AS crm_pos,
+  ${helpers.trimStr("tip_cli")} AS tip_cli,
+  ${helpers.trimStr("abc")} AS abc,
+  ${helpers.trimStr("status")} AS status
+FROM ${ref("stg_clientes")}
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY source_empresa, cod_cli
+  ORDER BY dt DESC
+) = 1

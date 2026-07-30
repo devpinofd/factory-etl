@@ -1,0 +1,8 @@
+{
+  "name": "factory-etl-dataform",
+  "version": "1.0.0",
+  "description": "Dataform Pipeline para Medallion Data Lake (Bronze -> Silver -> Gold)",
+  "dependencies": {
+    "@dataform/core": "^3.0.0"
+  }
+}

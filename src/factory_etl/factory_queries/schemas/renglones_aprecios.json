@@ -1,0 +1,59 @@
+{
+  "entity": "renglones_aprecios",
+  "version": "1.0.0",
+  "natural_key": [
+    "_source_empresa",
+    "documento",
+    "renglon"
+  ],
+  "reject_empty": false,
+  "load_strategy": "incremental_by_date",
+  "columns": [
+    {
+      "name": "documento",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "renglon",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "cod_art",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "pre_ant",
+      "type": "number",
+      "silver_type": "decimal(28,10)"
+    },
+    {
+      "name": "pre_nue",
+      "type": "number",
+      "silver_type": "decimal(28,10)"
+    },
+    {
+      "name": "cos_ult1",
+      "type": "number",
+      "silver_type": "decimal(28,10)"
+    },
+    {
+      "name": "tip_pre",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "notas",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "registro",
+      "type": "string",
+      "silver_type": "timestamp"
+    }
+  ]
+}

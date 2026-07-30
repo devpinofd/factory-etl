@@ -1,0 +1,39 @@
+{
+  "entity": "sucursales",
+  "version": "1.0.0",
+  "natural_key": [
+    "_source_empresa",
+    "cod_suc"
+  ],
+  "reject_empty": true,
+  "load_strategy": "full_snapshot",
+  "columns": [
+    {
+      "name": "cod_suc",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "nom_suc",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "contacto",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true,
+      "domain": [
+        "A",
+        "I"
+      ]
+    }
+  ]
+}

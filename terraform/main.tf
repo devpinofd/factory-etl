@@ -20,6 +20,11 @@ resource "google_project_service" "required" {
     "iamcredentials.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "sts.googleapis.com",
+    "artifactregistry.googleapis.com",
+    "cloudbuild.googleapis.com",
+    "run.googleapis.com",
+    "workflows.googleapis.com",
+    "cloudscheduler.googleapis.com",
   ])
 
   project = var.project_id
@@ -35,13 +40,13 @@ resource "google_project_service" "required" {
 module "storage" {
   source = "./modules/storage"
 
-  project_id               = var.project_id
-  region                   = var.region
-  bronze_bucket_name       = var.bronze_bucket_name
-  quarantine_bucket_name   = var.quarantine_bucket_name
-  enable_versioning        = var.enable_object_versioning
-  bronze_retention_days    = var.bronze_retention_days
-  labels                   = local.common_labels
+  project_id             = var.project_id
+  region                 = var.region
+  bronze_bucket_name     = var.bronze_bucket_name
+  quarantine_bucket_name = var.quarantine_bucket_name
+  enable_versioning      = var.enable_object_versioning
+  bronze_retention_days  = var.bronze_retention_days
+  labels                 = local.common_labels
 
   depends_on = [google_project_service.required]
 }
@@ -53,10 +58,10 @@ module "storage" {
 module "bigquery" {
   source = "./modules/bigquery"
 
-  project_id         = var.project_id
-  dataset_id         = var.control_dataset_id
-  dataset_location   = var.control_dataset_location
-  labels             = local.common_labels
+  project_id       = var.project_id
+  dataset_id       = var.control_dataset_id
+  dataset_location = var.control_dataset_location
+  labels           = local.common_labels
 
   depends_on = [google_project_service.required]
 }
@@ -101,12 +106,89 @@ module "wif" {
   count  = var.wif_enabled ? 1 : 0
   source = "./modules/wif"
 
-  project_id             = var.project_id
-  environment            = var.environment
-  service_account_email  = module.service_account.email
-  github_owner           = var.github_owner
-  github_repo            = var.github_repo
-  github_allowed_refs    = var.github_allowed_refs
+  project_id            = var.project_id
+  environment           = var.environment
+  service_account_email = module.service_account.email
+  github_owner          = var.github_owner
+  github_repo           = var.github_repo
+  github_allowed_refs   = var.github_allowed_refs
 
   depends_on = [google_project_service.required]
 }
+
+# -----------------------------------------------------------------------------
+# Artifact Registry: repositorio Docker para imagenes
+# -----------------------------------------------------------------------------
+
+module "artifact_registry" {
+  source = "./modules/artifact_registry"
+
+  project_id    = var.project_id
+  region        = var.region
+  repository_id = "factory-etl"
+  labels        = local.common_labels
+
+  depends_on = [google_project_service.required]
+}
+
+# -----------------------------------------------------------------------------
+# Cloud Run Job: ejecutor del contenedor ETL
+# -----------------------------------------------------------------------------
+
+module "cloud_run_job" {
+  source = "./modules/cloud_run_job"
+
+  project_id             = var.project_id
+  region                 = var.region
+  job_name               = "factory-etl-articulos-${var.environment}"
+  image_uri              = "${module.artifact_registry.repository_url}/factory-etl:${var.container_image_tag}"
+  service_account_email  = module.service_account.email
+  environment            = var.environment
+  bronze_bucket_name     = module.storage.bronze_bucket_name
+  quarantine_bucket_name = module.storage.quarantine_bucket_name
+  control_dataset_id     = module.bigquery.dataset_id
+  query_id               = "articulos_v1"
+  source_empresa         = "tinito"
+  cpu_limit              = "2000m"
+  memory_limit           = "1024Mi"
+  labels                 = local.common_labels
+
+  depends_on = [google_project_service.required, module.artifact_registry, module.service_account]
+}
+
+# -----------------------------------------------------------------------------
+# Cloud Workflows: orquestador de ejecucion
+# -----------------------------------------------------------------------------
+
+module "workflows" {
+  source = "./modules/workflows"
+
+  project_id            = var.project_id
+  region                = var.region
+  workflow_name         = "factory-etl-daily-${var.environment}"
+  job_name              = module.cloud_run_job.job_name
+  control_dataset_id    = module.bigquery.dataset_id
+  service_account_email = module.service_account.email
+  labels                = local.common_labels
+
+  depends_on = [google_project_service.required, module.cloud_run_job]
+}
+
+# -----------------------------------------------------------------------------
+# Cloud Scheduler: disparador cron (07:00 PM Caracas)
+# -----------------------------------------------------------------------------
+
+module "cloud_scheduler" {
+  source = "./modules/cloud_scheduler"
+
+  project_id            = var.project_id
+  region                = var.region
+  scheduler_name        = "factory-etl-daily-scheduler-${var.environment}"
+  workflow_name         = module.workflows.workflow_name
+  service_account_email = module.service_account.email
+  cron_schedule         = var.cron_schedule
+  time_zone             = var.time_zone
+
+  depends_on = [google_project_service.required, module.workflows]
+}
+

@@ -1,0 +1,106 @@
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - project_id: "factory-etl-dev-0y1dhf"
+          - region: "us-central1"
+          - job_name: "factory-etl-extractor-dev"
+          - dt_param: $${default(map.get(args, "target_date"), default(map.get(args, "dt"), "TODAY"))}
+          - empresas: ["tinito", "ctb", "daroan", "roldan", "ctm"]
+          - queries_list:
+              - id: "renglones_almacenes_v1"
+                has_param: true
+              - id: "ventas_diarias_v1"
+                has_param: true
+              - id: "renglones_monedas_v1"
+                has_param: true
+              - id: "renglones_aprecios_v1"
+                has_param: true
+              - id: "articulos_v1"
+                has_param: false
+              - id: "impuestos_v1"
+                has_param: false
+              - id: "departamentos_v1"
+                has_param: false
+              - id: "marcas_v1"
+                has_param: false
+              - id: "secciones_v1"
+                has_param: false
+              - id: "proveedores_v1"
+                has_param: false
+              - id: "paises_v1"
+                has_param: false
+              - id: "estados_v1"
+                has_param: false
+              - id: "ciudades_v1"
+                has_param: false
+              - id: "vendedores_v1"
+                has_param: false
+              - id: "sucursales_v1"
+                has_param: false
+              - id: "almacenes_v1"
+                has_param: false
+              - id: "clientes_v1"
+                has_param: false
+              - id: "clases_clientes_v1"
+                has_param: false
+              - id: "conceptos_v1"
+                has_param: false
+
+    # =========================================================================
+    # OPTIMIZACION CONCURRENCY 10 CON PARALELISMO PLANO (< 5 MINUTOS)
+    # =========================================================================
+
+    - process_empresas_in_parallel:
+        parallel:
+          for:
+            value: emp
+            in: $${empresas}
+            steps:
+              - process_all_queries_flat_in_parallel:
+                  parallel:
+                    concurrency_limit: 10
+                    for:
+                      value: q
+                      in: $${queries_list}
+                      steps:
+                        - prepare_default_args:
+                            assign:
+                              - cmd_args:
+                                  - "run-batch"
+                                  - "--query-id"
+                                  - $${q.id}
+                                  - "--source-empresa"
+                                  - $${emp}
+                                  - "--dt"
+                                  - $${dt_param}
+                        - check_param_switch:
+                            switch:
+                              - condition: $${q.has_param}
+                                assign:
+                                  - cmd_args:
+                                      - "run-batch"
+                                      - "--query-id"
+                                      - $${q.id}
+                                      - "--source-empresa"
+                                      - $${emp}
+                                      - "--dt"
+                                      - $${dt_param}
+                                      - "-p"
+                                      - $${"fec_des=" + dt_param}
+                                      - "-p"
+                                      - $${"fec_has=" + dt_param}
+                        - run_job:
+                            call: googleapis.run.v2.projects.locations.jobs.run
+                            args:
+                              name: "projects/factory-etl-dev-0y1dhf/locations/us-central1/jobs/factory-etl-extractor-dev"
+                              body:
+                                overrides:
+                                  containerOverrides:
+                                    - args: $${cmd_args}
+
+    - return_success:
+        return:
+          status: "SUCCESS"
+          queries_processed: $${len(empresas) * len(queries_list)}

@@ -1,0 +1,64 @@
+config {
+  type: "table",
+  database: "factory-etl-dev-0y1dhf",
+  schema: "factory_etl_gold",
+  name: "fct_ventas",
+  description: "Tabla de hechos de ventas consolidadas (Facturas + Devoluciones) para analítica de negocio",
+  bigquery: {
+    partitionBy: "DATE(registro)",
+    clusterBy: ["_source_empresa", "cod_pro", "cod_suc"]
+  },
+  assertions: {
+    nonNull: ["_source_empresa", "tipo_documento", "cod_suc", "documento", "renglon", "registro", "fecha_key"]
+  }
+}
+
+SELECT
+  v._source_empresa,
+  v.tipo_documento,
+  v.cod_suc,
+  v.documento,
+  v.renglon,
+  v.registro,
+  v.fecha_registro,
+  t.fecha_key,
+  t.anio,
+  t.mes,
+  t.nombre_mes,
+  t.anio_mes,
+  t.trimestre,
+  t.trimestre_nombre,
+  t.anio_trimestre,
+  t.semana_del_anio,
+  t.anio_semana,
+  t.quincena,
+  t.quincena_nombre,
+  v.cod_ven,
+  v.nom_ven,
+  v.cod_cli,
+  v.nom_cli,
+  v.nom_cla,
+  v.nom_est,
+  v.nom_ciu,
+  v.cod_art,
+  v.cod_mar,
+  v.nom_mar,
+  v.nom_dep,
+  v.cod_sec,
+  v.modelo,
+  v.cod_pro,
+  v.nom_pro,
+  v.nom_art,
+  v.cod_uni1,
+  v.can_ven,
+  v.monto_bruto,
+  v.cod_mon,
+  v.rif,  -- INCLUIDO PARA VISIBILIDAD DE RLS
+  v.cod_imp,
+  v.neto,
+  v.dcto,
+  v.tasa,
+  v.neto_dcto
+FROM ${ref("sil_ventas_diarias")} v
+LEFT JOIN ${ref("dim_tiempo")} t
+  ON v.fecha_registro = t.fecha

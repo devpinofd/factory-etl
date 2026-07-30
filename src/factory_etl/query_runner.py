@@ -129,17 +129,22 @@ class QueryRunner:
         api_user: str,
     ) -> HttpResult:
         """Un solo intento. Levanta transitorios (retry) o definitivos."""
-        body = {
+        headers = {
+            "Content-Type": "application/json; charset=utf-8",
             "apikey": api_key,
             "usuario": api_user,
-            "sql": sql_rendered,
             "empresa": source_empresa,
+        }
+        body = {
+            "lcResultado": "json2",
+            "lcConsulta": sql_rendered,
         }
 
         started_ns = time.monotonic_ns()
         try:
             response = self._get_client().post(
                 self._settings.factorysoft_base_url,
+                headers=headers,
                 json=body,
                 timeout=self._settings.http_timeout_seconds,
             )

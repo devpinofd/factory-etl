@@ -1,0 +1,36 @@
+{
+  "entity": "renglones_almacenes",
+  "version": "1.0.0",
+  "natural_key": [
+    "_source_empresa",
+    "cod_alm",
+    "cod_art"
+  ],
+  "reject_empty": false,
+  "load_strategy": "incremental_by_date",
+  "columns": [
+    {
+      "name": "cod_alm",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "cod_art",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "exi_act1",
+      "type": "number",
+      "required": true,
+      "silver_type": "decimal(28,10)"
+    },
+    {
+      "name": "registro",
+      "type": "string",
+      "silver_type": "timestamp"
+    }
+  ]
+}

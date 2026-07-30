@@ -1,0 +1,124 @@
+{
+  "entity": "clientes",
+  "version": "1.0.0",
+  "natural_key": [
+    "_source_empresa",
+    "cod_cli"
+  ],
+  "reject_empty": true,
+  "load_strategy": "full_snapshot",
+  "columns": [
+    {
+      "name": "cod_cli",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "nom_cli",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true
+    },
+    {
+      "name": "rif",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "dir_fis",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "dir_exa",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "cod_pai",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "cod_est",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "cod_ciu",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "nom_mun",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "nom_par",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "gps",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "cod_ven",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "segmentacion1",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "segmentacion2",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "mon_sal",
+      "type": "number",
+      "silver_type": "decimal(28,10)"
+    },
+    {
+      "name": "cod_suc",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "tip_con",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "crm_pos",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "tip_cli",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "abc",
+      "type": "string",
+      "trim_in_silver": true
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "required": true,
+      "trim_in_silver": true,
+      "domain": [
+        "A",
+        "I"
+      ]
+    }
+  ]
+}
