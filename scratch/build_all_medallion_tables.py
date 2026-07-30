@@ -183,6 +183,7 @@ def build_all():
     AS
     SELECT
       v.source_empresa,
+      COALESCE(emp.nombre_empresa, v.source_empresa) AS nombre_empresa,
       v.tipo_documento,
       v.cod_suc,
       v.documento,
@@ -235,6 +236,8 @@ def build_all():
       v.tasa,
       v.neto_dcto
     FROM `{PROJECT_ID}.factory_etl_silver.sil_ventas_diarias` v
+    LEFT JOIN `{PROJECT_ID}.factory_etl_gold.dim_empresa` emp
+      ON v.source_empresa = emp.source_empresa
     LEFT JOIN `{PROJECT_ID}.factory_etl_gold.dim_tiempo` t
       ON DATE(v.registro) = t.fecha
     LEFT JOIN `{PROJECT_ID}.factory_etl_silver.sil_articulos` a

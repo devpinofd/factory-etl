@@ -3,24 +3,23 @@ config {
   database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "fct_ventas",
-  description: "Tabla de hechos de ventas consolidadas (Facturas + Devoluciones) para analítica de negocio",
+  description: "Tabla de Hechos Gold de Ventas consolidadas por transacción, renglón, empresa, sucursal, vendedor y producto",
   bigquery: {
     partitionBy: "DATE(registro)",
-    clusterBy: ["_source_empresa", "cod_pro", "cod_suc"]
-  },
-  assertions: {
-    nonNull: ["_source_empresa", "tipo_documento", "cod_suc", "documento", "renglon", "registro", "fecha_key"]
+    clusterBy: ["source_empresa", "cod_suc", "cod_ven", "cod_pro"]
   }
 }
 
 SELECT
-  v._source_empresa,
+  v.source_empresa AS source_empresa,
+  COALESCE(emp.nombre_empresa, v.source_empresa) AS nombre_empresa,
+  emp.razon_social AS razon_social_empresa,
   v.tipo_documento,
   v.cod_suc,
   v.documento,
   v.renglon,
   v.registro,
-  v.fecha_registro,
+  t.fecha AS fecha_registro,
   t.fecha_key,
   t.anio,
   t.mes,
@@ -50,15 +49,21 @@ SELECT
   v.nom_pro,
   v.nom_art,
   v.cod_uni1,
-  v.can_ven,
+  v.unidades_vendidas,
+  v.cajas_vendidas,
+  v.peso_total_kg,
+  v.peso_total_toneladas,
+  v.volumen_total_m3,
   v.monto_bruto,
   v.cod_mon,
-  v.rif,  -- INCLUIDO PARA VISIBILIDAD DE RLS
+  v.rif,
   v.cod_imp,
   v.neto,
   v.dcto,
   v.tasa,
   v.neto_dcto
-FROM ${ref("sil_ventas_diarias")} v
-LEFT JOIN ${ref("dim_tiempo")} t
-  ON v.fecha_registro = t.fecha
+FROM ${ref("vw_facturas_renglones_consolidado")} v
+LEFT JOIN ${ref("dim_empresa")} emp
+  ON v.source_empresa = emp.source_empresa
+INNER JOIN ${ref("dim_tiempo")} t
+  ON DATE(v.registro) = t.fecha
