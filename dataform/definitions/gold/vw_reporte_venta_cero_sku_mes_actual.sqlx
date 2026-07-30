@@ -1,0 +1,107 @@
+config {
+  type: "view",
+  database: "factory-etl-dev-0y1dhf",
+  schema: "factory_etl_gold",
+  name: "vw_reporte_venta_cero_sku_mes_actual",
+  description: "Vista de Brechas de Distribución y Venta Cero por SKU en el Mes Actual: Identifica qué SKUs del catálogo de cada marca NO han sido comprados por cada cliente de la cartera de un vendedor",
+}
+
+WITH cartera_vendedor_clientes AS (
+  SELECT DISTINCT
+    source_empresa AS empresa,
+    cod_suc AS codigo_sucursal,
+    cod_ven AS codigo_vendedor,
+    nom_ven AS nombre_vendedor,
+    cod_cli AS codigo_cliente,
+    nom_cli AS nombre_cliente,
+    NULLIF(TRIM(rif), '') AS rif_cliente
+  FROM ${ref("fct_ventas")}
+  WHERE fecha_registro >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+),
+catalogo_skus_marcas AS (
+  SELECT DISTINCT
+    source_empresa AS empresa,
+    cod_pro AS codigo_proveedor,
+    nom_pro AS nombre_proveedor,
+    cod_mar AS codigo_marca,
+    nom_mar AS nombre_marca,
+    cod_art AS codigo_articulo,
+    nom_art AS nombre_articulo,
+    modelo
+  FROM ${ref("fct_ventas")}
+  WHERE fecha_registro >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+),
+matriz_esperada AS (
+  SELECT
+    c.empresa,
+    c.codigo_sucursal,
+    c.codigo_vendedor,
+    c.nombre_vendedor,
+    c.codigo_cliente,
+    c.nombre_cliente,
+    c.rif_cliente,
+    p.codigo_proveedor,
+    p.nombre_proveedor,
+    p.codigo_marca,
+    p.nombre_marca,
+    p.codigo_articulo,
+    p.nombre_articulo,
+    p.modelo
+  FROM cartera_vendedor_clientes c
+  INNER JOIN catalogo_skus_marcas p
+    ON c.empresa = p.empresa
+),
+ventas_mes_actual AS (
+  SELECT
+    source_empresa AS empresa,
+    cod_suc AS codigo_sucursal,
+    cod_ven AS codigo_vendedor,
+    cod_cli AS codigo_cliente,
+    cod_art AS codigo_articulo,
+    SUM(unidades_vendidas) AS unidades_vendidas_mes,
+    SUM(cajas_vendidas) AS cajas_vendidas_mes,
+    SUM(neto_dcto) AS venta_usd_mes,
+    MAX(fecha_registro) AS fecha_ultima_compra_sku
+  FROM ${ref("fct_ventas")}
+  WHERE fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH)
+  GROUP BY 1, 2, 3, 4, 5
+)
+SELECT
+  m.empresa,
+  m.codigo_sucursal,
+  COALESCE(suc.nom_suc, m.codigo_sucursal) AS nombre_sucursal,
+  m.codigo_vendedor,
+  m.nombre_vendedor,
+  m.codigo_cliente,
+  m.nombre_cliente,
+  m.rif_cliente,
+  m.codigo_proveedor,
+  m.nombre_proveedor,
+  m.codigo_marca,
+  m.nombre_marca,
+  m.codigo_articulo,
+  m.nombre_articulo,
+  m.modelo,
+  
+  -- 📊 ESTATUS EN EL MES ACTUAL (JULIO 2026)
+  COALESCE(v.unidades_vendidas_mes, 0) AS unidades_vendidas_mes_actual,
+  COALESCE(ROUND(v.cajas_vendidas_mes, 2), 0) AS cajas_vendidas_mes_actual,
+  COALESCE(ROUND(v.venta_usd_mes, 2), 0) AS venta_usd_mes_actual,
+  v.fecha_ultima_compra_sku,
+  
+  -- 🏷️ CLASIFICACIÓN DE VENTA CERO
+  CASE
+    WHEN v.venta_usd_mes IS NOT NULL AND v.venta_usd_mes > 0 THEN 'SKU COMPRADO'
+    ELSE 'VENTA CERO (OPORTUNIDAD DE DISTRIBUCIÓN)'
+  END AS estatus_venta_sku,
+  
+  (v.venta_usd_mes IS NULL OR v.venta_usd_mes <= 0) AS es_venta_cero
+FROM matriz_esperada m
+LEFT JOIN ventas_mes_actual v
+  ON m.empresa = v.empresa
+ AND m.codigo_sucursal = v.codigo_sucursal
+ AND m.codigo_vendedor = v.codigo_vendedor
+ AND m.codigo_cliente = v.codigo_cliente
+ AND m.codigo_articulo = v.codigo_articulo
+LEFT JOIN ${ref("sil_sucursales")} suc
+  ON m.empresa = suc.source_empresa AND m.codigo_sucursal = suc.cod_suc
