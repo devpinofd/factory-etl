@@ -3,50 +3,45 @@ config {
   database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "dim_empresa",
-  description: "Tabla Maestra de Empresas: Mapea los códigos de base de datos source_empresa (tinito, ctb, daroan, roldan, ctm) con sus nombres comerciales y razones sociales",
+  description: "Tabla Maestra de Empresas: Mapea los códigos de base de datos source_empresa (tinito, ctb, daroan, roldan, ctm) con sus razones sociales y RIFs fiscales oficiales",
 }
 
 SELECT
   'tinito' AS source_empresa,
-  'El Tinito' AS nombre_empresa,
-  'Distribuidora El Tinito, C.A.' AS razon_social,
-  CAST(NULL AS STRING) AS rif_empresa,
-  'Región Centro / Apure / Guárico / Carabobo' AS region_operacion,
+  'Comercial Tinito El Tigre' AS nombre_empresa,
+  'Comercial Tinito El Tigre, C.A.' AS razon_social,
+  'J310904553' AS rif_empresa,
   'ACTIVO' AS status,
   CURRENT_TIMESTAMP() AS fecha_actualizacion
 UNION ALL
 SELECT
   'ctb' AS source_empresa,
-  'Comercial Tiobello' AS nombre_empresa,
-  'Comercial Tiobello, C.A.' AS razon_social,
-  CAST(NULL AS STRING) AS rif_empresa,
-  'Región Anzoátegui / Barcelona / Puerto La Cruz' AS region_operacion,
+  'Comercial Tinito Barcelona' AS nombre_empresa,
+  'Comercial Tinito Barcelona C.A.' AS razon_social,
+  'J409990001' AS rif_empresa,
   'ACTIVO' AS status,
   CURRENT_TIMESTAMP() AS fecha_actualizacion
 UNION ALL
 SELECT
   'daroan' AS source_empresa,
-  'Daroan' AS nombre_empresa,
-  'Inversiones Daroan, C.A.' AS razon_social,
-  CAST(NULL AS STRING) AS rif_empresa,
-  'Región Anzoátegui / Barcelona / Sucre' AS region_operacion,
-  'ACTIVO' AS status,
-  CURRENT_TIMESTAMP() AS fecha_actualizacion
-UNION ALL
-SELECT
-  'roldan' AS source_empresa,
-  'Distribuidora Roldan' AS nombre_empresa,
-  'Distribuidora Roldan, C.A.' AS razon_social,
-  CAST(NULL AS STRING) AS rif_empresa,
-  'Región Monagas / Maturín / Caicara' AS region_operacion,
+  'Drinks and Food' AS nombre_empresa,
+  'Drinks and Food C.A.' AS razon_social,
+  'J501104921' AS rif_empresa,
   'ACTIVO' AS status,
   CURRENT_TIMESTAMP() AS fecha_actualizacion
 UNION ALL
 SELECT
   'ctm' AS source_empresa,
-  'CTM Maturín' AS nombre_empresa,
-  'Comercial Tiobello Maturín, C.A.' AS razon_social,
-  CAST(NULL AS STRING) AS rif_empresa,
-  'Región Monagas / Delta Amacuro / Tucupita' AS region_operacion,
+  'Comercial Tinito' AS nombre_empresa,
+  'Comercial Tinito C.A.' AS razon_social,
+  'J298069104' AS rif_empresa,
+  'ACTIVO' AS status,
+  CURRENT_TIMESTAMP() AS fecha_actualizacion
+UNION ALL
+SELECT
+  'roldan' AS source_empresa,
+  'Inversiones Roldan' AS nombre_empresa,
+  'Inversiones Roldan, C.A.' AS razon_social,
+  'J303949827' AS rif_empresa,
   'ACTIVO' AS status,
   CURRENT_TIMESTAMP() AS fecha_actualizacion
