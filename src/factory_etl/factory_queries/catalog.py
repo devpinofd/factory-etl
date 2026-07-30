@@ -259,18 +259,15 @@ CONCEPTOS_V1 = QueryDefinition(
 RENGLONES_ALMACENES_V1 = QueryDefinition(
     query_id="renglones_almacenes_v1",
     version="1.0.0",
-    category=Category.TRANSACTION,
+    category=Category.MASTER,
     transport=Transport.GENERIC_SQL_API,
-    load_strategy=LoadStrategy.INCREMENTAL_BY_DATE,
+    load_strategy=LoadStrategy.FULL_SNAPSHOT,
     natural_key=("_source_empresa", "cod_alm", "cod_art"),
     required_columns=("cod_alm", "cod_art", "exi_act1"),
     sql_path=_PACKAGE_ROOT / "transactions" / "renglones_almacenes.sql",
     schema_path=_PACKAGE_ROOT / "schemas" / "renglones_almacenes.json",
     allowed_companies=_ALLOWED_COMPANIES,
-    parameters=(
-        ParamSpec(name="fec_des", type=ParamType.DATE),
-        ParamSpec(name="fec_has", type=ParamType.DATE),
-    ),
+    parameters=(),
     reject_empty=False,
 )
 
