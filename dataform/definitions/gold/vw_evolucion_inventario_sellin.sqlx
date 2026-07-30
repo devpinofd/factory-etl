@@ -1,0 +1,48 @@
+config {
+  type: "view",
+  database: "factory-etl-dev-0y1dhf",
+  schema: "factory_etl_gold",
+  name: "vw_evolucion_inventario_sellin",
+  description: "Vista de inteligencia temporal de existencias e inventarios según fecha comercial (Año, Mes, Trimestre, Semana, Quincena) por Empresa, Sucursal, Proveedor, Marca y SKU",
+}
+
+SELECT
+  ra.source_empresa AS empresa,
+  ra.cod_alm AS codigo_sucursal,
+  COALESCE(alm.nom_alm, ra.cod_alm) AS nombre_sucursal,
+  ra.cod_art AS codigo_articulo,
+  COALESCE(art.nom_art, ra.cod_art) AS nombre_articulo,
+  art.modelo,
+  art.cod_mar AS marca,
+  art.cod_pro AS codigo_proveedor,
+  COALESCE(pro.nom_pro, art.cod_pro) AS nombre_proveedor,
+  
+  -- 🗓️ DIMENSIÓN DE TIEMPO COMERCIAL
+  t.fecha,
+  t.anio,
+  t.mes,
+  t.nombre_mes,
+  t.anio_mes,
+  t.trimestre,
+  t.trimestre_nombre,
+  t.anio_trimestre,
+  t.semana_del_anio,
+  t.anio_semana,
+  t.quincena_nombre,
+  
+  -- 📊 EXISTENCIAS EN ESA FECHA COMERCIAL (SNAPSHOT DIARIO / HISTÓRICO)
+  ra.exi_act1 AS stock_unidades_snapshot,
+  art.cap_bulto AS unidades_por_caja,
+  ROUND(SAFE_DIVIDE(ra.exi_act1, NULLIF(art.cap_bulto, 0)), 2) AS stock_cajas_snapshot,
+  ROUND((ra.exi_act1 * COALESCE(art.peso, 0)), 2) AS peso_total_kg_snapshot,
+  
+  ra.registro AS fecha_ultima_actualizacion
+FROM ${ref("sil_renglones_almacenes")} ra
+INNER JOIN ${ref("dim_tiempo")} t
+  ON DATE(ra.registro) = t.fecha
+LEFT JOIN ${ref("sil_almacenes")} alm
+  ON ra.source_empresa = alm.source_empresa AND ra.cod_alm = alm.cod_alm
+LEFT JOIN ${ref("sil_articulos")} art
+  ON ra.source_empresa = art.source_empresa AND ra.cod_art = art.cod_art
+LEFT JOIN ${ref("sil_proveedores")} pro
+  ON art.source_empresa = pro.source_empresa AND art.cod_pro = pro.cod_pro
