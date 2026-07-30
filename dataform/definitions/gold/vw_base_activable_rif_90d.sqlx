@@ -1,0 +1,53 @@
+config {
+  type: "view",
+  database: "factory-etl-dev-0y1dhf",
+  schema: "factory_etl_gold",
+  name: "vw_base_activable_rif_90d",
+  description: "Base Activable a nivel de RIF Fiscal (Razones Sociales / Grupos Económicos) a 90 días y % Tasa de Activación RIF en el mes actual",
+}
+
+SELECT
+  v.source_empresa AS empresa,
+  v.cod_suc AS codigo_sucursal,
+  COALESCE(suc.nom_suc, v.cod_suc) AS nombre_sucursal,
+  v.cod_ven AS codigo_vendedor,
+  v.nom_ven AS nombre_vendedor,
+  v.cod_pro AS codigo_proveedor,
+  v.nom_pro AS nombre_proveedor,
+  v.cod_mar AS codigo_marca,
+  v.nom_mar AS nombre_marca,
+  
+  -- 🎯 DENOMINADOR: RIFs FISCALES ÚNICOS (GRUPO ECONÓMICO EN ÚLTIMOS 90 DÍAS)
+  COUNT(DISTINCT NULLIF(TRIM(v.rif), '')) AS base_activable_rifs_90d,
+  
+  -- 🏢 PUNTOS DE VENTA / SUCURSALES FÍSICAS ASOCIADAS (COD_CLI ÚNICOS)
+  COUNT(DISTINCT v.cod_cli) AS total_puntos_de_venta_cod_cli,
+  
+  -- 🎯 NUMERADOR: RIFs ACTIVADOS EN EL MES ACTUAL (JULIO 2026)
+  COUNT(DISTINCT CASE WHEN v.fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN NULLIF(TRIM(v.rif), '') END) AS rifs_activados_mes_actual,
+  
+  -- ⏳ RIFs PENDIENTES POR ACTIVAR EN EL MES ACTUAL
+  (COUNT(DISTINCT NULLIF(TRIM(v.rif), '')) - COUNT(DISTINCT CASE WHEN v.fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN NULLIF(TRIM(v.rif), '') END)) AS rifs_pendientes_activacion_mes,
+  
+  -- 📈 % PORCENTAJE DE ACTIVACIÓN A NIVEL DE RIF FISCAL
+  ROUND(
+    SAFE_DIVIDE(
+      COUNT(DISTINCT CASE WHEN v.fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN NULLIF(TRIM(v.rif), '') END),
+      NULLIF(COUNT(DISTINCT NULLIF(TRIM(v.rif), '')), 0)
+    ) * 100, 2
+  ) AS pct_activacion_rif_mes_actual,
+  
+  -- 📦 Métricas de Volumen del Mes Actual
+  ROUND(SUM(CASE WHEN v.fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN v.cajas_vendidas ELSE 0 END), 2) AS cajas_vendidas_mes_actual,
+  ROUND(SUM(CASE WHEN v.fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN v.neto_dcto ELSE 0 END), 2) AS venta_usd_mes_actual,
+  
+  -- 📦 Métricas Totales de 90 Días
+  ROUND(SUM(v.cajas_vendidas), 2) AS total_cajas_90d,
+  ROUND(SUM(v.neto_dcto), 2) AS monto_total_venta_usd_90d,
+  MAX(v.fecha_registro) AS fecha_ultima_venta
+FROM ${ref("fct_ventas")} v
+LEFT JOIN ${ref("sil_sucursales")} suc
+  ON v.source_empresa = suc.source_empresa AND v.cod_suc = suc.cod_suc
+WHERE v.fecha_registro >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+  AND NULLIF(TRIM(v.rif), '') IS NOT NULL
+GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
