@@ -3,7 +3,7 @@ config {
   database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "vw_base_activable_clientes_90d",
-  description: "Base Activable de Clientes: Clientes únicos que han comprado al menos 1 SKU en los últimos 90 días hacia atrás agrupado por Empresa, Sucursal, Vendedor, Proveedor y Marca",
+  description: "Base Activable a 90 días y % Tasa de Activación en el mes actual (Julio 2026) por Empresa, Sucursal, Vendedor, Proveedor y Marca",
 }
 
 SELECT
@@ -16,16 +16,30 @@ SELECT
   cod_mar AS codigo_marca,
   nom_mar AS nombre_marca,
   
-  -- 📊 METRICA PRINCIPAL: BASE ACTIVABLE DE CLIENTES (ÚLTIMOS 90 DÍAS)
-  COUNT(DISTINCT cod_cli) AS base_activable_clientes,
+  -- 🎯 DENOMINADOR: BASE ACTIVABLE DE CLIENTES (ÚLTIMOS 90 DÍAS)
+  COUNT(DISTINCT cod_cli) AS base_activable_clientes_90d,
   
-  -- 📦 Métricas Complementarias del Período
-  COUNT(DISTINCT cod_art) AS skus_distintos_comprados,
-  COUNT(DISTINCT documento) AS total_documentos,
-  SUM(unidades_vendidas) AS total_unidades,
-  ROUND(SUM(cajas_vendidas), 2) AS total_cajas,
-  ROUND(SUM(peso_total_toneladas), 3) AS total_toneladas,
-  ROUND(SUM(neto_dcto), 2) AS monto_total_venta_usd,
+  -- 🎯 NUMERADOR: CLIENTES ACTIVADOS EN EL MES ACTUAL (JULIO 2026)
+  COUNT(DISTINCT CASE WHEN fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN cod_cli END) AS clientes_activados_mes_actual,
+  
+  -- ⏳ CLIENTES PENDIENTES POR ACTIVAR EN EL MES ACTUAL
+  (COUNT(DISTINCT cod_cli) - COUNT(DISTINCT CASE WHEN fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN cod_cli END)) AS clientes_pendientes_activacion_mes,
+  
+  -- 📈 % PORCENTAJE DE ACTIVACIÓN DEL MES ACTUAL
+  ROUND(
+    SAFE_DIVIDE(
+      COUNT(DISTINCT CASE WHEN fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN cod_cli END),
+      NULLIF(COUNT(DISTINCT cod_cli), 0)
+    ) * 100, 2
+  ) AS pct_activacion_mes_actual,
+  
+  -- 📦 Métricas de Volumen del Mes Actual (Julio 2026)
+  ROUND(SUM(CASE WHEN fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN cajas_vendidas ELSE 0 END), 2) AS cajas_vendidas_mes_actual,
+  ROUND(SUM(CASE WHEN fecha_registro >= DATE_TRUNC(CURRENT_DATE(), MONTH) THEN neto_dcto ELSE 0 END), 2) AS venta_usd_mes_actual,
+  
+  -- 📦 Métricas Totales de los 90 Días
+  ROUND(SUM(cajas_vendidas), 2) AS total_cajas_90d,
+  ROUND(SUM(neto_dcto), 2) AS monto_total_venta_usd_90d,
   MAX(fecha_registro) AS fecha_ultima_venta
 FROM ${ref("fct_ventas")}
 WHERE fecha_registro >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
