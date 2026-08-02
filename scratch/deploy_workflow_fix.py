@@ -1,4 +1,15 @@
-main:
+"""Script para Corregir y Desplegar el Cloud Workflow (factory-etl-daily-dev)
+Asegura que renglones_almacenes_v1 tenga has_param: false para ejecutarse como Snapshot de Inventario diario junto con ventas_diarias_v1 en el Scheduler.
+"""
+
+import os
+import subprocess
+
+PROJECT_ID = "factory-etl-dev-0y1dhf"
+REGION = "us-central1"
+WORKFLOW_NAME = "factory-etl-daily-dev"
+
+WORKFLOW_YAML = """main:
   params: [args]
   steps:
     - init:
@@ -104,3 +115,24 @@ main:
         return:
           status: "SUCCESS"
           queries_processed: ${len(empresas) * len(queries_list)}
+"""
+
+def deploy_workflow():
+    print("==========================================================================")
+    print("  DESPLEGANDO Y ACTUALIZANDO CLOUD WORKFLOW (factory-etl-daily-dev)")
+    print("==========================================================================")
+
+    yaml_path = os.path.join(os.path.dirname(__file__), "rendered_workflow.yaml")
+    with open(yaml_path, "w", encoding="utf-8") as f:
+        f.write(WORKFLOW_YAML)
+
+    cmd = f"gcloud workflows deploy {WORKFLOW_NAME} --location={REGION} --source={yaml_path}"
+    print(f"  • Ejecutando: {cmd}")
+    res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    if res.returncode == 0:
+        print("  🎉 Workflow desplegado exitosamente en GCP.")
+    else:
+        print("  ❌ Error desplegando workflow:", res.stderr)
+
+if __name__ == "__main__":
+    deploy_workflow()
