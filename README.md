@@ -1,274 +1,164 @@
-# factory-etl
+# 🤖 FACTORY-ETL — ARQUITECTURA, CATÁLOGO Y CONTEXTO COMPLETO PARA LLMs
 
-ETL en Python empaquetado como imagen de Cloud Run Job. Ingesta datos
-desde la **API generica** de FactorySoft
-(`efactoryApiGenerica.asmx/Seleccionar`) y los aterriza en **Bronze**
-(GCS) con auditoria en **BigQuery**.
+Bienvenido al repositorio **`factory-etl`**. Este documento sirve como la **Guía Maestra y Contexto Técnico Autoritativo** para asistentes de inteligencia artificial (LLMs), desarrolladores e ingenieros de datos que trabajen en este proyecto.
 
-Este paquete forma parte del proyecto de data lake definido en la raiz
-del repositorio; ver:
+---
 
-- `PROPUESTA_DATA_LAKE_GCP.md` — arquitectura completa.
-- `PLAN_IMPLEMENTACION_FASE_1.md` — plan de esta fase.
-- `PLAN_OPTIMIZACION_WORKFLOWS.md` — plan de optimización de tiempo de ejecución (< 5 min).
+## 📌 1. Resumen Ejecutivo y Misión del Proyecto
 
-## Estado de Completitud (Capa Bronze - Listo para Producción/Dev en GCP)
+**`factory-etl`** es un **Data Lake y Data Warehouse Empresarial** construido sobre **Google Cloud Platform (GCP)**. Su propósito es ingerir, transformar, higienizar, gobernar y estructurar los datos operativos del ERP **FactorySoft / eFactory** para 5 empresas distribuidoras en Venezuela, alimentando modelos de inteligencia de negocios en **Power BI**, **Looker Studio** y portales analíticos.
 
-El extractor e ingesta hacia la **Capa Bronze en GCS** se encuentra **100% implementado, desplegado mediante IaC (Terraform) y verificado empíricamente en GCP**:
+### 🏢 Empresas / Tenants del Grupo:
+| Código (`source_empresa`) | Nombre Comercial Oficial | Razón Social Fiscal | RIF Fiscal |
+|---|---|---|---|
+| **`tinito`** | **Comercial Tinito El Tigre** | Comercial Tinito El Tigre, C.A. | `J310904553` |
+| **`ctb`** | **Comercial Tinito Barcelona** | Comercial Tinito Barcelona C.A. | `J409990001` |
+| **`daroan`** | **Drinks and Food** | Drinks and Food C.A. | `J501104921` |
+| **`ctm`** | **Comercial Tinito** | Comercial Tinito C.A. | `J298069104` |
+| **`roldan`** | **Inversiones Roldan** | Inversiones Roldan, C.A. | `J303949827` |
 
-- **Catálogo de Consultas Completo (19 Consultas Versionadas):**
-  - **15 Tablas Maestras:** `articulos_v1`, `impuestos_v1`, `departamentos_v1`, `marcas_v1`, `secciones_v1`, `proveedores_v1`, `paises_v1`, `estados_v1`, `ciudades_v1`, `vendedores_v1`, `sucursales_v1`, `almacenes_v1`, `clientes_v1`, `clases_clientes_v1`, `conceptos_v1`.
-  - **4 Tablas Transaccionales:** `renglones_almacenes_v1`, `ventas_diarias_v1` (soporta parámetro `registro`), `renglones_monedas_v1`, `renglones_aprecios_v1` (soporta parámetro `registro`).
-- **Soporte Multi-Empresa:** Integración completa para 5 bases de datos (`tinito`, `ctb`, `daroan`, `roldan`, `ctm`).
-- **Orquestación en Nube (Cloud Workflows & Cloud Run Jobs):**
-  - Flujo paralelo con concurrencia optimizada y aceleración de cómputo (2 vCPU / 1 GiB RAM).
-  - Ejecución verificada exitosa de **95 lotes procesados en 9.8 minutos con 100% de éxito (`status: SUCCESS`)** en GCP (`Execution b50eec63`).
-- **Persistencia en GCS Bronze:**
-  - Archivos Parquet / JSONL.GZ particionados por `source_empresa` y fecha `dt`.
-- **Control y Auditoría en BigQuery:**
-  - Tablas de control en `factory_etl_control` y registro de validación de calidad en `data_quality_results`.
+- **Proyecto Target GCP (Dev):** `factory-etl-dev-0y1dhf` (Región: `us-central1`).
+- **Data Lake Bronze Bucket:** `gs://factory-etl-dev-0y1dhf-bronze`.
+- **Base de Datos Operacional de Identidad:** Firestore (`conciliapp-prod`).
 
-## Estructura
+---
 
-```text
-factory-etl/
-├── pyproject.toml               # Dependencias y config de herramientas
-├── uv.lock                      # Lockfile (generar con `uv lock`)
-├── .python-version              # Version fija: 3.12
-├── docker/
-│   └── Dockerfile               # Multi-stage, usuario no privilegiado
-├── src/
-│   └── factory_etl/
-│       ├── __init__.py
-│       ├── __main__.py          # `python -m factory_etl`
-│       ├── cli.py               # comandos typer (run, list-queries, version)
-│       ├── config.py            # pydantic-settings
-│       ├── logging_config.py    # structlog + redaccion de secretos
-│       ├── errors.py            # jerarquia de excepciones tipadas
-│       ├── ids.py               # run_id, batch_id, sql_hash, row_hash
-│       ├── protocols.py         # Protocols estructurales (contratos de DI)
-│       ├── bootstrap.py         # Composition Root (cablea concretas)
-│       ├── secrets.py           # wrapper Secret Manager
-│       ├── query_runner.py      # httpx a FactorySoft
-│       ├── bronze_writer.py     # Parquet a GCS con escritura atomica
-│       ├── control_tables.py    # inserts a BigQuery
-│       ├── quarantine.py        # zona separada para respuestas invalidas
-│       ├── extractor.py         # orquestacion del batch
-│       └── factory_queries/     # catalogo de consultas versionadas
-│           ├── models.py        # QueryDefinition, Transport, ParamSpec
-│           ├── catalog.py       # registro de consultas disponibles
-│           ├── renderer.py      # sustitucion SEGURA de parametros SQL
-│           ├── masters/
-│           │   └── articulos.sql
-│           ├── transactions/    # vacio en Fase 1
-│           └── schemas/
-│               └── articulos.json
-└── tests/
-    ├── unit/                    # renderer, ids, catalogo, fixture, config, errors, bootstrap
-    ├── security/                # inyeccion SQL, hardening del renderer, redaccion de logs
-    └── fixtures/factorysoft/    # payloads reales sanitizados
+## 🏗️ 2. Arquitectura Medallion (Staging $\rightarrow$ Silver $\rightarrow$ Gold)
 
-terraform/                       # IaC de GCP (buckets, BQ, secrets, SA, WIF)
-├── main.tf                      # composicion de modulos
-├── variables.tf
-├── outputs.tf
-├── envs/                        # dev.tfvars.example, prod.tfvars.example
-└── modules/                     # storage, bigquery, secrets, service_account, wif
+La solución implementa la Arquitectura Medallion en **Google BigQuery**:
+
+```mermaid
+flowchart TD
+    API["API Genérica eFactory\n(SQL Server Source)"] -->|Cloud Run Job / httpx| BRONZE["Capa Bronze (GCS Bucket)\nJSONL.GZ particionado por empresa y dt"]
+    BRONZE --> STG["Capa Staging (factory_etl_bronze_stg)\n19 Tablas Externas sobre GCS"]
+    STG --> SILVER["Capa Silver (factory_etl_silver)\n19 Tablas limpias, deduplicadas por Natural Key"]
+    SILVER --> GOLD_DIM["Capa Gold (factory_etl_gold)\n9 Dimensiones + fct_ventas"]
+    GOLD_DIM --> GOLD_VIEWS["9 Vistas Analíticas (vw_*)\nInventario, Activables, YoY, Venta Cero, etc."]
+    
+    SEC["Firestore (conciliapp-prod)\n/vendedores & /users"] -->|sync script| RLS_TAB["factory_etl_security.sec_vendedores_auth"]
+    RLS_TAB -->|ROW ACCESS POLICY| GOLD_VIEWS
+    GOLD_VIEWS --> PBI["Power BI / DirectQuery & Import"]
 ```
 
-## Requisitos locales
+### Datasets en BigQuery:
+1. **`factory_etl_bronze_stg`**: 19 Tablas Externas apuntando directamente a los objetos `JSONL.GZ` en GCS.
+2. **`factory_etl_silver`**: 19 Tablas nativas consolidadas, higienizadas y deduplicadas por Clave Natural (`source_empresa` + ID primario).
+3. **`factory_etl_gold`**: 9 Dimensiones (`dim_*`), Tabla de Hechos (`fct_ventas`) con **10.7+ millones de renglones** y 9 Vistas Analíticas (`vw_*`).
+4. **`factory_etl_security`**: Tabla de Gobernanza `sec_vendedores_auth` con **475+ registros** de mapeo de accesos y políticas `ROW ACCESS POLICY`.
+5. **`factory_etl_control_dev`**: Auditoría de lotes (`etl_runs` y `etl_batches`).
 
-- **Python 3.12** (fijado via `.python-version`).
-- **uv** 0.4+ — https://docs.astral.sh/uv/
-- Docker Desktop (para construir la imagen).
+---
 
-Instalar `uv` en Windows:
+## 🗂️ 3. Catálogo de las 19 Entidades de Ingesta
 
-```powershell
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
+El catálogo de consultas SQL en `src/factory_etl/factory_queries/` cubre 19 entidades versionadas:
 
-## Setup
+### 📑 15 Tablas Maestras (Dimensiones):
+1. `articulos_v1` (`cod_art`) — Catálogo de SKUs, marcas, peso y empaque.
+2. `impuestos_v1` (`cod_imp`) — Alícuotas de IVA.
+3. `departamentos_v1` (`cod_dep`) — Departamentos de producto.
+4. `marcas_v1` (`cod_mar`) — Marcas comerciales.
+5. `secciones_v1` (`cod_sec`) — Sub-categorías/Secciones.
+6. `proveedores_v1` (`cod_pro`) — Fabricantes y proveedores.
+7. `paises_v1` (`cod_pai`) — Países.
+8. `estados_v1` (`cod_est`) — Estados.
+9. `ciudades_v1` (`cod_ciu`) — Ciudades.
+10. `vendedores_v1` (`cod_ven`) — Fuerza de ventas y rutas.
+11. `sucursales_v1` (`cod_suc`) — Sucursales y almacenes centrales.
+12. `almacenes_v1` (`cod_alm`) — Almacenes físicos de inventario.
+13. `clientes_v1` (`cod_cli`) — Clientes, RIFs y coordenadas GPS derivadas (`latitud`, `longitud`).
+14. `clases_clientes_v1` (`cod_cla`) — Segmentos de clientes.
+15. `conceptos_v1` (`cod_con`) — Conceptos contables/transaccionales.
 
-```powershell
-cd factory-etl
+### 💳 4 Tablas Transaccionales:
+16. `renglones_almacenes_v1` (`cod_alm`, `cod_art`) — Stock físico snapshot por almacén.
+17. `ventas_diarias_v1` (`tipo_documento`, `cod_suc`, `documento`, `renglon`) — Renglones de facturas de venta (Parámetro: `fec_des` / `fec_has`).
+18. `renglones_monedas_v1` (`cod_mon`, `renglon`) — Tasas de cambio de moneda (Parámetro: `fec_des` / `fec_has`).
+19. `renglones_aprecios_v1` (`documento`, `renglon`) — Listas de precios.
+
+---
+
+## 📊 4. Especificación de Vistas Analíticas Gold (`vw_*`)
+
+Todas las vistas residen en `factory_etl_gold` e incluyen la columna `nombre_empresa`:
+
+1. **`vw_base_activable_clientes_90d`**: Clientes con compra en los últimos 90 días por vendedor/proveedor/sucursal, mostrando su Tasa de Activación en % del mes actual.
+2. **`vw_base_activable_rif_90d`**: Tasa de activación deduplicada a nivel de RIF Fiscal / Razón Social.
+3. **`vw_reporte_inventario`**: Stock físico de mercancía en cajas, kilogramos y toneladas por almacén y marca.
+4. **`vw_clasificacion_clientes_frecuencia_semanal`**: Clasificación de clientes por frecuencia de compra semanal en el mes (Tipos 1, 2, 3 y **Tipo 4 = Compra todas las semanas del mes**).
+5. **`vw_reporte_venta_cero_sku_mes_actual`**: Matriz de brechas de distribución (SKUs no comprados por cliente/vendedor en el mes actual).
+6. **`vw_evolucion_sellout_yoy`**: Evolución diaria de ventas en USD y cajas comparada con el mismo día del año anterior (Year-over-Year).
+7. **`vw_detalle_facturacion_clientes`**: Máximo nivel de detalle transaccional hasta número de factura, renglón, SKU, vendedor y cliente.
+8. **`vw_evolucion_inventario_sellin`**: Evolución de stock e inteligencia de tiempo.
+9. **`vw_maestro_clientes_activables`**: Listado renglón por renglón de la cartera activable con días sin comprar y estatus.
+
+---
+
+## 🔒 5. Gobernanza de Seguridad y Row-Level Security (RLS)
+
+La gobernanza se integra con **FirebaseAuth** y **Firestore (`conciliapp-prod`)**:
+
+### 🌐 Autenticación por Dominios:
+- **`@tinitot.com` (Dominio Corporativo):** Analistas de Ventas, Gerentes de Empresa, Gerentes de Sucursal y Directiva.
+- **`@gmail.com` (Dominio Externo):** Fuerza de ventas externa y Analistas de Proveedores (marcas).
+
+### 👥 Matriz de Roles de Acceso:
+| Rol (`role_type`) | Dominio | Alcance en BigQuery RLS |
+|---|---|---|
+| **`SUPERADMIN`** | `@tinitot.com` / `@gmail.com` | Acceso 100% Global |
+| **`ANALISTA_VENTAS`** | `@tinitot.com` | Acceso Global a las 5 Empresas (Solo Lectura/Consultas) |
+| **`GERENTE_EMPRESA`** | `@tinitot.com` | Acceso a **1, 2 o más Empresas Asignadas** |
+| **`GERENTE_SUCURSAL`**| `@tinitot.com` | Acceso a Empresa y Sucursal Asignada |
+| **`SUPERVISOR_VENTAS`**| `@tinitot.com` / `@gmail.com` | Acceso a Sucursal o Equipo de Vendedores asignados |
+| **`VENDEDOR`** | `@gmail.com` | Acceso a sus códigos `cod_ven` y empresas asignadas (Multi-Ruta) |
+| **`ANALISTA_PROVEEDOR`**| `@gmail.com` | Acceso exclusivo a los SKUs de su proveedor/marca (`cod_pro`) |
+
+- **Tabla de Gobernanza:** `factory_etl_security.sec_vendedores_auth` (sincronizada desde Firestore `/vendedores` y `/users`).
+- **Política SQL Nativa:** `ROW ACCESS POLICY` dinámica en `fct_ventas` evaluada con `SESSION_USER()`.
+
+---
+
+## 🤖 6. Reglas Estrictas de Integridad de Datos (No-Mock Policy)
+
+> [!CAUTION]
+> **REGLA INVARIANTE PARA LLMs (`.gemini/rules.md`):**
+> Queda **estrictamente prohibido inventar o simular datos sintéticos/mocked** (tales como RIFs genéricos `J-00000000-X`, nombres ficticios o montos inventados). 
+> **El deber ser:** Buscar siempre la información en BigQuery, el código fuente o solicitarla explícitamente al usuario.
+
+---
+
+## ⚙️ 7. Orquestación e Infraestructura en la Nube
+
+1. **Cloud Run Job:** `factory-etl-articulos-dev` (Imagen Docker Python 3.12, Typer CLI, httpx, tenacity, structlog).
+2. **Cloud Workflows:** `factory-etl-daily-dev` (Ejecución plana paralela con límite de concurrencia 10, completa en <5 minutos).
+3. **Cloud Scheduler Dual-Schedule:**
+   - **Corte de la Tarde:** `0 21 * * *` (5:30 PM VET / 21:30 UTC)
+   - **Corte de la Noche:** `0 3 * * *` (11:45 PM VET / 03:45 UTC)
+4. **Dataform CLI:** Modelo de transformaciones SQLX en `dataform/`.
+
+---
+
+## 🛠️ 8. Cheat Sheet de Comandos Operativos
+
+```bash
+# Setup de Entorno Local
 uv sync --all-extras
+
+# 1. Ingesta Diaria Local (Caja Chica / Debug)
+uv run factory-etl run --query-id ventas_diarias_v1 --source-empresa tinito --params '{"fec_des":"2026-07-31","fec_has":"2026-07-31"}'
+
+# 2. Seed Masivo por Quincenas
+uv run python scratch/backfill_sales_biweekly.py ALL 2026 7 2
+
+# 3. Reconstruir Arquitectura Medallion Completa (19 Entidades)
+uv run python scratch/build_all_medallion_tables.py
+
+# 4. Sincronizar Usuarios y Vendedores de Firestore a BigQuery RLS
+uv run python scratch/sync_firestore_vendedores_to_bigquery.py
+
+# 5. Auditar Ejecuciones de Workflows y Cloud Scheduler
+uv run python scratch/check_workflow_executions.py
+
+# 6. Sincronizar Cambios con Git / GitHub
+uv run python scratch/git_commit_push.py
 ```
-
-`uv sync` crea `.venv/`, instala dependencias de runtime + dev y genera
-`uv.lock` si no existe.
-
-## Comandos frecuentes
-
-Todos desde `factory-etl/`.
-
-```powershell
-# Formato + lint (autofix)
-uv run ruff format .
-uv run ruff check --fix .
-
-# Type checking estricto
-uv run pyright
-
-# Tests con cobertura
-uv run pytest
-
-# Tests solo de seguridad
----
-
-## 🛠️ Guía de Ejecución Operativa del Data Lake
-
-### 1. Ingesta Diaria Incremental (Capa Bronze en GCP)
-Para ejecutar la ingesta diaria de las 95 consultas (19 queries × 5 empresas):
-
-- **Automatizado en la Nube (GCP Cloud Workflows):**
-  ```bash
-  gcloud workflows run factory-etl-daily-orchestrator --location=us-central1
-  ```
-- **CLI Local (Una consulta/empresa puntual):**
-  ```bash
-  uv run python -m factory_etl.cli run-batch --query-id ventas_diarias_v1 --company tinito --dt 2026-07-29 --params '{"fec_des":"2026-07-29","fec_has":"2026-07-29"}'
-  ```
-
----
-
-### 2. Backfill Histórico de Ventas y Monedas (2022 - 2026)
-Para ejecutar o reanudar el seed masivo de datos históricos por rangos quincenales:
-
-- **Todas las empresas (2022 a 2026):**
-  ```bash
-  uv run python scratch/backfill_sales_biweekly.py ALL
-  ```
-- **Una empresa específica y año (ej. `tinito` 2025):**
-  ```bash
-  uv run python scratch/backfill_sales_biweekly.py tinito 2025
-  ```
-
----
-
-### 3. Consolidación de Medallion Architecture (Bronze → Silver → Gold)
-Para procesar las tablas de Staging externas, la consolidación limpia/deduplicada en **Silver** y la tabla de hechos en **Gold**:
-
-- **Ejecución Completa en BigQuery:**
-  ```bash
-  uv run python scratch/build_staging_and_silver.py
-  ```
-- **Reconstrucción de la Dimensión Tiempo (`dim_tiempo`):**
-  ```bash
-  uv run python scratch/build_dim_tiempo.py
-  ```
-
----
-
-### 4. Orquestación y Compilación con Dataform (SQLX)
-Para compilar o ejecutar las transformaciones a través del CLI de Dataform:
-
-- **Compilar grafo de dependencias Dataform:**
-  ```bash
-  cd dataform
-  npx @dataform/cli compile
-  ```
-- **Ejecutar Dataform en GCP BigQuery:**
-  ```bash
-  cd dataform
-  npx @dataform/cli run --project factory-etl-dev-0y1dhf
-  ```
-uv run pytest tests/security -v
-
-# Bandit
-uv run bandit -r src -c pyproject.toml
-
-# Auditoria de dependencias
-uv run pip-audit --strict
-
-# Ejecutar el CLI
-uv run factory-etl --help
-uv run factory-etl list-queries
-uv run factory-etl run --query-id articulos_v1 --source-empresa tinito
-```
-
-## Docker
-
-```powershell
-# Build local
-docker build -f docker/Dockerfile -t factory-etl:local .
-
-# Ejecutar con env vars minimas (dev)
-docker run --rm `
-    -e FACTORY_ETL_ENV=dev `
-    -e FACTORY_ETL_GCP_PROJECT=mi-proyecto-dev `
-    -e FACTORY_ETL_BRONZE_BUCKET=factory-datalake-dev-mi-proyecto `
-    -e FACTORY_ETL_CONTROL_DATASET=factory_control_dev `
-    factory-etl:local `
-    list-queries
-```
-
-## Arquitectura de una corrida
-
-```text
-Cloud Scheduler (cron)
-    -> Cloud Workflow "factory-etl-daily"
-        -> genera run_id
-        -> INSERT etl_runs (RUNNING)
-        -> Cloud Run Job "factory-etl:<sha>"
-            1. resuelve QueryDefinition desde el catalogo
-            2. renderiza SQL (renderer con placeholders tipados)
-            3. POST a FactorySoft (httpx + retries con tenacity)
-            4. calcula payload_hash y batch_id
-            5. si batch_id ya existe con mismo hash: SKIPPED_DUPLICATE
-            6. escribe Parquet a gs://.../bronze/_staging/run_id=<uuid>/
-            7. valida contra schemas/articulos.json
-            8. INSERT etl_batches (WRITTEN)
-            9. mueve _staging/ a bronze/articulos/source_empresa=tinito/dt=.../run_id=.../
-            10. UPDATE etl_batches (SUCCESS)
-        -> UPDATE etl_runs (SUCCESS)
-```
-
-## Reglas invariantes
-
-1. **Nunca** concatenar strings para armar SQL. Todo pasa por
-   `factory_queries.renderer.render`.
-2. **Nunca** loguear API key, SQL renderizado, payload crudo, headers de
-   autenticacion, ni PII de clientes. La redaccion esta en
-   `logging_config.py`.
-3. **Nunca** sobreescribir una particion `dt` cerrada de Bronze. Ver
-   "Reglas de aterrizaje en Bronze" en `PLAN_IMPLEMENTACION_FASE_1.md`.
-4. **Nunca** commitear secretos, `.env`, credenciales, ni service account
-   JSON. `.gitignore` los bloquea; `detect-secrets` en CI da alerta.
-5. **Nunca** ampliar `Transport` mas alla de `GENERIC_SQL_API` sin
-   revisar la seccion 1 del plan Fase 1.
-
-## Extension: como agregar una consulta nueva
-
-1. Crear `factory_queries/masters/<entidad>.sql` o
-   `factory_queries/transactions/<entidad>.sql`.
-2. Crear `factory_queries/schemas/<entidad>.json` con columnas, tipos y
-   dominios.
-3. Declarar el `QueryDefinition` en `factory_queries/catalog.py`.
-4. Agregar tests en `tests/unit/test_catalog.py` que verifiquen los
-   campos declarados.
-5. Si la consulta usa parametros, agregar tests de seguridad en
-   `tests/security/`.
-
-Cambios incompatibles = nueva version (`articulos_v2`), la vieja convive
-hasta migracion.
-
-## Estado de implementacion
-
-Los modulos marcados con `NotImplementedError` son stubs con interfaz
-definida pero implementacion pendiente. Se completan en Fase 1 Etapa 4:
-
-- `secrets.py`
-- `query_runner.py`
-- `bronze_writer.py`
-- `control_tables.py`
-- `quarantine.py`
-- `extractor.py`
-
-Ya implementados y con tests:
-
-- `config.py`, `logging_config.py`, `errors.py`, `ids.py`, `protocols.py`, `bootstrap.py`
-- `factory_queries/models.py`
-- `factory_queries/catalog.py`
-- `factory_queries/renderer.py` (con registry `_FORMATTERS` extensible)
-- `masters/articulos.sql`, `schemas/articulos.json`
