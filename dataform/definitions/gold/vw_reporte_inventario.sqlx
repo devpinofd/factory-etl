@@ -3,26 +3,42 @@ config {
   database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "vw_reporte_inventario",
-  description: "Vista de existencias de inventario por almacén con stock mayor a cero",
+  description: "Vista Gold de existencias de inventario por almacén con métricas completas de Fracciones, Unidades Totales, Peso Unitario, Kg Totales, Capacidad Bultos y Bultos Totales",
 }
 
 SELECT
   ra.source_empresa AS empresa,
+  COALESCE(emp.nombre_empresa, ra.source_empresa) AS nombre_empresa,
+  emp.razon_social AS razon_social,
   ra.cod_alm AS codigo_almacen,
   COALESCE(alm.nom_alm, ra.cod_alm) AS nombre_almacen,
   ra.cod_art AS codigo_articulo,
   COALESCE(art.nom_art, ra.cod_art) AS nombre_articulo,
   art.modelo,
   art.cod_mar AS marca,
-  ra.exi_act1 AS stock_unidades,
-  art.cap_bulto AS unidades_por_caja,
+  art.cod_pro AS proveedor,
+
+  -- 📦 Métricas Físicas de Inventario Requeridas
+  COALESCE(NULLIF(art.fraccion, 0), 1) AS fraccion_unitaria,
+  COALESCE(ra.exi_act1, 0) AS unidades_totales,
+  ROUND(SAFE_DIVIDE(ra.exi_act1, NULLIF(art.fraccion, 0)), 2) AS cajas_totales,
   
-  -- 📦 Cálculo Físico de Cajas y Kilogramos
-  SAFE_DIVIDE(ra.exi_act1, NULLIF(art.cap_bulto, 0)) AS stock_cajas,
-  ROUND((ra.exi_act1 * COALESCE(art.peso, 0)), 2) AS peso_total_kg,
+  COALESCE(art.peso, 0) AS peso_unitario,
+  ROUND(COALESCE(ra.exi_act1, 0) * COALESCE(art.peso, 0), 2) AS kg_totales,
+  ROUND(SAFE_DIVIDE(COALESCE(ra.exi_act1, 0) * COALESCE(art.peso, 0), 1000), 3) AS toneladas_totales,
+  
+  COALESCE(NULLIF(art.cap_bulto, 0), NULLIF(art.fraccion, 0), 1) AS capacidad_bultos,
+  ROUND(SAFE_DIVIDE(ra.exi_act1, COALESCE(NULLIF(art.cap_bulto, 0), NULLIF(art.fraccion, 0), 1)), 2) AS bultos_totales,
+
+  -- Compatibilidad
+  ra.exi_act1 AS stock_unidades,
+  ROUND(SAFE_DIVIDE(ra.exi_act1, NULLIF(art.fraccion, 0)), 2) AS stock_cajas,
+  ROUND(COALESCE(ra.exi_act1, 0) * COALESCE(art.peso, 0), 2) AS peso_total_kg,
   
   ra.registro AS fecha_ultima_actualizacion
 FROM ${ref("sil_renglones_almacenes")} ra
+LEFT JOIN ${ref("dim_empresa")} emp
+  ON ra.source_empresa = emp.source_empresa
 LEFT JOIN ${ref("sil_almacenes")} alm
   ON ra.source_empresa = alm.source_empresa AND ra.cod_alm = alm.cod_alm
 LEFT JOIN ${ref("sil_articulos")} art
