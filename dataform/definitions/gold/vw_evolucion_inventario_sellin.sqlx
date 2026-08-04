@@ -1,6 +1,5 @@
 config {
   type: "view",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "vw_evolucion_inventario_sellin",
   description: "Vista de inteligencia temporal de existencias e inventarios según fecha comercial (Año, Mes, Trimestre, Semana, Quincena) por Empresa, Sucursal, Proveedor, Marca y SKU",

@@ -3,6 +3,14 @@ variable "dataset_id" { type = string }
 variable "dataset_location" { type = string }
 variable "labels" { type = map(string) }
 
+# En prod las tablas de control ya existen particionadas/clustered (creadas fuera
+# de Terraform). En dev no tienen particionado. Este flag evita que un apply
+# intente destruir y recrear las tablas por una diferencia de config.
+variable "partition_control_tables" {
+  type    = bool
+  default = false
+}
+
 resource "google_bigquery_dataset" "control" {
   project       = var.project_id
   dataset_id    = var.dataset_id
@@ -43,6 +51,15 @@ resource "google_bigquery_table" "etl_batches" {
   table_id            = "etl_batches"
   description         = "Registro de lotes procesados por entidad y empresa."
   deletion_protection = false
+  clustering          = var.partition_control_tables ? ["entity", "source_empresa", "status"] : null
+
+  dynamic "time_partitioning" {
+    for_each = var.partition_control_tables ? [1] : []
+    content {
+      type  = "DAY"
+      field = "inserted_at"
+    }
+  }
 
   schema = <<EOF
 [
@@ -70,6 +87,15 @@ resource "google_bigquery_table" "etl_events" {
   table_id            = "etl_events"
   description         = "Eventos de auditoria y monitoreo de fases."
   deletion_protection = false
+  clustering          = var.partition_control_tables ? ["phase", "event_type"] : null
+
+  dynamic "time_partitioning" {
+    for_each = var.partition_control_tables ? [1] : []
+    content {
+      type  = "DAY"
+      field = "inserted_at"
+    }
+  }
 
   schema = <<EOF
 [

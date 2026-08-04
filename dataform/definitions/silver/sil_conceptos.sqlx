@@ -1,0 +1,31 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_conceptos",
+  description: "Tabla Silver de conceptos (limpia, tipada y deduplicada) generada desde stg_conceptos",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_con"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_con"],
+    nonNull: ["_source_empresa", "cod_con"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("cod_con")} AS cod_con,
+  ${helpers.trimStr("nom_con")} AS nom_con,
+  ${helpers.trimStr("status")} AS status,
+  _ingested_at
+FROM ${ref("stg_conceptos")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (cod_con IS NOT NULL AND TRIM(CAST(cod_con AS STRING)) != '')
+  AND (nom_con IS NOT NULL AND TRIM(CAST(nom_con AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, cod_con
+  ORDER BY _ingested_at DESC
+) = 1

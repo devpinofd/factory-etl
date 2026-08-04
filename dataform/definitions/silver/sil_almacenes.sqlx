@@ -1,0 +1,32 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_almacenes",
+  description: "Tabla Silver de almacenes (limpia, tipada y deduplicada) generada desde stg_almacenes",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_alm"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_alm"],
+    nonNull: ["_source_empresa", "cod_alm"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("cod_alm")} AS cod_alm,
+  ${helpers.trimStr("nom_alm")} AS nom_alm,
+  ${helpers.trimStr("cod_suc")} AS cod_suc,
+  ${helpers.trimStr("status")} AS status,
+  _ingested_at
+FROM ${ref("stg_almacenes")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (cod_alm IS NOT NULL AND TRIM(CAST(cod_alm AS STRING)) != '')
+  AND (nom_alm IS NOT NULL AND TRIM(CAST(nom_alm AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, cod_alm
+  ORDER BY _ingested_at DESC
+) = 1

@@ -1,0 +1,38 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_renglones_aprecios",
+  description: "Tabla Silver de renglones_aprecios (limpia, tipada y deduplicada) generada desde stg_renglones_aprecios",
+  bigquery: {
+    partitionBy: "DATE(registro)",
+    clusterBy: ["_source_empresa", "documento", "renglon"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "documento", "renglon"],
+    nonNull: ["_source_empresa", "documento", "renglon", "registro"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("documento")} AS documento,
+  ${helpers.toNumeric("renglon")} AS renglon,
+  ${helpers.trimStr("cod_art")} AS cod_art,
+  ${helpers.toNumeric("pre_ant")} AS pre_ant,
+  ${helpers.toNumeric("pre_nue")} AS pre_nue,
+  ${helpers.toNumeric("cos_ult1")} AS cos_ult1,
+  ${helpers.trimStr("tip_pre")} AS tip_pre,
+  ${helpers.trimStr("notas")} AS notas,
+  ${helpers.toTimestamp("registro")} AS registro,
+  DATE(${helpers.toTimestamp("registro")}) AS fecha_registro,
+  _ingested_at
+FROM ${ref("stg_renglones_aprecios")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (documento IS NOT NULL AND TRIM(CAST(documento AS STRING)) != '')
+  AND renglon IS NOT NULL
+
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, documento, renglon
+  ORDER BY _ingested_at DESC
+) = 1

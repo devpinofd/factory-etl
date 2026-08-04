@@ -1,6 +1,5 @@
 config {
   type: "table",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "dim_tiempo",
   description: "Dimensión de tiempo y calendario comercial (2020-2030) con semanas ISO y quincenas",

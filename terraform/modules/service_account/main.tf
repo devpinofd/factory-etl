@@ -5,6 +5,9 @@ variable "bronze_bucket_name" { type = string }
 variable "quarantine_bucket_name" { type = string }
 variable "control_dataset_id" { type = string }
 variable "secret_ids" { type = map(string) }
+variable "bronze_stg_dataset_id" { type = string }
+variable "silver_dataset_id" { type = string }
+variable "gold_dataset_id" { type = string }
 
 resource "google_service_account" "runtime" {
   project      = var.project_id
@@ -41,6 +44,31 @@ resource "google_project_iam_member" "bq_job_user" {
   project = var.project_id
   role    = "roles/bigquery.jobUser"
   member  = "serviceAccount:${google_service_account.runtime.email}"
+}
+
+# --- BigQuery: dataEditor sobre staging/silver/gold (load jobs + Dataform) ----
+# Los datasets ya existen fuera de Terraform (creados por scratch/build_all_medallion_tables.py);
+# solo se referencian por nombre, no se gestiona su ciclo de vida aqui.
+
+resource "google_bigquery_dataset_iam_member" "bronze_stg_editor" {
+  project    = var.project_id
+  dataset_id = var.bronze_stg_dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${google_service_account.runtime.email}"
+}
+
+resource "google_bigquery_dataset_iam_member" "silver_editor" {
+  project    = var.project_id
+  dataset_id = var.silver_dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${google_service_account.runtime.email}"
+}
+
+resource "google_bigquery_dataset_iam_member" "gold_editor" {
+  project    = var.project_id
+  dataset_id = var.gold_dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${google_service_account.runtime.email}"
 }
 
 # --- Secret Manager: accessor sobre secretos declarados -----------------------

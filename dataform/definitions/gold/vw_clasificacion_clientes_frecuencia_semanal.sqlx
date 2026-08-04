@@ -1,6 +1,5 @@
 config {
   type: "view",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "vw_clasificacion_clientes_frecuencia_semanal",
   description: "Vista de Clasificación de Clientes según Frecuencia de Compra Semanal en el Mes (Tipo 4: Compraron todas las semanas del mes, Tipo 3: 3 semanas, Tipo 2: 2 semanas, Tipo 1: 1 semana) por Empresa, Sucursal, Vendedor, Proveedor y Marca",

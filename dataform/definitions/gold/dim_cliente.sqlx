@@ -1,15 +1,14 @@
 config {
   type: "table",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "dim_cliente",
   description: "Dimensión de cliente en Gold con latitud, longitud y RIF",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_cli"]
+    clusterBy: ["_source_empresa", "cod_cli"]
   },
   assertions: {
-    uniqueKey: ["source_empresa", "cod_cli"],
-    nonNull: ["source_empresa", "cod_cli"]
+    uniqueKey: ["_source_empresa", "cod_cli"],
+    nonNull: ["_source_empresa", "cod_cli"]
   }
 }
 

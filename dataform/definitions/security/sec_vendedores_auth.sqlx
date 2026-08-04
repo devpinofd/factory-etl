@@ -1,0 +1,6 @@
+config {
+  type: "declaration",
+  schema: "factory_etl_security",
+  name: "sec_vendedores_auth",
+  description: "Tabla de gobernanza RLS: mapea correo de usuario a su alcance de acceso (empresa/sucursal/proveedor/vendedor) y role_type"
+}

@@ -1,0 +1,32 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_impuestos",
+  description: "Tabla Silver de impuestos (limpia, tipada y deduplicada) generada desde stg_impuestos",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_imp"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_imp"],
+    nonNull: ["_source_empresa", "cod_imp"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("cod_imp")} AS cod_imp,
+  ${helpers.trimStr("nom_imp")} AS nom_imp,
+  ${helpers.toNumeric("por_imp1")} AS por_imp1,
+  ${helpers.trimStr("status")} AS status,
+  _ingested_at
+FROM ${ref("stg_impuestos")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (cod_imp IS NOT NULL AND TRIM(CAST(cod_imp AS STRING)) != '')
+  AND (nom_imp IS NOT NULL AND TRIM(CAST(nom_imp AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, cod_imp
+  ORDER BY _ingested_at DESC
+) = 1

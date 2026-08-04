@@ -14,9 +14,17 @@ resource "google_workflows_workflow" "workflow" {
   }
 
   source_contents = templatefile("${path.module}/templates/workflow.yaml.tftpl", {
-    project_id         = var.project_id
-    region             = var.region
-    job_name           = var.job_name
-    control_dataset_id = var.control_dataset_id
+    project_id                     = var.project_id
+    region                         = var.region
+    job_name                       = var.job_name
+    bucket_name                    = var.bucket_name
+    control_dataset_id             = var.control_dataset_id
+    queries_json                   = jsonencode(var.queries)
+    enable_medallion_consolidation = var.enable_medallion_consolidation
+    bronze_stg_dataset_id          = var.bronze_stg_dataset_id
+    dataform_repository_id         = var.dataform_repository_id
+    dataform_location              = var.dataform_location
+    staging_schemas_json           = var.staging_schemas_json
+    quarantine_bucket_name         = var.quarantine_bucket_name
   })
 }

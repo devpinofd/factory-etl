@@ -1,0 +1,51 @@
+config {
+  type: "view",
+  schema: "factory_etl_gold",
+  name: "vw_facturas_renglones_consolidado",
+  description: "Consolida sil_ventas_diarias con sil_articulos para derivar unidades/cajas/peso por renglón de factura. Fuente real usada por fct_ventas.sqlx (antes apuntaba a una vista inexistente).",
+}
+
+SELECT
+  v._source_empresa AS source_empresa,
+  v.tipo_documento,
+  v.cod_suc,
+  v.documento,
+  v.renglon,
+  v.registro,
+  v.cod_ven,
+  v.nom_ven,
+  v.cod_cli,
+  v.nom_cli,
+  v.nom_cla,
+  v.nom_est,
+  v.nom_ciu,
+  v.cod_art,
+  v.cod_mar,
+  v.nom_mar,
+  v.nom_dep,
+  v.cod_sec,
+  v.modelo,
+  v.cod_pro,
+  v.nom_pro,
+  v.nom_art,
+  v.cod_uni1,
+
+  -- 📦 CONVERSIÓN DE UNIDADES USANDO MAESTRO DE ARTÍCULOS (fracción/peso de sil_articulos)
+  v.can_ven AS unidades_vendidas,
+  ROUND(SAFE_DIVIDE(v.can_ven, NULLIF(art.fraccion, 0)), 2) AS cajas_vendidas,
+  ROUND(v.can_ven * COALESCE(art.peso, 0), 2) AS peso_total_kg,
+  ROUND(SAFE_DIVIDE(v.can_ven * COALESCE(art.peso, 0), 1000), 3) AS peso_total_toneladas,
+  -- ⚠️ No existe campo de volumen en el esquema de articulos.json; sin dato fuente para calcularlo
+  CAST(NULL AS NUMERIC) AS volumen_total_m3,
+
+  v.monto_bruto,
+  v.cod_mon,
+  v.rif,
+  v.cod_imp,
+  v.neto,
+  v.dcto,
+  v.tasa,
+  v.neto_dcto
+FROM ${ref("sil_ventas_diarias")} v
+LEFT JOIN ${ref("sil_articulos")} art
+  ON v._source_empresa = art._source_empresa AND v.cod_art = art.cod_art

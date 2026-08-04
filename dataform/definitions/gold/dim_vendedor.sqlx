@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_vendedor",
+  description: "Dimensión Gold de vendedores (pass-through de sil_vendedores)",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_ven"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_ven"],
+    nonNull: ["_source_empresa", "cod_ven"]
+  }
+}
+
+SELECT * FROM ${ref("sil_vendedores")}

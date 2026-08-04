@@ -1,0 +1,6 @@
+config {
+  type: "declaration",
+  schema: "factory_etl_bronze_stg",
+  name: "stg_renglones_almacenes",
+  description: "Tabla nativa cargada via BQ load job (WRITE_TRUNCATE) desde Bronze GCS con tipos exactos"
+}

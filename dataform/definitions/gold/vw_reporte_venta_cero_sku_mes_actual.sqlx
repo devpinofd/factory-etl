@@ -1,6 +1,5 @@
 config {
   type: "view",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "vw_reporte_venta_cero_sku_mes_actual",
   description: "Vista de Brechas de Distribución y Venta Cero por SKU en el Mes Actual: Identifica qué SKUs del catálogo de cada marca NO han sido comprados por cada cliente de la cartera de un vendedor",

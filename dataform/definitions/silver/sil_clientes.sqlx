@@ -1,20 +1,19 @@
 config {
   type: "table",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_silver",
   name: "sil_clientes",
   description: "Tabla Silver de clientes limpia, deduplicada y con latitud/longitud procesadas a partir de GPS",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_cli"]
+    clusterBy: ["_source_empresa", "cod_cli"]
   },
   assertions: {
-    uniqueKey: ["source_empresa", "cod_cli"],
-    nonNull: ["source_empresa", "cod_cli"]
+    uniqueKey: ["_source_empresa", "cod_cli"],
+    nonNull: ["_source_empresa", "cod_cli"]
   }
 }
 
 SELECT
-  source_empresa,
+  _source_empresa,
   ${helpers.trimStr("cod_cli")} AS cod_cli,
   ${helpers.trimStr("nom_cli")} AS nom_cli,
   ${helpers.trimStr("rif")} AS rif,  -- INCLUIDO PARA RLS
@@ -40,9 +39,16 @@ SELECT
   ${helpers.trimStr("crm_pos")} AS crm_pos,
   ${helpers.trimStr("tip_cli")} AS tip_cli,
   ${helpers.trimStr("abc")} AS abc,
-  ${helpers.trimStr("status")} AS status
+  ${helpers.trimStr("status")} AS status,
+  _ingested_at
 FROM ${ref("stg_clientes")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (cod_cli IS NOT NULL AND TRIM(CAST(cod_cli AS STRING)) != '')
+  AND (nom_cli IS NOT NULL AND TRIM(CAST(nom_cli AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY source_empresa, cod_cli
-  ORDER BY dt DESC
+  PARTITION BY _source_empresa, cod_cli
+  ORDER BY _ingested_at DESC
 ) = 1

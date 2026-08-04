@@ -1,0 +1,47 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_articulos",
+  description: "Tabla Silver de articulos (limpia, tipada y deduplicada) generada desde stg_articulos",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_art"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_art"],
+    nonNull: ["_source_empresa", "cod_art"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("cod_art")} AS cod_art,
+  ${helpers.trimStr("modelo")} AS modelo,
+  ${helpers.trimStr("codigo_barras")} AS codigo_barras,
+  ${helpers.trimStr("nom_art")} AS nom_art,
+  ${helpers.trimStr("cod_dep")} AS cod_dep,
+  ${helpers.trimStr("cod_sec")} AS cod_sec,
+  ${helpers.trimStr("cod_mar")} AS cod_mar,
+  ${helpers.trimStr("cod_pro")} AS cod_pro,
+  ${helpers.trimStr("cod_uni1")} AS cod_uni1,
+  ${helpers.toNumeric("peso")} AS peso,
+  ${helpers.toNumeric("fraccion")} AS fraccion,
+  ${helpers.toNumeric("cap_bulto")} AS cap_bulto,
+  ${helpers.toNumeric("gra_lic")} AS gra_lic,
+  ${helpers.toNumeric("precio")} AS precio,
+  ${helpers.toNumeric("cos_ult1")} AS cos_ult1,
+  ${helpers.trimStr("cod_imp")} AS cod_imp,
+  ${helpers.trimStr("status")} AS status,
+  ${helpers.toTimestamp("fec_ini")} AS fec_ini,
+  _ingested_at
+FROM ${ref("stg_articulos")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (cod_art IS NOT NULL AND TRIM(CAST(cod_art AS STRING)) != '')
+  AND (nom_art IS NOT NULL AND TRIM(CAST(nom_art AS STRING)) != '')
+  AND (cod_uni1 IS NOT NULL AND TRIM(CAST(cod_uni1 AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, cod_art
+  ORDER BY _ingested_at DESC
+) = 1

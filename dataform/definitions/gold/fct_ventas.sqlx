@@ -1,12 +1,11 @@
 config {
   type: "table",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "fct_ventas",
   description: "Tabla de Hechos Gold de Ventas consolidadas por transacción, renglón, empresa, sucursal, vendedor y producto",
   bigquery: {
     partitionBy: "DATE(registro)",
-    clusterBy: ["source_empresa", "cod_suc", "cod_ven", "cod_pro"]
+    clusterBy: ["source_empresa", "cod_suc", "cod_pro", "cod_ven"]
   }
 }
 

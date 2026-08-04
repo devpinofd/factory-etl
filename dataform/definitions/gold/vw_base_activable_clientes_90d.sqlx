@@ -1,6 +1,5 @@
 config {
   type: "view",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "vw_base_activable_clientes_90d",
   description: "Base Activable a 90 días y % Tasa de Activación en el mes actual (Julio 2026) por Empresa, Sucursal (Nombre), Vendedor, Proveedor y Marca",

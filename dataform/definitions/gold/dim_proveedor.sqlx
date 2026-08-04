@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_proveedor",
+  description: "Dimensión Gold de proveedores (pass-through de sil_proveedores)",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_pro"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_pro"],
+    nonNull: ["_source_empresa", "cod_pro"]
+  }
+}
+
+SELECT * FROM ${ref("sil_proveedores")}

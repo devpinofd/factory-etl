@@ -1,0 +1,27 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_proveedores_rechazados",
+  description: "Filas de stg_proveedores que no cumplen validacion de campos requeridos (cod_pro, nom_pro, status); cuarentena de calidad de datos en Silver",
+  bigquery: {
+    clusterBy: ["_source_empresa"]
+  }
+}
+
+SELECT
+  *,
+  CURRENT_TIMESTAMP() AS _rechazado_en,
+(
+    SELECT STRING_AGG(motivo, ', ')
+    FROM UNNEST([
+      IF((cod_pro IS NULL OR TRIM(CAST(cod_pro AS STRING)) = ''), 'cod_pro', NULL),
+      IF((nom_pro IS NULL OR TRIM(CAST(nom_pro AS STRING)) = ''), 'nom_pro', NULL),
+      IF((status IS NULL OR TRIM(CAST(status AS STRING)) = ''), 'status', NULL)
+    ]) AS motivo
+  ) AS motivo_rechazo
+FROM ${ref("stg_proveedores")}
+WHERE NOT (
+  (cod_pro IS NOT NULL AND TRIM(CAST(cod_pro AS STRING)) != '')
+  AND (nom_pro IS NOT NULL AND TRIM(CAST(nom_pro AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+)

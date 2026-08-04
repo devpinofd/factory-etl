@@ -1,7 +1,6 @@
 config {
   type: "declaration",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_bronze_stg",
   name: "stg_renglones_monedas",
-  description: "Tabla externa BigQuery sobre las tasas de cambio de monedas en GCS Bronze"
+  description: "Tabla nativa cargada via BQ load job (WRITE_TRUNCATE) desde Bronze GCS con tipos exactos"
 }

@@ -1,0 +1,38 @@
+config {
+  type: "operations",
+  schema: "factory_etl_gold",
+  name: "rls_fct_ventas",
+  description: "Row Access Policy sobre fct_ventas filtrando por empresa, sucursal, proveedor y vendedor segun sec_vendedores_auth",
+  hasOutput: false,
+  dependencies: ["fct_ventas"]
+}
+
+-- GRANT TO allUsers: la policy aplica a cualquier principal (incluida la SA de
+-- runtime de Dataform en cada ambiente), evitando hardcodear un email de SA
+-- especifico que no es portable entre dev/prod. El bypass de superadmin/analista
+-- se resuelve en el FILTER USING via sec_vendedores_auth.role_type; la SA de
+-- runtime de cada ambiente debe tener una fila con role_type='SUPERADMIN' ahi
+-- para que los modelos gold downstream que lean fct_ventas no vean 0 filas.
+CREATE OR REPLACE ROW ACCESS POLICY rls_fct_ventas
+ON ${ref("fct_ventas")}
+GRANT TO (
+  "allUsers"
+)
+FILTER USING (
+  EXISTS (
+    SELECT 1
+    FROM ${ref("sec_vendedores_auth")} sec
+    WHERE LOWER(sec.correo) = LOWER(SESSION_USER())
+      AND sec.status = 'A'
+      AND (
+        sec.role_type IN ('SUPERADMIN', 'ANALISTA_VENTAS')
+        OR (
+          -- 🔒 Filtro por EMPRESA, SUCURSAL, PROVEEDOR y VENDEDOR (todas NULL = sin restriccion en esa dimension)
+          (sec.source_empresa IS NULL OR sec.source_empresa = source_empresa)
+          AND (sec.cod_suc IS NULL OR sec.cod_suc = cod_suc)
+          AND (sec.cod_pro IS NULL OR sec.cod_pro = cod_pro)
+          AND (sec.cod_ven IS NULL OR sec.cod_ven = cod_ven)
+        )
+      )
+  )
+)

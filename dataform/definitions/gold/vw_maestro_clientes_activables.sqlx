@@ -1,6 +1,5 @@
 config {
   type: "view",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "vw_maestro_clientes_activables",
   description: "Vista de Maestro Detallado de Clientes Activables por Empresa, Sucursal, Vendedor y Proveedor (Listado individual de clientes con RIF, estatus de activación 90d, compras en el mes actual y días sin comprar)",

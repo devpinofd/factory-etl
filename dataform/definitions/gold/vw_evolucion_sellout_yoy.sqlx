@@ -1,6 +1,5 @@
 config {
   type: "view",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "vw_evolucion_sellout_yoy",
   description: "Vista de inteligencia de evolución del Sell-Out (Ventas Diarias) por Empresa, Sucursal, Vendedor, Proveedor, Marca y SKU en jerarquías de tiempo (Día, Semana, Quincena, Mes, Trimestre, Año) con comparativa vs Mismo Período del Año Anterior (YoY)",

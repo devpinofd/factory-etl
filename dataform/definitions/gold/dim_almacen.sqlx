@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_almacen",
+  description: "Dimensión Gold de almacenes (pass-through de sil_almacenes)",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_alm"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_alm"],
+    nonNull: ["_source_empresa", "cod_alm"]
+  }
+}
+
+SELECT * FROM ${ref("sil_almacenes")}

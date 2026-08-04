@@ -1,6 +1,5 @@
 config {
   type: "table",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_silver",
   name: "sil_ventas_diarias",
   description: "Tabla Silver consolidada de ventas diarias (limpia, tipada, deduplicada y particionada)",
@@ -50,6 +49,13 @@ SELECT
   ${helpers.toNumeric("neto_dcto")} AS neto_dcto,
   _ingested_at
 FROM ${ref("stg_ventas_diarias")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (tipo_documento IS NOT NULL AND TRIM(CAST(tipo_documento AS STRING)) != '')
+  AND (cod_suc IS NOT NULL AND TRIM(CAST(cod_suc AS STRING)) != '')
+  AND (documento IS NOT NULL AND TRIM(CAST(documento AS STRING)) != '')
+  AND renglon IS NOT NULL
+
 QUALIFY ROW_NUMBER() OVER (
   PARTITION BY _source_empresa, tipo_documento, cod_suc, documento, renglon
   ORDER BY _ingested_at DESC

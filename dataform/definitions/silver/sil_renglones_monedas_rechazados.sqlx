@@ -1,0 +1,25 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_renglones_monedas_rechazados",
+  description: "Filas de stg_renglones_monedas que no cumplen validacion de campos requeridos (cod_mon, renglon); cuarentena de calidad de datos en Silver",
+  bigquery: {
+    clusterBy: ["_source_empresa"]
+  }
+}
+
+SELECT
+  *,
+  CURRENT_TIMESTAMP() AS _rechazado_en,
+(
+    SELECT STRING_AGG(motivo, ', ')
+    FROM UNNEST([
+      IF((cod_mon IS NULL OR TRIM(CAST(cod_mon AS STRING)) = ''), 'cod_mon', NULL),
+      IF(renglon IS NULL, 'renglon', NULL)
+    ]) AS motivo
+  ) AS motivo_rechazo
+FROM ${ref("stg_renglones_monedas")}
+WHERE NOT (
+  (cod_mon IS NOT NULL AND TRIM(CAST(cod_mon AS STRING)) != '')
+  AND renglon IS NOT NULL
+)

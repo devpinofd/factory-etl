@@ -1,0 +1,31 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_paises",
+  description: "Tabla Silver de paises (limpia, tipada y deduplicada) generada desde stg_paises",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_pai"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_pai"],
+    nonNull: ["_source_empresa", "cod_pai"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("cod_pai")} AS cod_pai,
+  ${helpers.trimStr("nom_pai")} AS nom_pai,
+  ${helpers.trimStr("status")} AS status,
+  _ingested_at
+FROM ${ref("stg_paises")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (cod_pai IS NOT NULL AND TRIM(CAST(cod_pai AS STRING)) != '')
+  AND (nom_pai IS NOT NULL AND TRIM(CAST(nom_pai AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, cod_pai
+  ORDER BY _ingested_at DESC
+) = 1

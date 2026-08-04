@@ -1,0 +1,31 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_departamentos",
+  description: "Tabla Silver de departamentos (limpia, tipada y deduplicada) generada desde stg_departamentos",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_dep"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_dep"],
+    nonNull: ["_source_empresa", "cod_dep"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("cod_dep")} AS cod_dep,
+  ${helpers.trimStr("nom_dep")} AS nom_dep,
+  ${helpers.trimStr("status")} AS status,
+  _ingested_at
+FROM ${ref("stg_departamentos")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (cod_dep IS NOT NULL AND TRIM(CAST(cod_dep AS STRING)) != '')
+  AND (nom_dep IS NOT NULL AND TRIM(CAST(nom_dep AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, cod_dep
+  ORDER BY _ingested_at DESC
+) = 1

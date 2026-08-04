@@ -1,6 +1,7 @@
 defaultProject: factory-etl-dev-0y1dhf
 defaultDataset: factory_etl_silver
 defaultAssertionDataset: factory_etl_assertions
+defaultLocation: us-central1
 dataformCoreVersion: 3.0.0
 vars:
   gcpProject: factory-etl-dev-0y1dhf

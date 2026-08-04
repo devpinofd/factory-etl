@@ -6,101 +6,322 @@ main:
           - project_id: "${project_id}"
           - region: "${region}"
           - job_name: "${job_name}"
-          - dt_param: $${default(map.get(args, "target_date"), default(map.get(args, "dt"), "TODAY"))}
+          - bucket_name: "${bucket_name}"
+          - dt_param: $${default(map.get(args, "target_date"), default(map.get(args, "dt"), text.split(time.format(sys.now()), "T")[0]))}
           - empresas: ["tinito", "ctb", "daroan", "roldan", "ctm"]
-          - queries_list:
-              - id: "renglones_almacenes_v1"
-                has_param: false
-              - id: "ventas_diarias_v1"
-                has_param: true
-              - id: "renglones_monedas_v1"
-                has_param: true
-              - id: "renglones_aprecios_v1"
-                has_param: true
-              - id: "articulos_v1"
-                has_param: false
-              - id: "impuestos_v1"
-                has_param: false
-              - id: "departamentos_v1"
-                has_param: false
-              - id: "marcas_v1"
-                has_param: false
-              - id: "secciones_v1"
-                has_param: false
-              - id: "proveedores_v1"
-                has_param: false
-              - id: "paises_v1"
-                has_param: false
-              - id: "estados_v1"
-                has_param: false
-              - id: "ciudades_v1"
-                has_param: false
-              - id: "vendedores_v1"
-                has_param: false
-              - id: "sucursales_v1"
-                has_param: false
-              - id: "almacenes_v1"
-                has_param: false
-              - id: "clientes_v1"
-                has_param: false
-              - id: "clases_clientes_v1"
-                has_param: false
-              - id: "conceptos_v1"
-                has_param: false
-
-    # =========================================================================
-    # OPTIMIZACION CONCURRENCY 10 CON PARALELISMO PLANO (< 5 MINUTOS)
-    # =========================================================================
-
+          - queries_list: ${queries_json}
+          - total_queries: 0
+          - staging_schemas: ${staging_schemas_json}
+          - quarantine_bucket_name: "${quarantine_bucket_name}"
     - process_empresas_in_parallel:
         parallel:
+          shared: [total_queries]
           for:
             value: emp
             in: $${empresas}
             steps:
-              - process_all_queries_flat_in_parallel:
-                  parallel:
-                    concurrency_limit: 10
-                    for:
-                      value: q
-                      in: $${queries_list}
-                      steps:
-                        - prepare_default_args:
-                            assign:
-                              - cmd_args:
-                                  - "run-batch"
-                                  - "--query-id"
-                                  - $${q.id}
-                                  - "--source-empresa"
-                                  - $${emp}
-                                  - "--dt"
-                                  - $${dt_param}
-                        - check_param_switch:
-                            switch:
-                              - condition: $${q.has_param}
-                                assign:
-                                  - cmd_args:
-                                      - "run-batch"
-                                      - "--query-id"
-                                      - $${q.id}
-                                      - "--source-empresa"
-                                      - $${emp}
-                                      - "--dt"
-                                      - $${dt_param}
-                                      - "-p"
-                                      - $${"fec_des=" + dt_param}
-                                      - "-p"
-                                      - $${"fec_has=" + dt_param}
-                        - run_job:
-                            call: googleapis.run.v2.projects.locations.jobs.run
-                            args:
-                              name: "projects/${project_id}/locations/${region}/jobs/${job_name}"
-                              body:
-                                overrides:
-                                  containerOverrides:
-                                    - args: $${cmd_args}
-
+              - process_queries_for_empresa:
+                  for:
+                    value: q
+                    in: $${queries_list}
+                    steps:
+                      - prepare_default_args:
+                          assign:
+                            - cmd_args:
+                                - "run-batch"
+                                - "--query-id"
+                                - $${q.id}
+                                - "--source-empresa"
+                                - $${emp}
+                                - "--dt"
+                                - $${dt_param}
+                      - check_param_switch:
+                          switch:
+                            - condition: $${q.has_param}
+                              assign:
+                                - cmd_args:
+                                    - "run-batch"
+                                    - "--query-id"
+                                    - $${q.id}
+                                    - "--source-empresa"
+                                    - $${emp}
+                                    - "--dt"
+                                    - $${dt_param}
+                                    - "-p"
+                                    - $${"fec_des=" + dt_param}
+                                    - "-p"
+                                    - $${"fec_has=" + dt_param}
+                      - run_job:
+                          call: googleapis.run.v2.projects.locations.jobs.run
+                          args:
+                            name: $${"projects/" + project_id + "/locations/" + region + "/jobs/" + job_name}
+                            body:
+                              overrides:
+                                containerOverrides:
+                                  - args: $${cmd_args}
+                                    env:
+                                      - name: "FACTORY_ETL_GCP_PROJECT"
+                                        value: "$${project_id}"
+                                      - name: "FACTORY_ETL_BRONZE_BUCKET"
+                                        value: "$${bucket_name}"
+                                      - name: "FACTORY_ETL_CONTROL_DATASET"
+                                        value: "${control_dataset_id}"
+                          result: job_result
+                      - increment_counter:
+                          assign:
+                            - total_queries: $${total_queries + 1}
+%{ if enable_medallion_consolidation }
+    - consolidate_medallion:
+        steps:
+          - init_medallion_run:
+              assign:
+                - medallion_run_id: $${uuid.generate()}
+          - load_all_staging_tables:
+              for:
+                value: q
+                in: $${queries_list}
+                steps:
+                  - call_load_staging:
+                      call: load_staging_table
+                      args:
+                        project_id: $${project_id}
+                        bucket_name: $${bucket_name}
+                        dataset_id: "${bronze_stg_dataset_id}"
+                        query_id: $${q.id}
+                        staging_schemas: $${staging_schemas}
+                        quarantine_bucket_name: $${quarantine_bucket_name}
+                        control_dataset_id: "${control_dataset_id}"
+                        run_id: $${medallion_run_id}
+          - run_medallion_consolidation:
+              call: run_dataform_consolidation
+              args:
+                project_id: $${project_id}
+                location: "${dataform_location}"
+                repository_id: "${dataform_repository_id}"
+%{ endif }
     - return_success:
         return:
           status: "SUCCESS"
-          queries_processed: $${len(empresas) * len(queries_list)}
+          queries_processed: $${total_queries}
+
+# -----------------------------------------------------------------------------
+# Subworkflow: carga (BigQuery load job) de un query_id de Bronze a una tabla
+# nativa de staging, con tipos EXACTOS (sin autodetect, uno por entidad segun
+# src/factory_etl/factory_queries/schemas/*.json) y polling hasta que el job
+# termine. ignoreUnknownValues=false: si Bronze trae una columna fuera del
+# esquema conocido, el load job falla completo (en vez de descartarla en
+# silencio) y esa entidad se manda a cuarentena en lugar de abortar todo el
+# workflow.
+# -----------------------------------------------------------------------------
+
+load_staging_table:
+  params: [project_id, bucket_name, dataset_id, query_id, staging_schemas, quarantine_bucket_name, control_dataset_id, run_id]
+  steps:
+    - derive_entity_name:
+        assign:
+          - entity_name: $${text.replace_all(query_id, "_v1", "")}
+          - table_id: $${"stg_" + entity_name}
+          - source_prefix: $${"gs://" + bucket_name + "/bronze/" + query_id + "/"}
+          - schema_fields: $${map.get(staging_schemas, entity_name)}
+    - start_load_job:
+        call: googleapis.bigquery.v2.jobs.insert
+        args:
+          projectId: $${project_id}
+          body:
+            configuration:
+              load:
+                sourceUris: [$${source_prefix + "*"}]
+                sourceFormat: "NEWLINE_DELIMITED_JSON"
+                schema:
+                  fields: $${schema_fields}
+                ignoreUnknownValues: false
+                writeDisposition: "WRITE_TRUNCATE"
+                hivePartitioningOptions:
+                  mode: "AUTO"
+                  sourceUriPrefix: $${source_prefix}
+                destinationTable:
+                  projectId: $${project_id}
+                  datasetId: $${dataset_id}
+                  tableId: $${table_id}
+        result: load_job
+    - init_poll:
+        assign:
+          - job_id: $${load_job.jobReference.jobId}
+          - attempts: 0
+    - poll_load_job:
+        steps:
+          - check_attempts:
+              switch:
+                - condition: $${attempts >= 60}
+                  raise: $${"timeout esperando load job de " + table_id}
+          - get_job_status:
+              call: googleapis.bigquery.v2.jobs.get
+              args:
+                projectId: $${project_id}
+                jobId: $${job_id}
+              result: job_status
+          - check_errors:
+              switch:
+                - condition: $${job_status.status.state == "DONE" AND default(map.get(job_status.status, "errorResult"), null) != null}
+                  steps:
+                    - handle_schema_drift:
+                        call: quarantine_staging_drift
+                        args:
+                          project_id: $${project_id}
+                          bucket_name: $${bucket_name}
+                          quarantine_bucket_name: $${quarantine_bucket_name}
+                          control_dataset_id: $${control_dataset_id}
+                          query_id: $${query_id}
+                          entity_name: $${entity_name}
+                          run_id: $${run_id}
+                          error_result: $${job_status.status.errorResult}
+                    - drift_handled:
+                        next: load_job_done
+          - check_done:
+              switch:
+                - condition: $${job_status.status.state == "DONE"}
+                  next: load_job_done
+          - wait_before_retry:
+              call: sys.sleep
+              args:
+                seconds: 10
+          - increment_attempts:
+              assign:
+                - attempts: $${attempts + 1}
+          - loop_again:
+              next: poll_load_job
+    - load_job_done:
+        return: $${table_id}
+
+# -----------------------------------------------------------------------------
+# Subworkflow: cuarentena de una entidad cuyo load job de staging fallo por
+# columnas fuera del esquema conocido (drift). Copia (no mueve, Bronze se
+# preserva intacto) los objetos de esa entidad a
+# quarantine/<entity>/staging_load_drift/run_id=<id>/... y registra un evento
+# QUARANTINED_STAGING_SCHEMA_DRIFT en etl_events para que sea visible/alertable.
+# No interrumpe el resto del workflow: cada entidad se trata de forma aislada.
+# -----------------------------------------------------------------------------
+
+quarantine_staging_drift:
+  params: [project_id, bucket_name, quarantine_bucket_name, control_dataset_id, query_id, entity_name, run_id, error_result]
+  steps:
+    - list_source_objects:
+        call: googleapis.storage.v1.objects.list
+        args:
+          bucket: $${bucket_name}
+          prefix: $${"bronze/" + query_id + "/"}
+        result: listing
+    - copy_objects_to_quarantine:
+        for:
+          value: obj
+          in: $${default(listing.items, [])}
+          steps:
+            - rewrite_object:
+                call: googleapis.storage.v1.objects.rewrite
+                args:
+                  sourceBucket: $${bucket_name}
+                  sourceObject: $${obj.name}
+                  destinationBucket: $${quarantine_bucket_name}
+                  destinationObject: $${"quarantine/" + entity_name + "/staging_load_drift/run_id=" + run_id + "/" + obj.name}
+                result: rewrite_result
+    - log_drift_event:
+        call: googleapis.bigquery.v2.tabledata.insertAll
+        args:
+          projectId: $${project_id}
+          datasetId: $${control_dataset_id}
+          tableId: "etl_events"
+          body:
+            rows:
+              - json:
+                  event_id: $${uuid.generate()}
+                  run_id: $${run_id}
+                  entity: $${entity_name}
+                  phase: "staging_load"
+                  event_type: "QUARANTINED_STAGING_SCHEMA_DRIFT"
+                  extras: $${json.encode_to_string(error_result)}
+                  inserted_at: $${time.format(sys.now())}
+        result: log_result
+    - report_drift:
+        call: sys.log
+        args:
+          text: '$${"SCHEMA DRIFT en staging: " + entity_name + " (" + query_id + ") copiado a cuarentena. run_id=" + run_id}'
+          severity: "WARNING"
+
+# -----------------------------------------------------------------------------
+# Subworkflow: compila e invoca el repositorio Dataform (construye Silver/Gold
+# a partir de las tablas de staging recien cargadas), con polling hasta que la
+# workflow invocation termine.
+# -----------------------------------------------------------------------------
+
+run_dataform_consolidation:
+  params: [project_id, location, repository_id]
+  steps:
+    - repo_parent:
+        assign:
+          - parent: $${"projects/" + project_id + "/locations/" + location + "/repositories/" + repository_id}
+          - dataform_base_url: "https://dataform.googleapis.com/v1beta1/"
+    - compile:
+        call: http.post
+        args:
+          url: $${dataform_base_url + parent + "/compilationResults"}
+          auth:
+            type: OAuth2
+          body:
+            gitCommitish: "main"
+            codeCompilationConfig:
+              defaultDatabase: $${project_id}
+        result: compile_response
+    - assign_compilation_result:
+        assign:
+          - compilation_result: $${compile_response.body}
+    - start_invocation:
+        call: http.post
+        args:
+          url: $${dataform_base_url + parent + "/workflowInvocations"}
+          auth:
+            type: OAuth2
+          body:
+            compilationResult: $${compilation_result.name}
+        result: invocation_response
+    - assign_invocation:
+        assign:
+          - invocation: $${invocation_response.body}
+    - init_poll:
+        assign:
+          - attempts: 0
+    - poll_invocation:
+        steps:
+          - check_attempts:
+              switch:
+                - condition: $${attempts >= 120}
+                  raise: "timeout esperando workflow invocation de Dataform"
+          - get_invocation:
+              call: http.get
+              args:
+                url: $${dataform_base_url + invocation.name}
+                auth:
+                  type: OAuth2
+              result: invocation_status_response
+          - assign_invocation_status:
+              assign:
+                - invocation_status: $${invocation_status_response.body}
+          - check_failed:
+              switch:
+                - condition: $${invocation_status.state == "FAILED" OR invocation_status.state == "CANCELLED"}
+                  raise: $${invocation_status}
+          - check_done:
+              switch:
+                - condition: $${invocation_status.state == "SUCCEEDED"}
+                  next: invocation_done
+          - wait_before_retry:
+              call: sys.sleep
+              args:
+                seconds: 15
+          - increment_attempts:
+              assign:
+                - attempts: $${attempts + 1}
+          - loop_again:
+              next: poll_invocation
+    - invocation_done:
+        return: $${invocation.name}
+

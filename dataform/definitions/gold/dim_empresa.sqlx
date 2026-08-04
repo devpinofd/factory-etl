@@ -1,6 +1,5 @@
 config {
   type: "table",
-  database: "factory-etl-dev-0y1dhf",
   schema: "factory_etl_gold",
   name: "dim_empresa",
   description: "Tabla Maestra de Empresas: Mapea los códigos de base de datos source_empresa (tinito, ctb, daroan, roldan, ctm) con sus razones sociales y RIFs fiscales oficiales",

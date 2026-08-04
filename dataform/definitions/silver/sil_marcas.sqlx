@@ -1,0 +1,31 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_marcas",
+  description: "Tabla Silver de marcas (limpia, tipada y deduplicada) generada desde stg_marcas",
+  bigquery: {
+    clusterBy: ["_source_empresa", "cod_mar"]
+  },
+  assertions: {
+    uniqueKey: ["_source_empresa", "cod_mar"],
+    nonNull: ["_source_empresa", "cod_mar"]
+  }
+}
+
+SELECT
+  _source_empresa,
+  ${helpers.trimStr("cod_mar")} AS cod_mar,
+  ${helpers.trimStr("nom_mar")} AS nom_mar,
+  ${helpers.trimStr("status")} AS status,
+  _ingested_at
+FROM ${ref("stg_marcas")}
+-- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
+WHERE
+  (cod_mar IS NOT NULL AND TRIM(CAST(cod_mar AS STRING)) != '')
+  AND (nom_mar IS NOT NULL AND TRIM(CAST(nom_mar AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY _source_empresa, cod_mar
+  ORDER BY _ingested_at DESC
+) = 1

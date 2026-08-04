@@ -1,0 +1,27 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_ciudades_rechazados",
+  description: "Filas de stg_ciudades que no cumplen validacion de campos requeridos (cod_ciu, nom_ciu, status); cuarentena de calidad de datos en Silver",
+  bigquery: {
+    clusterBy: ["_source_empresa"]
+  }
+}
+
+SELECT
+  *,
+  CURRENT_TIMESTAMP() AS _rechazado_en,
+(
+    SELECT STRING_AGG(motivo, ', ')
+    FROM UNNEST([
+      IF((cod_ciu IS NULL OR TRIM(CAST(cod_ciu AS STRING)) = ''), 'cod_ciu', NULL),
+      IF((nom_ciu IS NULL OR TRIM(CAST(nom_ciu AS STRING)) = ''), 'nom_ciu', NULL),
+      IF((status IS NULL OR TRIM(CAST(status AS STRING)) = ''), 'status', NULL)
+    ]) AS motivo
+  ) AS motivo_rechazo
+FROM ${ref("stg_ciudades")}
+WHERE NOT (
+  (cod_ciu IS NOT NULL AND TRIM(CAST(cod_ciu AS STRING)) != '')
+  AND (nom_ciu IS NOT NULL AND TRIM(CAST(nom_ciu AS STRING)) != '')
+  AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
+)
