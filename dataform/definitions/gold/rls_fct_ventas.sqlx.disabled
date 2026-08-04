@@ -1,3 +1,9 @@
+-- DESHABILITADO (2026-08-04): SESSION_USER() siempre resuelve a la SA compartida
+-- del backend (ConciliApp / nuevo sitio Vue-Firebase), nunca al vendedor final;
+-- el filtrado real debe hacerse en la capa de aplicacion (ver PLAN_GOBERNANZA_RLS.md).
+-- Ademas la runtime SA carece de bigquery.rowAccessPolicies.create (solo dataEditor).
+-- Extension .disabled para que Dataform no lo compile/ejecute. Retomar solo si surge
+-- un consumidor con OAuth individual real contra BigQuery (ej. Power BI Desktop).
 config {
   type: "operations",
   schema: "factory_etl_gold",
