@@ -13,6 +13,7 @@ main:
           - total_queries: 0
           - staging_schemas: ${staging_schemas_json}
           - quarantine_bucket_name: "${quarantine_bucket_name}"
+%{ if !consolidation_only }
     - process_empresas_in_parallel:
         parallel:
           shared: [total_queries]
@@ -70,6 +71,7 @@ main:
                       - increment_counter:
                           assign:
                             - total_queries: $${total_queries + 1}
+%{ endif }
 %{ if enable_medallion_consolidation }
     - consolidate_medallion:
         steps:
@@ -98,6 +100,11 @@ main:
                 project_id: $${project_id}
                 location: "${dataform_location}"
                 repository_id: "${dataform_repository_id}"
+                bucket_name: $${bucket_name}
+                staging_dataset_id: "${bronze_stg_dataset_id}"
+                silver_dataset_id: "${silver_dataset_id}"
+                gold_dataset_id: "${gold_dataset_id}"
+                security_dataset_id: "${security_dataset_id}"
 %{ endif }
     - return_success:
         return:
@@ -254,7 +261,7 @@ quarantine_staging_drift:
 # -----------------------------------------------------------------------------
 
 run_dataform_consolidation:
-  params: [project_id, location, repository_id]
+  params: [project_id, location, repository_id, bucket_name, staging_dataset_id, silver_dataset_id, gold_dataset_id, security_dataset_id]
   steps:
     - repo_parent:
         assign:
@@ -270,6 +277,13 @@ run_dataform_consolidation:
             gitCommitish: "main"
             codeCompilationConfig:
               defaultDatabase: $${project_id}
+              vars:
+                gcpProject: $${project_id}
+                bronzeBucket: $${bucket_name}
+                stagingDataset: $${staging_dataset_id}
+                silverDataset: $${silver_dataset_id}
+                goldDataset: $${gold_dataset_id}
+                securityDataset: $${security_dataset_id}
         result: compile_response
     - assign_compilation_result:
         assign:
@@ -324,4 +338,3 @@ run_dataform_consolidation:
               next: poll_invocation
     - invocation_done:
         return: $${invocation.name}
-

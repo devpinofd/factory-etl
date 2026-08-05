@@ -4,11 +4,11 @@ config {
   name: "dim_marca",
   description: "Dimensión Gold de marcas (pass-through de sil_marcas)",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_mar"]
+    clusterBy: ["source_empresa", "cod_mar"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_mar"],
-    nonNull: ["_source_empresa", "cod_mar"]
+    uniqueKey: ["source_empresa", "cod_mar"],
+    nonNull: ["source_empresa", "cod_mar"]
   }
 }
 

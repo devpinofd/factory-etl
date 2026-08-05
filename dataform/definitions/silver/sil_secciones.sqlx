@@ -4,16 +4,16 @@ config {
   name: "sil_secciones",
   description: "Tabla Silver de secciones (limpia, tipada y deduplicada) generada desde stg_secciones",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_sec"]
+    clusterBy: ["source_empresa", "cod_sec"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_sec"],
-    nonNull: ["_source_empresa", "cod_sec"]
+    uniqueKey: ["source_empresa", "cod_sec"],
+    nonNull: ["source_empresa", "cod_sec"]
   }
 }
 
 SELECT
-  _source_empresa,
+  source_empresa,
   ${helpers.trimStr("cod_sec")} AS cod_sec,
   ${helpers.trimStr("nom_sec")} AS nom_sec,
   ${helpers.trimStr("status")} AS status,
@@ -26,6 +26,6 @@ WHERE
   AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY _source_empresa, cod_sec
+  PARTITION BY source_empresa, cod_sec
   ORDER BY _ingested_at DESC
 ) = 1

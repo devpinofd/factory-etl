@@ -32,10 +32,10 @@ def load_schema(entity: str) -> dict:
 
 
 def required_columns(schema: dict) -> list[str]:
-    """Columnas que deben venir no-nulas/no-vacias: natural_key (menos _source_empresa) + required:true."""
+    """Columnas que deben venir no-nulas/no-vacias: natural_key (menos source_empresa) + required:true."""
     cols = []
     for k in schema["natural_key"]:
-        if k != "_source_empresa" and k not in cols:
+        if k != "source_empresa" and k not in cols:
             cols.append(k)
     for col in schema["columns"]:
         if col.get("required") and col["name"] not in cols:
@@ -87,7 +87,7 @@ def rechazados_table(entity: str, schema: dict, req_cols: list[str]) -> str:
   name: "sil_{entity}_rechazados",
   description: "Filas de stg_{entity} que no cumplen validacion de campos requeridos ({', '.join(req_cols)}); cuarentena de calidad de datos en Silver",
   bigquery: {{
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }}
 }}
 

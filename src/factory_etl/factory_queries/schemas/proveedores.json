@@ -2,7 +2,7 @@
   "entity": "proveedores",
   "version": "1.0.0",
   "natural_key": [
-    "_source_empresa",
+    "source_empresa",
     "cod_pro"
   ],
   "reject_empty": true,

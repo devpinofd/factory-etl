@@ -6,7 +6,7 @@ config {
 }
 
 SELECT
-  v._source_empresa AS source_empresa,
+  v.source_empresa AS source_empresa,
   v.tipo_documento,
   v.cod_suc,
   v.documento,
@@ -48,4 +48,4 @@ SELECT
   v.neto_dcto
 FROM ${ref("sil_ventas_diarias")} v
 LEFT JOIN ${ref("sil_articulos")} art
-  ON v._source_empresa = art._source_empresa AND v.cod_art = art.cod_art
+  ON v.source_empresa = art.source_empresa AND v.cod_art = art.cod_art

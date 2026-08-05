@@ -4,16 +4,16 @@ config {
   name: "sil_almacenes",
   description: "Tabla Silver de almacenes (limpia, tipada y deduplicada) generada desde stg_almacenes",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_alm"]
+    clusterBy: ["source_empresa", "cod_alm"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_alm"],
-    nonNull: ["_source_empresa", "cod_alm"]
+    uniqueKey: ["source_empresa", "cod_alm"],
+    nonNull: ["source_empresa", "cod_alm"]
   }
 }
 
 SELECT
-  _source_empresa,
+  source_empresa,
   ${helpers.trimStr("cod_alm")} AS cod_alm,
   ${helpers.trimStr("nom_alm")} AS nom_alm,
   ${helpers.trimStr("cod_suc")} AS cod_suc,
@@ -27,6 +27,6 @@ WHERE
   AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY _source_empresa, cod_alm
+  PARTITION BY source_empresa, cod_alm
   ORDER BY _ingested_at DESC
 ) = 1

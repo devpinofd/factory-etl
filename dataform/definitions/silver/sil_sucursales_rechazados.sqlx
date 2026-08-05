@@ -4,7 +4,7 @@ config {
   name: "sil_sucursales_rechazados",
   description: "Filas de stg_sucursales que no cumplen validacion de campos requeridos (cod_suc, nom_suc, status); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

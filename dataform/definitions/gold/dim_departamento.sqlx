@@ -4,11 +4,11 @@ config {
   name: "dim_departamento",
   description: "Dimensión Gold de departamentos (pass-through de sil_departamentos)",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_dep"]
+    clusterBy: ["source_empresa", "cod_dep"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_dep"],
-    nonNull: ["_source_empresa", "cod_dep"]
+    uniqueKey: ["source_empresa", "cod_dep"],
+    nonNull: ["source_empresa", "cod_dep"]
   }
 }
 

@@ -4,11 +4,11 @@ config {
   name: "dim_proveedor",
   description: "Dimensión Gold de proveedores (pass-through de sil_proveedores)",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_pro"]
+    clusterBy: ["source_empresa", "cod_pro"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_pro"],
-    nonNull: ["_source_empresa", "cod_pro"]
+    uniqueKey: ["source_empresa", "cod_pro"],
+    nonNull: ["source_empresa", "cod_pro"]
   }
 }
 

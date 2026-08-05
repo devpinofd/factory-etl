@@ -4,16 +4,16 @@ config {
   name: "sil_articulos",
   description: "Tabla Silver de articulos (limpia, tipada y deduplicada) generada desde stg_articulos",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_art"]
+    clusterBy: ["source_empresa", "cod_art"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_art"],
-    nonNull: ["_source_empresa", "cod_art"]
+    uniqueKey: ["source_empresa", "cod_art"],
+    nonNull: ["source_empresa", "cod_art"]
   }
 }
 
 SELECT
-  _source_empresa,
+  source_empresa,
   ${helpers.trimStr("cod_art")} AS cod_art,
   ${helpers.trimStr("modelo")} AS modelo,
   ${helpers.trimStr("codigo_barras")} AS codigo_barras,
@@ -42,6 +42,6 @@ WHERE
   AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY _source_empresa, cod_art
+  PARTITION BY source_empresa, cod_art
   ORDER BY _ingested_at DESC
 ) = 1

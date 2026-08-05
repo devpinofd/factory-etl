@@ -55,6 +55,12 @@ variable "enable_medallion_consolidation" {
   default     = false
 }
 
+variable "consolidation_only" {
+  description = "Si true, omite la ingesta y ejecuta solamente Bronze -> staging -> Dataform Silver/Gold."
+  type        = bool
+  default     = false
+}
+
 variable "bronze_stg_dataset_id" {
   description = "Dataset de staging donde se cargan (load jobs) las tablas nativas desde Bronze. Solo se usa si enable_medallion_consolidation=true."
   type        = string
@@ -81,6 +87,24 @@ variable "staging_schemas_json" {
 
 variable "quarantine_bucket_name" {
   description = "Bucket de cuarentena. Si un load job de staging detecta columnas fuera del esquema, los objetos Bronze de esa entidad se copian aqui y se registra un evento. Solo se usa si enable_medallion_consolidation=true."
+  type        = string
+  default     = ""
+}
+
+variable "silver_dataset_id" {
+  description = "Dataset Silver que recibe la consolidacion de Dataform."
+  type        = string
+  default     = ""
+}
+
+variable "gold_dataset_id" {
+  description = "Dataset Gold que recibe la consolidacion de Dataform."
+  type        = string
+  default     = ""
+}
+
+variable "security_dataset_id" {
+  description = "Dataset de seguridad usado por Dataform."
   type        = string
   default     = ""
 }

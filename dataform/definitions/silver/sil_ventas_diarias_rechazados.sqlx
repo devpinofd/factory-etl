@@ -4,7 +4,7 @@ config {
   name: "sil_ventas_diarias_rechazados",
   description: "Filas de stg_ventas_diarias que no cumplen validacion de campos requeridos (tipo_documento, cod_suc, documento, renglon); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

@@ -150,6 +150,12 @@ variable "cron_schedule_full" {
   default     = "30 23 * * *" # 11:30 PM diario
 }
 
+variable "cron_schedule_consolidation" {
+  description = "Expresion cron del WF de consolidacion Bronze a Silver/Gold."
+  type        = string
+  default     = "30 0 * * *" # 12:30 AM diario, despues de la ingesta full
+}
+
 variable "time_zone" {
   description = "Zona horaria de ambos schedulers."
   type        = string
@@ -203,21 +209,6 @@ variable "daily_queries" {
     { id = "ventas_diarias_v1", has_param = true },
     { id = "renglones_monedas_v1", has_param = true },
     { id = "renglones_aprecios_v1", has_param = true },
-    { id = "articulos_v1", has_param = false },
-    { id = "impuestos_v1", has_param = false },
-    { id = "departamentos_v1", has_param = false },
-    { id = "marcas_v1", has_param = false },
-    { id = "secciones_v1", has_param = false },
-    { id = "proveedores_v1", has_param = false },
-    { id = "paises_v1", has_param = false },
-    { id = "estados_v1", has_param = false },
-    { id = "ciudades_v1", has_param = false },
-    { id = "vendedores_v1", has_param = false },
-    { id = "sucursales_v1", has_param = false },
-    { id = "almacenes_v1", has_param = false },
-    { id = "clientes_v1", has_param = false },
-    { id = "clases_clientes_v1", has_param = false },
-    { id = "conceptos_v1", has_param = false },
   ]
 }
 
@@ -249,4 +240,3 @@ variable "daily_queries_full" {
     { id = "conceptos_v1", has_param = false },
   ]
 }
-

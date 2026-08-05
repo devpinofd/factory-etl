@@ -2,7 +2,7 @@
   "entity": "vendedores",
   "version": "1.0.0",
   "natural_key": [
-    "_source_empresa",
+    "source_empresa",
     "cod_ven"
   ],
   "reject_empty": true,

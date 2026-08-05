@@ -4,7 +4,7 @@ config {
   name: "sil_paises_rechazados",
   description: "Filas de stg_paises que no cumplen validacion de campos requeridos (cod_pai, nom_pai, status); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

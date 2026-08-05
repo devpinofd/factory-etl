@@ -4,7 +4,7 @@ config {
   name: "sil_articulos_rechazados",
   description: "Filas de stg_articulos que no cumplen validacion de campos requeridos (cod_art, nom_art, cod_uni1, status); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

@@ -153,7 +153,7 @@ Para cada fila retorna un **dict nuevo** (no mutar el original) con:
 
 1. Todas las columnas de negocio originales.
 2. Las 9 columnas de sistema con prefijo `_`:
-   - `_source_empresa` (str)
+   - `source_empresa` (str)
    - `_query_id` (str)                     # sin la versión
    - `_query_version` (str)                # `qdef.version`
    - `_query_sql_hash` (str)               # `ids.sql_hash(sql_rendered)`

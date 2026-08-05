@@ -5,16 +5,16 @@ config {
   description: "Tabla Silver de renglones_aprecios (limpia, tipada y deduplicada) generada desde stg_renglones_aprecios",
   bigquery: {
     partitionBy: "DATE(registro)",
-    clusterBy: ["_source_empresa", "documento", "renglon"]
+    clusterBy: ["source_empresa", "documento", "renglon"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "documento", "renglon"],
-    nonNull: ["_source_empresa", "documento", "renglon", "registro"]
+    uniqueKey: ["source_empresa", "documento", "renglon"],
+    nonNull: ["source_empresa", "documento", "renglon", "registro"]
   }
 }
 
 SELECT
-  _source_empresa,
+  source_empresa,
   ${helpers.trimStr("documento")} AS documento,
   ${helpers.toNumeric("renglon")} AS renglon,
   ${helpers.trimStr("cod_art")} AS cod_art,
@@ -33,6 +33,6 @@ WHERE
   AND renglon IS NOT NULL
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY _source_empresa, documento, renglon
+  PARTITION BY source_empresa, documento, renglon
   ORDER BY _ingested_at DESC
 ) = 1

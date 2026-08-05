@@ -485,7 +485,7 @@ class TestCatalogValidation:
 
 
 class TestRequestShape:
-    def test_runner_recibe_source_empresa_correcto(self) -> None:
+    def test_runner_recibesource_empresa_correcto(self) -> None:
         runner = _FakeRunner(_envelope([_ok_row("0001")]))
         ex, _, _, _ = _build_extractor(runner=runner)
 

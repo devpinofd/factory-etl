@@ -2,7 +2,7 @@
   "entity": "ventas_diarias",
   "version": "1.0.0",
   "natural_key": [
-    "_source_empresa",
+    "source_empresa",
     "tipo_documento",
     "cod_suc",
     "documento",

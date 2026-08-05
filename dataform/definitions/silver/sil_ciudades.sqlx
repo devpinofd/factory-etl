@@ -4,16 +4,16 @@ config {
   name: "sil_ciudades",
   description: "Tabla Silver de ciudades (limpia, tipada y deduplicada) generada desde stg_ciudades",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_ciu"]
+    clusterBy: ["source_empresa", "cod_ciu"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_ciu"],
-    nonNull: ["_source_empresa", "cod_ciu"]
+    uniqueKey: ["source_empresa", "cod_ciu"],
+    nonNull: ["source_empresa", "cod_ciu"]
   }
 }
 
 SELECT
-  _source_empresa,
+  source_empresa,
   ${helpers.trimStr("cod_ciu")} AS cod_ciu,
   ${helpers.trimStr("nom_ciu")} AS nom_ciu,
   ${helpers.trimStr("status")} AS status,
@@ -26,6 +26,6 @@ WHERE
   AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY _source_empresa, cod_ciu
+  PARTITION BY source_empresa, cod_ciu
   ORDER BY _ingested_at DESC
 ) = 1

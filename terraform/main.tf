@@ -208,8 +208,9 @@ module "cloud_run_job" {
 # -----------------------------------------------------------------------------
 # Cloud Workflows: orquestador de ejecucion
 # -----------------------------------------------------------------------------
-# WF1 (transaccional, 5:30 PM): sync de tablas transaccionales.
-# WF2 (full, 11:30 PM): sync de tablas transaccionales + maestras.
+# WF1 (transaccional, 5:30 PM): sync de tablas transaccionales hasta Bronze.
+# WF2 (full, 11:30 PM): sync de tablas transaccionales + maestras hasta Bronze.
+# WF3 (12:30 AM): Bronze -> staging -> Dataform Silver/Gold.
 
 module "workflows" {
   source = "./modules/workflows"
@@ -240,20 +241,38 @@ module "workflows_full" {
   labels                = local.common_labels
   queries               = var.daily_queries_full
 
-  # Solo el WF full (11:30 PM) consolida Silver/Gold: ya trae el universo
-  # completo de 19 consultas (transaccionales + maestras) que Dataform necesita.
+  depends_on = [google_project_service.required, module.cloud_run_job, module.dataform]
+}
+
+module "workflows_consolidation" {
+  source = "./modules/workflows"
+
+  project_id            = var.project_id
+  region                = var.region
+  workflow_name         = "factory-etl-consolidation-${var.environment}"
+  job_name              = module.cloud_run_job.job_name
+  bucket_name           = module.storage.bronze_bucket_name
+  control_dataset_id    = module.bigquery.dataset_id
+  service_account_email = module.service_account.email
+  labels                = local.common_labels
+  queries               = var.daily_queries_full
+
   enable_medallion_consolidation = true
+  consolidation_only             = true
   bronze_stg_dataset_id          = var.bronze_stg_dataset_id
   dataform_repository_id         = module.dataform.repository_id
   dataform_location              = module.dataform.location
   staging_schemas_json           = jsonencode(local.staging_schemas)
   quarantine_bucket_name         = module.storage.quarantine_bucket_name
+  silver_dataset_id              = var.silver_dataset_id
+  gold_dataset_id                = var.gold_dataset_id
+  security_dataset_id            = "factory_etl_security"
 
-  depends_on = [google_project_service.required, module.cloud_run_job, module.dataform]
+  depends_on = [google_project_service.required, module.dataform]
 }
 
 # -----------------------------------------------------------------------------
-# Cloud Scheduler: disparadores cron (5:30 PM y 11:30 PM Caracas)
+# Cloud Scheduler: disparadores cron (5:30 PM, 11:30 PM y 12:30 AM Caracas)
 # -----------------------------------------------------------------------------
 # NOTA: ambos usan el mismo string que module.workflows(_full) calcula para su
 # nombre, en vez de referenciar la salida del modulo directamente. Esto evita
@@ -291,3 +310,16 @@ module "cloud_scheduler_full" {
   depends_on = [google_project_service.required]
 }
 
+module "cloud_scheduler_consolidation" {
+  source = "./modules/cloud_scheduler"
+
+  project_id            = var.project_id
+  region                = var.region
+  scheduler_name        = "factory-etl-consolidation-scheduler-${var.environment}"
+  workflow_name         = "factory-etl-consolidation-${var.environment}"
+  service_account_email = module.service_account.email
+  cron_schedule         = var.cron_schedule_consolidation
+  time_zone             = var.time_zone
+
+  depends_on = [google_project_service.required]
+}

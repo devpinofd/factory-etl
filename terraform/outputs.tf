@@ -43,8 +43,22 @@ output "workflow_name" {
   value       = module.workflows.workflow_name
 }
 
+output "workflow_full_name" {
+  description = "Nombre del Cloud Workflow de ingesta completa."
+  value       = module.workflows_full.workflow_name
+}
+
+output "workflow_consolidation_name" {
+  description = "Nombre del Cloud Workflow de consolidacion Bronze a Silver/Gold."
+  value       = module.workflows_consolidation.workflow_name
+}
+
 output "scheduler_name" {
   description = "Nombre del Cloud Scheduler Job."
   value       = module.cloud_scheduler.scheduler_name
 }
 
+output "scheduler_consolidation_name" {
+  description = "Nombre del Cloud Scheduler de consolidacion."
+  value       = module.cloud_scheduler_consolidation.scheduler_name
+}

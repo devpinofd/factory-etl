@@ -4,7 +4,7 @@ config {
   name: "sil_secciones_rechazados",
   description: "Filas de stg_secciones que no cumplen validacion de campos requeridos (cod_sec, nom_sec, status); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

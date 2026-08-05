@@ -217,7 +217,7 @@ Actividades:
   `QueryDefinition` `articulos_v1` con:
   - `category=MASTER`, `transport=GENERIC_SQL_API`,
     `load_strategy=FULL_SNAPSHOT`.
-  - `natural_key=("_source_empresa", "cod_art")`.
+  - `natural_key=("source_empresa", "cod_art")`.
   - `required_columns` alineadas con la consulta: `cod_art`, `nom_art`,
     `cod_uni1`, `status`. Resto opcionales.
   - `reject_empty=True`.
@@ -299,7 +299,7 @@ las columnas del origen, con prefijo `_` para evitar colision:
 
 | Columna | Contenido |
 |---|---|
-| `_source_empresa` | Empresa FactorySoft origen (tinito, ctb, ctm). |
+| `source_empresa` | Empresa FactorySoft origen (tinito, ctb, ctm). |
 | `_query_id` | Identificador de la consulta en `factory_queries` (ej. `articulos_v1`). |
 | `_query_version` | Version semantica de la definicion (`v1`, `v2`, ...). |
 | `_query_sql_hash` | Hash SHA-256 del SQL renderizado que produjo la fila. |

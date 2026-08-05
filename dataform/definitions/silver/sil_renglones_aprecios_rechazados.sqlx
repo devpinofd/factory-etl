@@ -4,7 +4,7 @@ config {
   name: "sil_renglones_aprecios_rechazados",
   description: "Filas de stg_renglones_aprecios que no cumplen validacion de campos requeridos (documento, renglon); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

@@ -4,7 +4,7 @@ config {
   name: "sil_renglones_almacenes_rechazados",
   description: "Filas de stg_renglones_almacenes que no cumplen validacion de campos requeridos (cod_alm, cod_art, exi_act1); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

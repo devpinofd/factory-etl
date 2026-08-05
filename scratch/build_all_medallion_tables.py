@@ -106,7 +106,7 @@ def build_all():
                 expr = f"RTRIM(LTRIM(CAST({c_name} AS STRING))) AS {c_name}"
             select_exprs.append(expr)
 
-        nat_key_str = ", ".join(natural_key).replace("_source_empresa", "source_empresa")
+        nat_key_str = ", ".join(natural_key).replace("source_empresa", "source_empresa")
         
         options_clause = ""
         if entity_name in ["ventas_diarias", "renglones_monedas", "renglones_almacenes", "renglones_aprecios"]:

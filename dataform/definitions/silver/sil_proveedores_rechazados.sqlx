@@ -4,7 +4,7 @@ config {
   name: "sil_proveedores_rechazados",
   description: "Filas de stg_proveedores que no cumplen validacion de campos requeridos (cod_pro, nom_pro, status); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

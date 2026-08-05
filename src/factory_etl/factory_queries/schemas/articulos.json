@@ -1,7 +1,7 @@
 {
   "entity": "articulos",
   "version": "1.0.0",
-  "natural_key": ["_source_empresa", "cod_art"],
+  "natural_key": ["source_empresa", "cod_art"],
   "reject_empty": true,
   "load_strategy": "full_snapshot",
   "columns": [

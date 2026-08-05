@@ -73,7 +73,7 @@ def silver_table(entity: str, schema: dict) -> str:
     columns = schema["columns"]
     has_registro = any(c["name"] == "registro" for c in columns)
 
-    select_lines = ["  _source_empresa,"]
+    select_lines = ["  source_empresa,"]
     for col in columns:
         select_lines.append(f"  {col_expr(col)},")
     if has_registro:
@@ -82,8 +82,8 @@ def silver_table(entity: str, schema: dict) -> str:
     select_sql = "\n".join(select_lines)
 
     # bigquery block
-    secondary_keys = [k for k in natural_key if k != "_source_empresa"]
-    cluster_cols = ", ".join(f'"{k}"' if k != "_source_empresa" else '"_source_empresa"' for k in (["_source_empresa"] + secondary_keys[:2]))
+    secondary_keys = [k for k in natural_key if k != "source_empresa"]
+    cluster_cols = ", ".join(f'"{k}"' if k != "source_empresa" else '"source_empresa"' for k in (["source_empresa"] + secondary_keys[:2]))
     if has_registro:
         bq_block = f'''  bigquery: {{
     partitionBy: "DATE(registro)",

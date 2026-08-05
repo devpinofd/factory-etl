@@ -4,16 +4,16 @@ config {
   name: "sil_paises",
   description: "Tabla Silver de paises (limpia, tipada y deduplicada) generada desde stg_paises",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_pai"]
+    clusterBy: ["source_empresa", "cod_pai"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_pai"],
-    nonNull: ["_source_empresa", "cod_pai"]
+    uniqueKey: ["source_empresa", "cod_pai"],
+    nonNull: ["source_empresa", "cod_pai"]
   }
 }
 
 SELECT
-  _source_empresa,
+  source_empresa,
   ${helpers.trimStr("cod_pai")} AS cod_pai,
   ${helpers.trimStr("nom_pai")} AS nom_pai,
   ${helpers.trimStr("status")} AS status,
@@ -26,6 +26,6 @@ WHERE
   AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY _source_empresa, cod_pai
+  PARTITION BY source_empresa, cod_pai
   ORDER BY _ingested_at DESC
 ) = 1

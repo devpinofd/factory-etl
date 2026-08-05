@@ -14,7 +14,7 @@ from factory_etl.extractor import _enrich_rows
 _SYSTEM_COLUMNS = frozenset(
     {
         "_ingested_at",
-        "_source_empresa",
+        "source_empresa",
         "_query_id",
         "_query_version",
         "_query_sql_hash",
@@ -107,7 +107,7 @@ class TestEnrichRows:
     def test_metadatos_estaticos_se_propagan(self) -> None:
         rows: list[dict[str, object]] = [{"cod_art": "0001"}]
         result = _enrich(rows)
-        assert result[0]["_source_empresa"] == "tinito"
+        assert result[0]["source_empresa"] == "tinito"
         assert result[0]["_query_id"] == "articulos_v1"
         assert result[0]["_query_version"] == "1.0.0"
         assert result[0]["_run_id"] == "run-abc"

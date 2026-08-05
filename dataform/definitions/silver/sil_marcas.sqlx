@@ -4,16 +4,16 @@ config {
   name: "sil_marcas",
   description: "Tabla Silver de marcas (limpia, tipada y deduplicada) generada desde stg_marcas",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_mar"]
+    clusterBy: ["source_empresa", "cod_mar"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_mar"],
-    nonNull: ["_source_empresa", "cod_mar"]
+    uniqueKey: ["source_empresa", "cod_mar"],
+    nonNull: ["source_empresa", "cod_mar"]
   }
 }
 
 SELECT
-  _source_empresa,
+  source_empresa,
   ${helpers.trimStr("cod_mar")} AS cod_mar,
   ${helpers.trimStr("nom_mar")} AS nom_mar,
   ${helpers.trimStr("status")} AS status,
@@ -26,6 +26,6 @@ WHERE
   AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY _source_empresa, cod_mar
+  PARTITION BY source_empresa, cod_mar
   ORDER BY _ingested_at DESC
 ) = 1

@@ -4,7 +4,7 @@ config {
   name: "sil_clases_clientes_rechazados",
   description: "Filas de stg_clases_clientes que no cumplen validacion de campos requeridos (cod_cla, nom_cla, status); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

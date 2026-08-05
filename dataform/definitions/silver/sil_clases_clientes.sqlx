@@ -4,16 +4,16 @@ config {
   name: "sil_clases_clientes",
   description: "Tabla Silver de clases_clientes (limpia, tipada y deduplicada) generada desde stg_clases_clientes",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_cla"]
+    clusterBy: ["source_empresa", "cod_cla"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_cla"],
-    nonNull: ["_source_empresa", "cod_cla"]
+    uniqueKey: ["source_empresa", "cod_cla"],
+    nonNull: ["source_empresa", "cod_cla"]
   }
 }
 
 SELECT
-  _source_empresa,
+  source_empresa,
   ${helpers.trimStr("cod_cla")} AS cod_cla,
   ${helpers.trimStr("nom_cla")} AS nom_cla,
   ${helpers.trimStr("status")} AS status,
@@ -26,6 +26,6 @@ WHERE
   AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY _source_empresa, cod_cla
+  PARTITION BY source_empresa, cod_cla
   ORDER BY _ingested_at DESC
 ) = 1

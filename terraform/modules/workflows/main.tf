@@ -21,10 +21,14 @@ resource "google_workflows_workflow" "workflow" {
     control_dataset_id             = var.control_dataset_id
     queries_json                   = jsonencode(var.queries)
     enable_medallion_consolidation = var.enable_medallion_consolidation
+    consolidation_only             = var.consolidation_only
     bronze_stg_dataset_id          = var.bronze_stg_dataset_id
     dataform_repository_id         = var.dataform_repository_id
     dataform_location              = var.dataform_location
     staging_schemas_json           = var.staging_schemas_json
     quarantine_bucket_name         = var.quarantine_bucket_name
+    silver_dataset_id              = var.silver_dataset_id
+    gold_dataset_id                = var.gold_dataset_id
+    security_dataset_id            = var.security_dataset_id
   })
 }

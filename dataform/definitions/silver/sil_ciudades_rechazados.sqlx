@@ -4,7 +4,7 @@ config {
   name: "sil_ciudades_rechazados",
   description: "Filas de stg_ciudades que no cumplen validacion de campos requeridos (cod_ciu, nom_ciu, status); cuarentena de calidad de datos en Silver",
   bigquery: {
-    clusterBy: ["_source_empresa"]
+    clusterBy: ["source_empresa"]
   }
 }
 

@@ -4,16 +4,16 @@ config {
   name: "sil_conceptos",
   description: "Tabla Silver de conceptos (limpia, tipada y deduplicada) generada desde stg_conceptos",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_con"]
+    clusterBy: ["source_empresa", "cod_con"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_con"],
-    nonNull: ["_source_empresa", "cod_con"]
+    uniqueKey: ["source_empresa", "cod_con"],
+    nonNull: ["source_empresa", "cod_con"]
   }
 }
 
 SELECT
-  _source_empresa,
+  source_empresa,
   ${helpers.trimStr("cod_con")} AS cod_con,
   ${helpers.trimStr("nom_con")} AS nom_con,
   ${helpers.trimStr("status")} AS status,
@@ -26,6 +26,6 @@ WHERE
   AND (status IS NOT NULL AND TRIM(CAST(status AS STRING)) != '')
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY _source_empresa, cod_con
+  PARTITION BY source_empresa, cod_con
   ORDER BY _ingested_at DESC
 ) = 1

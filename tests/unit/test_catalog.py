@@ -36,7 +36,7 @@ class TestArticulosV1:
         assert ARTICULOS_V1.category is Category.MASTER
         assert ARTICULOS_V1.transport is Transport.GENERIC_SQL_API
         assert ARTICULOS_V1.load_strategy is LoadStrategy.FULL_SNAPSHOT
-        assert ARTICULOS_V1.natural_key == ("_source_empresa", "cod_art")
+        assert ARTICULOS_V1.natural_key == ("source_empresa", "cod_art")
         assert "tinito" in ARTICULOS_V1.allowed_companies
         assert "ctb" in ARTICULOS_V1.allowed_companies
         assert ARTICULOS_V1.reject_empty is True

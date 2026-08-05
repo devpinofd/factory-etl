@@ -483,13 +483,13 @@ def _enrich_rows(
     payload_hash_hex: str,
     query_version: str,
 ) -> list[dict[str, object]]:
-    """Devuelve una nueva lista con las 9 columnas de sistema ``_*``.
+    """Devuelve una nueva lista con las columnas de trazabilidad del lote.
 
     Columnas anadidas (todas con prefijo ``_``):
 
     - ``_ingested_at``: timestamp UTC unico para el batch entero, formateado
       con ``timespec="microseconds"`` para producir un string estable.
-    - ``_source_empresa``, ``_query_id``, ``_query_version``.
+    - ``source_empresa``, ``_query_id``, ``_query_version``.
     - ``_query_sql_hash``, ``_run_id``, ``_lote_id``.
     - ``_payload_hash``.
     - ``_row_hash``: SHA-256 canonico de la fila **original** (sin las
@@ -516,7 +516,7 @@ def _enrich_rows(
 
         enriched_row: dict[str, object] = dict(row)
         enriched_row["_ingested_at"] = ingested_at
-        enriched_row["_source_empresa"] = source_empresa
+        enriched_row["source_empresa"] = source_empresa
         enriched_row["_query_id"] = entity
         enriched_row["_query_version"] = query_version
         enriched_row["_query_sql_hash"] = sql_hash_hex

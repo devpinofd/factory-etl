@@ -4,11 +4,11 @@ config {
   name: "dim_cliente",
   description: "Dimensión de cliente en Gold con latitud, longitud y RIF",
   bigquery: {
-    clusterBy: ["_source_empresa", "cod_cli"]
+    clusterBy: ["source_empresa", "cod_cli"]
   },
   assertions: {
-    uniqueKey: ["_source_empresa", "cod_cli"],
-    nonNull: ["_source_empresa", "cod_cli"]
+    uniqueKey: ["source_empresa", "cod_cli"],
+    nonNull: ["source_empresa", "cod_cli"]
   }
 }
 
