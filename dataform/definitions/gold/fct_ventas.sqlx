@@ -15,6 +15,7 @@ SELECT
   emp.razon_social AS razon_social_empresa,
   v.tipo_documento,
   v.cod_suc,
+  v.cod_alm,
   v.documento,
   v.renglon,
   v.registro,

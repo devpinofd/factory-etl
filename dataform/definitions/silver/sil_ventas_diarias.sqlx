@@ -29,6 +29,7 @@ SELECT
   ${helpers.trimStr("nom_est")} AS nom_est,
   ${helpers.trimStr("nom_ciu")} AS nom_ciu,
   ${helpers.trimStr("cod_art")} AS cod_art,
+  ${helpers.trimStr("cod_alm")} AS cod_alm,
   ${helpers.trimStr("cod_mar")} AS cod_mar,
   ${helpers.trimStr("nom_mar")} AS nom_mar,
   ${helpers.trimStr("nom_dep")} AS nom_dep,
@@ -43,12 +44,13 @@ SELECT
   ${helpers.trimStr("cod_mon")} AS cod_mon,
   ${helpers.trimStr("rif")} AS rif,  -- INCLUIDO PARA CONSUMO DE RLS
   ${helpers.trimStr("cod_imp")} AS cod_imp,
+  ${helpers.toNumeric("por_imp1")} AS por_imp1,
   ${helpers.toNumeric("neto")} AS neto,
   ${helpers.toNumeric("dcto")} AS dcto,
   ${helpers.toNumeric("tasa")} AS tasa,
   ${helpers.toNumeric("neto_dcto")} AS neto_dcto,
   _ingested_at
-FROM ${ref("stg_ventas_diarias")}
+FROM ${ref("stg_ventas_diarias_v2")}
 -- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
 WHERE
   (tipo_documento IS NOT NULL AND TRIM(CAST(tipo_documento AS STRING)) != '')

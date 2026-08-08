@@ -2,7 +2,7 @@ config {
   type: "table",
   schema: "factory_etl_silver",
   name: "sil_renglones_almacenes_rechazados",
-  description: "Filas de stg_renglones_almacenes que no cumplen validacion de campos requeridos (cod_alm, cod_art, exi_act1); cuarentena de calidad de datos en Silver",
+  description: "Filas de stg_renglones_almacenes_snapshot que no cumplen validacion de campos requeridos (cod_alm, cod_art, exi_act1); cuarentena de calidad de datos en Silver",
   bigquery: {
     clusterBy: ["source_empresa"]
   }
@@ -19,7 +19,7 @@ SELECT
       IF(exi_act1 IS NULL, 'exi_act1', NULL)
     ]) AS motivo
   ) AS motivo_rechazo
-FROM ${ref("stg_renglones_almacenes")}
+FROM ${ref("stg_renglones_almacenes_snapshot")}
 WHERE NOT (
   (cod_alm IS NOT NULL AND TRIM(CAST(cod_alm AS STRING)) != '')
   AND (cod_art IS NOT NULL AND TRIM(CAST(cod_art AS STRING)) != '')

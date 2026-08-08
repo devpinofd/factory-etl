@@ -20,7 +20,7 @@ SELECT
       IF(renglon IS NULL, 'renglon', NULL)
     ]) AS motivo
   ) AS motivo_rechazo
-FROM ${ref("stg_ventas_diarias")}
+FROM ${ref("stg_ventas_diarias_v2")}
 WHERE NOT (
   (tipo_documento IS NOT NULL AND TRIM(CAST(tipo_documento AS STRING)) != '')
   AND (cod_suc IS NOT NULL AND TRIM(CAST(cod_suc AS STRING)) != '')

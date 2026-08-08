@@ -19,7 +19,7 @@ SELECT
   ${helpers.toNumeric("por_imp1")} AS por_imp1,
   ${helpers.trimStr("status")} AS status,
   _ingested_at
-FROM ${ref("stg_impuestos")}
+FROM ${ref("stg_impuestos_snapshot")}
 -- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
 WHERE
   (cod_imp IS NOT NULL AND TRIM(CAST(cod_imp AS STRING)) != '')

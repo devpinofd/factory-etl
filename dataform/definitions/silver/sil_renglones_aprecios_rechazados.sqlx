@@ -18,7 +18,7 @@ SELECT
       IF(renglon IS NULL, 'renglon', NULL)
     ]) AS motivo
   ) AS motivo_rechazo
-FROM ${ref("stg_renglones_aprecios")}
+FROM ${ref("stg_renglones_aprecios_snapshot")}
 WHERE NOT (
   (documento IS NOT NULL AND TRIM(CAST(documento AS STRING)) != '')
   AND renglon IS NOT NULL

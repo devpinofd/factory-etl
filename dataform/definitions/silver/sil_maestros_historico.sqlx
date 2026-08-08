@@ -1,0 +1,90 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_maestros_historico",
+  description: "Baseline histórico de maestros para detectar cambios por hash. Conserva una fila por entidad, empresa, clave natural, fecha de extracción y run_id.",
+  bigquery: {
+    partitionBy: "snapshot_date",
+    clusterBy: ["entity_name", "source_empresa", "natural_key"]
+  },
+  assertions: {
+    uniqueKey: ["entity_name", "source_empresa", "natural_key", "snapshot_date", "run_id"],
+    nonNull: ["entity_name", "source_empresa", "natural_key", "snapshot_date", "run_id", "record_hash"]
+  }
+}
+
+SELECT
+  "articulos" AS entity_name,
+  TRIM(source_empresa) AS source_empresa,
+  TRIM(CAST(cod_art AS STRING)) AS natural_key,
+  SAFE_CAST(dt AS DATE) AS snapshot_date,
+  TRIM(run_id) AS run_id,
+  TO_HEX(SHA256(TO_JSON_STRING(t))) AS record_hash,
+  TO_JSON_STRING(t) AS record_json
+FROM ${ref("stg_articulos_snapshot")} t
+WHERE SAFE_CAST(dt AS DATE) IS NOT NULL
+
+UNION ALL
+
+SELECT
+  "clientes",
+  TRIM(source_empresa),
+  TRIM(CAST(cod_cli AS STRING)),
+  SAFE_CAST(dt AS DATE),
+  TRIM(run_id),
+  TO_HEX(SHA256(TO_JSON_STRING(t))),
+  TO_JSON_STRING(t)
+FROM ${ref("stg_clientes_snapshot")} t
+WHERE SAFE_CAST(dt AS DATE) IS NOT NULL
+
+UNION ALL
+
+SELECT
+  "almacenes",
+  TRIM(source_empresa),
+  TRIM(CAST(cod_alm AS STRING)),
+  SAFE_CAST(dt AS DATE),
+  TRIM(run_id),
+  TO_HEX(SHA256(TO_JSON_STRING(t))),
+  TO_JSON_STRING(t)
+FROM ${ref("stg_almacenes_snapshot")} t
+WHERE SAFE_CAST(dt AS DATE) IS NOT NULL
+
+UNION ALL
+
+SELECT
+  "sucursales",
+  TRIM(source_empresa),
+  TRIM(CAST(cod_suc AS STRING)),
+  SAFE_CAST(dt AS DATE),
+  TRIM(run_id),
+  TO_HEX(SHA256(TO_JSON_STRING(t))),
+  TO_JSON_STRING(t)
+FROM ${ref("stg_sucursales_snapshot")} t
+WHERE SAFE_CAST(dt AS DATE) IS NOT NULL
+
+UNION ALL
+
+SELECT
+  "proveedores",
+  TRIM(source_empresa),
+  TRIM(CAST(cod_pro AS STRING)),
+  SAFE_CAST(dt AS DATE),
+  TRIM(run_id),
+  TO_HEX(SHA256(TO_JSON_STRING(t))),
+  TO_JSON_STRING(t)
+FROM ${ref("stg_proveedores_snapshot")} t
+WHERE SAFE_CAST(dt AS DATE) IS NOT NULL
+
+UNION ALL
+
+SELECT
+  "vendedores",
+  TRIM(source_empresa),
+  TRIM(CAST(cod_ven AS STRING)),
+  SAFE_CAST(dt AS DATE),
+  TRIM(run_id),
+  TO_HEX(SHA256(TO_JSON_STRING(t))),
+  TO_JSON_STRING(t)
+FROM ${ref("stg_vendedores_snapshot")} t
+WHERE SAFE_CAST(dt AS DATE) IS NOT NULL

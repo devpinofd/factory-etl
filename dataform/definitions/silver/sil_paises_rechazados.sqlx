@@ -19,7 +19,7 @@ SELECT
       IF((status IS NULL OR TRIM(CAST(status AS STRING)) = ''), 'status', NULL)
     ]) AS motivo
   ) AS motivo_rechazo
-FROM ${ref("stg_paises")}
+FROM ${ref("stg_paises_snapshot")}
 WHERE NOT (
   (cod_pai IS NOT NULL AND TRIM(CAST(cod_pai AS STRING)) != '')
   AND (nom_pai IS NOT NULL AND TRIM(CAST(nom_pai AS STRING)) != '')

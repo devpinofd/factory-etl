@@ -23,7 +23,7 @@ SELECT
   ${helpers.toTimestamp("registro")} AS registro,
   DATE(${helpers.toTimestamp("registro")}) AS fecha_registro,
   _ingested_at
-FROM ${ref("stg_renglones_monedas")}
+FROM ${ref("stg_renglones_monedas_snapshot")}
 -- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
 WHERE
   (cod_mon IS NOT NULL AND TRIM(CAST(cod_mon AS STRING)) != '')

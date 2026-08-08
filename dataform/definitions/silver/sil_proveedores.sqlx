@@ -20,7 +20,7 @@ SELECT
   ${helpers.trimStr("dir_fis")} AS dir_fis,
   ${helpers.trimStr("status")} AS status,
   _ingested_at
-FROM ${ref("stg_proveedores")}
+FROM ${ref("stg_proveedores_snapshot")}
 -- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
 WHERE
   (cod_pro IS NOT NULL AND TRIM(CAST(cod_pro AS STRING)) != '')

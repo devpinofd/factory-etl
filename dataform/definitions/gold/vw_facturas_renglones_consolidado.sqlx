@@ -20,6 +20,7 @@ SELECT
   v.nom_est,
   v.nom_ciu,
   v.cod_art,
+  v.cod_alm,
   v.cod_mar,
   v.nom_mar,
   v.nom_dep,

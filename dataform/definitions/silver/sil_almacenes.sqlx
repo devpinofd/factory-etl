@@ -19,7 +19,7 @@ SELECT
   ${helpers.trimStr("cod_suc")} AS cod_suc,
   ${helpers.trimStr("status")} AS status,
   _ingested_at
-FROM ${ref("stg_almacenes")}
+FROM ${ref("stg_almacenes_snapshot")}
 -- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
 WHERE
   (cod_alm IS NOT NULL AND TRIM(CAST(cod_alm AS STRING)) != '')

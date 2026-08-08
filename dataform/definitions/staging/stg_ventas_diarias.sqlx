@@ -1,6 +1,6 @@
 config {
   type: "declaration",
   schema: "factory_etl_bronze_stg",
-  name: "stg_ventas_diarias",
+  name: "stg_ventas_diarias_v2",
   description: "Tabla nativa cargada via BQ load job (WRITE_TRUNCATE) desde Bronze GCS con tipos exactos"
 }

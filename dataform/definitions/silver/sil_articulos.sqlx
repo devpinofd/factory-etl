@@ -33,7 +33,7 @@ SELECT
   ${helpers.trimStr("status")} AS status,
   ${helpers.toTimestamp("fec_ini")} AS fec_ini,
   _ingested_at
-FROM ${ref("stg_articulos")}
+FROM ${ref("stg_articulos_snapshot")}
 -- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
 WHERE
   (cod_art IS NOT NULL AND TRIM(CAST(cod_art AS STRING)) != '')
