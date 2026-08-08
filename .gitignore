@@ -55,6 +55,7 @@ Thumbs.db
 *.pem
 credentials*.json
 service-account*.json
+dataform/.df-credentials.json
 
 # Artefactos runtime
 *.log
