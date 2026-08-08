@@ -17,7 +17,7 @@ SELECT
   "articulos" AS entity_name,
   TRIM(source_empresa) AS source_empresa,
   TRIM(CAST(cod_art AS STRING)) AS natural_key,
-  SAFE_CAST(DATE(_ingested_at) AS DATE) AS snapshot_date,
+  COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)) AS snapshot_date,
   TRIM(_run_id) AS run_id,
   TO_HEX(SHA256(TO_JSON_STRING(t))) AS record_hash,
   TO_JSON_STRING(t) AS record_json
@@ -30,7 +30,7 @@ SELECT
   "clientes",
   TRIM(source_empresa),
   TRIM(CAST(cod_cli AS STRING)),
-  SAFE_CAST(DATE(_ingested_at) AS DATE),
+  COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)
@@ -43,7 +43,7 @@ SELECT
   "almacenes",
   TRIM(source_empresa),
   TRIM(CAST(cod_alm AS STRING)),
-  SAFE_CAST(DATE(_ingested_at) AS DATE),
+  COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)
@@ -56,7 +56,7 @@ SELECT
   "sucursales",
   TRIM(source_empresa),
   TRIM(CAST(cod_suc AS STRING)),
-  SAFE_CAST(DATE(_ingested_at) AS DATE),
+  COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)
@@ -69,7 +69,7 @@ SELECT
   "proveedores",
   TRIM(source_empresa),
   TRIM(CAST(cod_pro AS STRING)),
-  SAFE_CAST(DATE(_ingested_at) AS DATE),
+  COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)
@@ -82,7 +82,7 @@ SELECT
   "vendedores",
   TRIM(source_empresa),
   TRIM(CAST(cod_ven AS STRING)),
-  SAFE_CAST(DATE(_ingested_at) AS DATE),
+  COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)

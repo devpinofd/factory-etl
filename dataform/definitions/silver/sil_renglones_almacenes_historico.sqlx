@@ -15,7 +15,7 @@ config {
 
 SELECT
   TRIM(source_empresa) AS source_empresa,
-  SAFE_CAST(DATE(_ingested_at) AS DATE) AS snapshot_date,
+  COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)) AS snapshot_date,
   TRIM(_run_id) AS run_id,
   TRIM(cod_alm) AS cod_alm,
   TRIM(cod_art) AS cod_art,
@@ -30,6 +30,6 @@ WHERE _ingested_at IS NOT NULL
   AND NULLIF(TRIM(cod_art), "") IS NOT NULL
   AND SAFE_CAST(exi_act1 AS NUMERIC) IS NOT NULL
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY source_empresa, SAFE_CAST(DATE(_ingested_at) AS DATE), _run_id, cod_alm, cod_art
+  PARTITION BY source_empresa, COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)), _run_id, cod_alm, cod_art
   ORDER BY _ingested_at DESC
 ) = 1

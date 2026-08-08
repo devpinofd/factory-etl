@@ -1,0 +1,37 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_cliente_scd2",
+  description: "Dimensión SCD2 de clientes. Conserva una versión por cambio de atributos relevantes y permite resolver el cliente vigente en la fecha de venta.",
+  bigquery: {
+    partitionBy: "valid_from",
+    clusterBy: ["source_empresa", "natural_key", "is_current"]
+  },
+  assertions: {
+    uniqueKey: ["surrogate_key"],
+    nonNull: ["surrogate_key", "source_empresa", "natural_key", "valid_from", "record_hash"]
+  }
+}
+
+SELECT
+  s.surrogate_key,
+  s.source_empresa,
+  s.natural_key AS cod_cli,
+  s.valid_from,
+  s.valid_to,
+  s.is_current,
+  s.run_id,
+  s.record_hash,
+  JSON_VALUE(s.record_json, "$.nom_cli") AS nom_cli,
+  JSON_VALUE(s.record_json, "$.rif") AS rif,
+  JSON_VALUE(s.record_json, "$.dir_fis") AS dir_fis,
+  JSON_VALUE(s.record_json, "$.dir_exa") AS dir_exa,
+  JSON_VALUE(s.record_json, "$.cod_ven") AS cod_ven,
+  JSON_VALUE(s.record_json, "$.cod_suc") AS cod_suc,
+  JSON_VALUE(s.record_json, "$.segmentacion1") AS segmentacion1,
+  JSON_VALUE(s.record_json, "$.segmentacion2") AS segmentacion2,
+  JSON_VALUE(s.record_json, "$.status") AS status,
+  JSON_VALUE(s.record_json, "$.tip_cli") AS tip_cli,
+  JSON_VALUE(s.record_json, "$.tip_con") AS tip_con
+FROM ${ref("sil_maestros_scd2")} s
+WHERE s.entity_name = "clientes"

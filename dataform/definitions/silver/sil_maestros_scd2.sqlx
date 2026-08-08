@@ -1,0 +1,67 @@
+config {
+  type: "table",
+  schema: "factory_etl_silver",
+  name: "sil_maestros_scd2",
+  description: "Versiones SCD2 de todos los maestros a partir de snapshots Bronze, con clave sustituta, vigencia y hash de cambio.",
+  bigquery: {
+    partitionBy: "valid_from",
+    clusterBy: ["entity_name", "source_empresa", "natural_key"]
+  },
+  assertions: {
+    uniqueKey: ["surrogate_key"],
+    nonNull: ["surrogate_key", "entity_name", "source_empresa", "natural_key", "valid_from", "record_hash"]
+  }
+}
+
+WITH snapshots AS (
+  SELECT
+    entity_name,
+    source_empresa,
+    natural_key,
+    snapshot_date,
+    run_id,
+    record_hash,
+    record_json,
+    ROW_NUMBER() OVER (
+      PARTITION BY entity_name, source_empresa, natural_key, snapshot_date, record_hash
+      ORDER BY run_id DESC
+    ) AS duplicate_rank
+  FROM ${ref("sil_maestros_historico")}
+  WHERE snapshot_date IS NOT NULL
+),
+distinct_snapshots AS (
+  SELECT * EXCEPT (duplicate_rank)
+  FROM snapshots
+  WHERE duplicate_rank = 1
+),
+changes AS (
+  SELECT
+    *,
+    LAG(record_hash) OVER (
+      PARTITION BY entity_name, source_empresa, natural_key
+      ORDER BY snapshot_date, run_id
+    ) AS previous_record_hash
+  FROM distinct_snapshots
+),
+versions AS (
+  SELECT
+    *,
+    LEAD(snapshot_date) OVER (
+      PARTITION BY entity_name, source_empresa, natural_key
+      ORDER BY snapshot_date, run_id
+    ) AS next_snapshot_date
+  FROM changes
+  WHERE previous_record_hash IS NULL OR previous_record_hash != record_hash
+)
+SELECT
+  TO_HEX(SHA256(CONCAT(entity_name, "|", source_empresa, "|", natural_key, "|", CAST(snapshot_date AS STRING), "|", record_hash))) AS surrogate_key,
+  entity_name,
+  source_empresa,
+  natural_key,
+  snapshot_date AS valid_from,
+  DATE_SUB(next_snapshot_date, INTERVAL 1 DAY) AS valid_to,
+  next_snapshot_date IS NULL AS is_current,
+  run_id,
+  record_hash,
+  record_json
+FROM versions
