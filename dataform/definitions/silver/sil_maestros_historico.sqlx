@@ -19,6 +19,7 @@ SELECT
   TRIM(CAST(cod_art AS STRING)) AS natural_key,
   COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)) AS snapshot_date,
   TRIM(_run_id) AS run_id,
+  SAFE_CAST(_ingested_at AS TIMESTAMP) AS ingested_at,
   TO_HEX(SHA256(TO_JSON_STRING(t))) AS record_hash,
   TO_JSON_STRING(t) AS record_json
 FROM ${ref("stg_articulos_snapshot")} t
@@ -32,6 +33,7 @@ SELECT
   TRIM(CAST(cod_cli AS STRING)),
   COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
+  SAFE_CAST(_ingested_at AS TIMESTAMP),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)
 FROM ${ref("stg_clientes_snapshot")} t
@@ -45,6 +47,7 @@ SELECT
   TRIM(CAST(cod_alm AS STRING)),
   COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
+  SAFE_CAST(_ingested_at AS TIMESTAMP),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)
 FROM ${ref("stg_almacenes_snapshot")} t
@@ -58,6 +61,7 @@ SELECT
   TRIM(CAST(cod_suc AS STRING)),
   COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
+  SAFE_CAST(_ingested_at AS TIMESTAMP),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)
 FROM ${ref("stg_sucursales_snapshot")} t
@@ -71,6 +75,7 @@ SELECT
   TRIM(CAST(cod_pro AS STRING)),
   COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
+  SAFE_CAST(_ingested_at AS TIMESTAMP),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)
 FROM ${ref("stg_proveedores_snapshot")} t
@@ -84,6 +89,7 @@ SELECT
   TRIM(CAST(cod_ven AS STRING)),
   COALESCE(SAFE_CAST(dt AS DATE), SAFE_CAST(DATE(_ingested_at) AS DATE)),
   TRIM(_run_id),
+  SAFE_CAST(_ingested_at AS TIMESTAMP),
   TO_HEX(SHA256(TO_JSON_STRING(t))),
   TO_JSON_STRING(t)
 FROM ${ref("stg_vendedores_snapshot")} t

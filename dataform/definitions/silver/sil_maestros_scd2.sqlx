@@ -20,14 +20,15 @@ WITH snapshots AS (
     natural_key,
     snapshot_date,
     run_id,
+    ingested_at,
     record_hash,
     record_json,
     ROW_NUMBER() OVER (
-      PARTITION BY entity_name, source_empresa, natural_key, snapshot_date, record_hash
+      PARTITION BY entity_name, source_empresa, natural_key, ingested_at, record_hash
       ORDER BY run_id DESC
     ) AS duplicate_rank
   FROM ${ref("sil_maestros_historico")}
-  WHERE snapshot_date IS NOT NULL
+  WHERE ingested_at IS NOT NULL
 ),
 distinct_snapshots AS (
   SELECT * EXCEPT (duplicate_rank)
@@ -39,28 +40,29 @@ changes AS (
     *,
     LAG(record_hash) OVER (
       PARTITION BY entity_name, source_empresa, natural_key
-      ORDER BY snapshot_date, run_id
+      ORDER BY ingested_at, run_id
     ) AS previous_record_hash
   FROM distinct_snapshots
 ),
 versions AS (
   SELECT
     *,
-    LEAD(snapshot_date) OVER (
+    LEAD(ingested_at) OVER (
       PARTITION BY entity_name, source_empresa, natural_key
-      ORDER BY snapshot_date, run_id
-    ) AS next_snapshot_date
+      ORDER BY ingested_at, run_id
+    ) AS next_ingested_at
   FROM changes
   WHERE previous_record_hash IS NULL OR previous_record_hash != record_hash
 )
 SELECT
-  TO_HEX(SHA256(CONCAT(entity_name, "|", source_empresa, "|", natural_key, "|", CAST(snapshot_date AS STRING), "|", record_hash))) AS surrogate_key,
+  TO_HEX(SHA256(CONCAT(entity_name, "|", source_empresa, "|", natural_key, "|", CAST(ingested_at AS STRING), "|", record_hash))) AS surrogate_key,
   entity_name,
   source_empresa,
   natural_key,
-  snapshot_date AS valid_from,
-  DATE_SUB(next_snapshot_date, INTERVAL 1 DAY) AS valid_to,
-  next_snapshot_date IS NULL AS is_current,
+  ingested_at AS valid_from,
+  next_ingested_at AS valid_to,
+  next_ingested_at IS NULL AS is_current,
+  snapshot_date,
   run_id,
   record_hash,
   record_json
