@@ -4,7 +4,7 @@ config {
   name: "sil_clientes",
   description: "Tabla Silver de clientes limpia, deduplicada y con latitud/longitud procesadas a partir de GPS",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_cli"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_cli"],

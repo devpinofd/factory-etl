@@ -4,7 +4,7 @@ config {
   name: "sil_clases_clientes",
   description: "Tabla Silver de clases_clientes (limpia, tipada y deduplicada) generada desde stg_clases_clientes",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_cla"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_cla"],

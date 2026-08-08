@@ -4,7 +4,7 @@ config {
   name: "sil_paises",
   description: "Tabla Silver de paises (limpia, tipada y deduplicada) generada desde stg_paises",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_pai"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_pai"],

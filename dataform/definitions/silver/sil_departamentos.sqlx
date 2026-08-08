@@ -4,7 +4,7 @@ config {
   name: "sil_departamentos",
   description: "Tabla Silver de departamentos (limpia, tipada y deduplicada) generada desde stg_departamentos",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_dep"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_dep"],

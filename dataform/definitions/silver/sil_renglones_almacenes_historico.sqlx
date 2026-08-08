@@ -5,7 +5,7 @@ config {
   description: "Histórico de snapshots de inventario por fecha de extracción. Conserva run_id para distinguir cargas repetidas del mismo día y no utiliza registro como fecha del snapshot.",
   bigquery: {
     partitionBy: "snapshot_date",
-    clusterBy: ["source_empresa", "cod_alm", "cod_art"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "snapshot_date", "run_id", "cod_alm", "cod_art"],
@@ -15,7 +15,7 @@ config {
 
 SELECT
   TRIM(source_empresa) AS source_empresa,
-  SAFE_CAST(dt AS DATE) AS snapshot_date,
+  SAFE_CAST(DATE(_ingested_at) AS DATE) AS snapshot_date,
   TRIM(run_id) AS run_id,
   TRIM(cod_alm) AS cod_alm,
   TRIM(cod_art) AS cod_art,
@@ -23,7 +23,7 @@ SELECT
   SAFE_CAST(registro AS TIMESTAMP) AS registro,
   CURRENT_TIMESTAMP() AS _processed_at
 FROM ${ref("stg_renglones_almacenes_snapshot")}
-WHERE SAFE_CAST(dt AS DATE) IS NOT NULL
+WHERE _ingested_at IS NOT NULL
   AND NULLIF(TRIM(source_empresa), "") IS NOT NULL
   AND NULLIF(TRIM(run_id), "") IS NOT NULL
   AND NULLIF(TRIM(cod_alm), "") IS NOT NULL

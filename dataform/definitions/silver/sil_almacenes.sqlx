@@ -4,7 +4,7 @@ config {
   name: "sil_almacenes",
   description: "Tabla Silver de almacenes (limpia, tipada y deduplicada) generada desde stg_almacenes",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_alm"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_alm"],

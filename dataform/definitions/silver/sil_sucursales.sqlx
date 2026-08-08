@@ -4,7 +4,7 @@ config {
   name: "sil_sucursales",
   description: "Tabla Silver de sucursales (limpia, tipada y deduplicada) generada desde stg_sucursales",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_suc"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_suc"],

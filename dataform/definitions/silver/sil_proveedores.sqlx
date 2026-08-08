@@ -4,7 +4,7 @@ config {
   name: "sil_proveedores",
   description: "Tabla Silver de proveedores (limpia, tipada y deduplicada) generada desde stg_proveedores",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_pro"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_pro"],

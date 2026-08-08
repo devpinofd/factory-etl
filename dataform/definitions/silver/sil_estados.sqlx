@@ -4,7 +4,7 @@ config {
   name: "sil_estados",
   description: "Tabla Silver de estados (limpia, tipada y deduplicada) generada desde stg_estados",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_est"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_est"],

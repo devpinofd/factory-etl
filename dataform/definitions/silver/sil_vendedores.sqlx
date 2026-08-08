@@ -4,7 +4,7 @@ config {
   name: "sil_vendedores",
   description: "Tabla Silver de vendedores (limpia, tipada y deduplicada) generada desde stg_vendedores",
   bigquery: {
-    clusterBy: ["source_empresa", "cod_ven"]
+    clusterBy: ["source_empresa"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_ven"],
