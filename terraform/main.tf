@@ -21,7 +21,11 @@ locals {
   # contrato Bronze y deben viajar al staging nativo.
   staging_schema_dir   = "${path.root}/../src/factory_etl/factory_queries/schemas"
   staging_schema_files = fileset(local.staging_schema_dir, "*.json")
-  audit_columns = [
+  # Columnas de auditoria que SI viajan en el JSON de Bronze (una por registro).
+  # Las claves de particion Hive (source_empresa, dt, run_id) NO van aqui: no
+  # existen en el JSON, las aporta el load job desde la ruta. Incluirlas en el
+  # schema explicito del load rompe la carga (BigQuery las exigiria en el JSON).
+  load_audit_columns = [
     { name = "_ingested_at", type = "STRING", mode = "NULLABLE" },
     { name = "_source_empresa", type = "STRING", mode = "NULLABLE" },
     { name = "_query_id", type = "STRING", mode = "NULLABLE" },
@@ -31,9 +35,20 @@ locals {
     { name = "_lote_id", type = "STRING", mode = "NULLABLE" },
     { name = "_payload_hash", type = "STRING", mode = "NULLABLE" },
     { name = "_row_hash", type = "STRING", mode = "NULLABLE" },
-    { name = "source_empresa", type = "STRING", mode = "NULLABLE" },
   ]
 
+  # Claves de particion Hive derivadas de la ruta Bronze
+  # source_empresa=.../dt=.../run_id=... El load job las agrega como columnas;
+  # se incluyen en el schema de la tabla nativa para evitar drift con Terraform,
+  # pero NO en el schema explicito del load.
+  partition_columns = [
+    { name = "source_empresa", type = "STRING", mode = "NULLABLE" },
+    { name = "dt", type = "STRING", mode = "NULLABLE" },
+    { name = "run_id", type = "STRING", mode = "NULLABLE" },
+  ]
+
+  # Schema del LOAD job (sin claves de particion): columnas de la entidad +
+  # auditoria JSON.
   staging_schemas = {
     for f in local.staging_schema_files :
     trimsuffix(replace(f, "_v1.json", ""), ".json") => concat(
@@ -49,8 +64,14 @@ locals {
           mode = "NULLABLE"
         }
       ],
-      local.audit_columns
+      local.load_audit_columns
     )
+  }
+
+  # Schema de la TABLA nativa (con claves de particion Hive que agrega el load).
+  table_schemas = {
+    for k, v in local.staging_schemas :
+    k => concat(v, local.partition_columns)
   }
 }
 
@@ -311,7 +332,7 @@ resource "google_bigquery_table" "staging_native" {
   project             = var.project_id
   dataset_id          = var.bronze_stg_dataset_id
   table_id            = each.key == "ventas_diarias_v2" ? "stg_ventas_diarias_v2" : "stg_${each.key}_snapshot"
-  schema              = jsonencode(each.value)
+  schema              = jsonencode(local.table_schemas[each.key])
   deletion_protection = true
   labels              = local.common_labels
 
