@@ -5,7 +5,7 @@ config {
   description: "Tabla de Hechos Gold de Ventas consolidadas por transacción, renglón, empresa, sucursal, vendedor y producto",
   bigquery: {
     partitionBy: "DATE(registro)",
-    clusterBy: ["source_empresa", "cod_suc", "cod_pro", "cod_ven"]
+    clusterBy: ["source_empresa", "cod_pro", "cod_suc"]
   }
 }
 
