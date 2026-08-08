@@ -230,6 +230,44 @@ class TestRunBatchCommand:
         assert generated
         assert extractor.run_calls[0]["run_id"] == generated
 
+    def test_dt_today_se_resuelve_a_fecha_real(
+        self,
+        _env: None,  # noqa: PT019
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """``--dt TODAY`` debe resolverse a YYYY-MM-DD antes de construir la
+        particion Bronze; nunca debe propagarse el literal ``TODAY``."""
+        import re
+
+        control = _FakeControlSpy()
+        outcome = BatchOutcome(
+            batch_id="b",
+            status=BatchStatus.SUCCESS.value,
+            object_uri=None,
+            record_count=0,
+            was_duplicate=False,
+        )
+        extractor = _FakeExtractor(control=control, outcome=outcome)
+        _patch_build(monkeypatch, extractor)
+
+        result = CliRunner().invoke(
+            app,
+            [
+                "run-batch",
+                "--query-id",
+                "articulos_v1",
+                "--source-empresa",
+                "tinito",
+                "--dt",
+                "TODAY",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        resolved_dt = extractor.run_calls[0]["dt"]
+        assert resolved_dt != "TODAY"
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", resolved_dt)
+        assert control.starts[0]["extras"]["dt"] == resolved_dt
+
     def test_parametros_repetidos_llegan_como_dict(
         self,
         _env: None,  # noqa: PT019

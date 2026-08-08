@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 import structlog
@@ -78,6 +79,11 @@ def run_batch(
     settings = Settings.load()
     configure_logging(env=settings.env)
     effective_run_id = run_id or ids.new_run_id()
+
+    # La particion Bronze (dt=<valor>) debe usar la fecha real, nunca el token
+    # "TODAY": de lo contrario se crean particiones literales dt=TODAY que
+    # rompen la derivacion de snapshot_date en las capas historicas/SCD.
+    dt = datetime.now(UTC).strftime("%Y-%m-%d") if dt.upper() == "TODAY" else dt
 
     parameter_values = _parse_parameters(parameter or [])
 

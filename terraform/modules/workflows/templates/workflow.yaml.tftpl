@@ -8,11 +8,17 @@ main:
           - job_name: "${job_name}"
           - bucket_name: "${bucket_name}"
           - dt_param: $${default(map.get(args, "target_date"), default(map.get(args, "dt"), text.split(time.format(sys.now()), "T")[0]))}
+          - target_empresa: $${default(map.get(args, "source_empresa"), "")}
           - empresas: ["tinito", "ctb", "daroan", "roldan", "ctm"]
           - queries_list: ${queries_json}
           - total_queries: 0
           - staging_schemas: ${staging_schemas_json}
           - quarantine_bucket_name: "${quarantine_bucket_name}"
+    - choose_target_empresa:
+        switch:
+          - condition: $${target_empresa != ""}
+            assign:
+              - empresas: [$${target_empresa}]
 %{ if !consolidation_only }
     - process_empresas_in_parallel:
         parallel:
@@ -22,10 +28,13 @@ main:
             in: $${empresas}
             steps:
               - process_queries_for_empresa:
-                  for:
-                    value: q
-                    in: $${queries_list}
-                    steps:
+                  parallel:
+                    concurrency_limit: 5
+                    shared: [total_queries]
+                    for:
+                      value: q
+                      in: $${queries_list}
+                      steps:
                       - prepare_default_args:
                           assign:
                             - cmd_args:
@@ -73,6 +82,34 @@ main:
                             - total_queries: $${total_queries + 1}
 %{ endif }
 %{ if enable_medallion_consolidation }
+    - guard_single_execution:
+        steps:
+          - read_execution_context:
+              assign:
+                - wf_parent: $${"projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_ID") + "/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/workflows/" + sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID")}
+                - self_execution: $${"projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_ID") + "/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/workflows/" + sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID") + "/executions/" + sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
+                - other_active: 0
+          - list_active_executions:
+              call: googleapis.workflowexecutions.v1.projects.locations.workflows.executions.list
+              args:
+                parent: $${wf_parent}
+              result: active_execs
+          - scan_active:
+              for:
+                value: ex
+                in: $${default(map.get(active_execs, "executions"), [])}
+                steps:
+                  - maybe_count:
+                      switch:
+                        - condition: $${ex.name != self_execution AND ex.state == "ACTIVE"}
+                          assign:
+                            - other_active: $${other_active + 1}
+          - decide_guard:
+              switch:
+                - condition: $${other_active > 0}
+                  return:
+                    status: "SKIPPED"
+                    reason: "otra ejecucion de consolidacion ya esta activa"
     - consolidate_medallion:
         steps:
           - init_medallion_run:
@@ -127,9 +164,14 @@ load_staging_table:
     - derive_entity_name:
         assign:
           - entity_name: $${text.replace_all(query_id, "_v1", "")}
-          - table_id: $${"stg_" + entity_name}
+          - table_id: $${"stg_" + entity_name + "_snapshot"}
           - source_prefix: $${"gs://" + bucket_name + "/bronze/" + query_id + "/"}
           - schema_fields: $${map.get(staging_schemas, entity_name)}
+    - choose_sales_table:
+        switch:
+          - condition: $${entity_name == "ventas_diarias_v2"}
+            assign:
+              - table_id: "stg_ventas_diarias_v2"
     - start_load_job:
         call: googleapis.bigquery.v2.jobs.insert
         args:

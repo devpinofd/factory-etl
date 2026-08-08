@@ -1,8 +1,9 @@
 config {
-  type: "table",
+  type: "incremental",
   schema: "factory_etl_silver",
   name: "sil_maestros_historico",
-  description: "Baseline histórico de maestros para detectar cambios por hash. Conserva una fila por entidad, empresa, clave natural, fecha de extracción y run_id.",
+  description: "Baseline histórico incremental de maestros. Acumula una fila por entidad, empresa, clave natural y run_id, y nunca pierde versiones aunque Bronze elimine objetos por retención.",
+  uniqueKey: ["entity_name", "source_empresa", "natural_key", "run_id"],
   bigquery: {
     partitionBy: "snapshot_date",
     clusterBy: ["entity_name", "source_empresa", "natural_key"]

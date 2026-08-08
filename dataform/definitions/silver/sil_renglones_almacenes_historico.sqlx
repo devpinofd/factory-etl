@@ -1,8 +1,9 @@
 config {
-  type: "table",
+  type: "incremental",
   schema: "factory_etl_silver",
   name: "sil_renglones_almacenes_historico",
-  description: "Histórico de snapshots de inventario por fecha de extracción. Conserva run_id para distinguir cargas repetidas del mismo día y no utiliza registro como fecha del snapshot.",
+  description: "Histórico incremental de snapshots de inventario. Acumula una fila por empresa, fecha de snapshot, run_id, almacén y artículo, y nunca pierde snapshots aunque Bronze elimine objetos por retención.",
+  uniqueKey: ["source_empresa", "snapshot_date", "run_id", "cod_alm", "cod_art"],
   bigquery: {
     partitionBy: "snapshot_date",
     clusterBy: ["source_empresa", "cod_alm", "cod_art"]
