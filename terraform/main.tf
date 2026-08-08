@@ -6,27 +6,51 @@ locals {
     owner       = "data-platform"
   }
 
-  # Tipos exactos por entidad (staging), leidos de las 19 fuentes de verdad en
-  # src/factory_etl/factory_queries/schemas/*.json en vez de autodetect. El
-  # nombre del archivo (sin .json) coincide siempre con el entity_name que el
-  # workflow deriva de query_id (quitando el sufijo "_v1").
+  cloud_run_job_name          = var.environment == "prod" ? "factory-etl-extractor-prod" : "factory-etl-articulos-${var.environment}"
+  daily_workflow_name         = var.environment == "prod" ? "factory-etl-daily-transaccional-prod" : "factory-etl-daily-transaccional-${var.environment}"
+  full_workflow_name          = var.environment == "prod" ? "factory-etl-full-prod" : "factory-etl-full-${var.environment}"
+  consolidation_workflow_name = var.environment == "prod" ? "factory-etl-consolidation-prod" : "factory-etl-consolidation-${var.environment}"
+  workflow_control_dataset_id = var.additional_control_dataset_id != "" ? var.additional_control_dataset_id : (
+    var.environment == "dev" ? "factory_etl_control_dev" : module.bigquery.dataset_id
+  )
+
+  # Tipos exactos por entidad (staging), leidos de las fuentes de verdad en
+  # src/factory_etl/factory_queries/schemas/*.json en vez de autodetect.
+  # El workflow deriva la entidad quitando "_v1", por lo que las claves se
+  # normalizan aqui de la misma forma. Los campos de auditoria son parte del
+  # contrato Bronze y deben viajar al staging nativo.
   staging_schema_dir   = "${path.root}/../src/factory_etl/factory_queries/schemas"
   staging_schema_files = fileset(local.staging_schema_dir, "*.json")
+  audit_columns = [
+    { name = "_ingested_at", type = "STRING", mode = "NULLABLE" },
+    { name = "_source_empresa", type = "STRING", mode = "NULLABLE" },
+    { name = "_query_id", type = "STRING", mode = "NULLABLE" },
+    { name = "_query_version", type = "STRING", mode = "NULLABLE" },
+    { name = "_query_sql_hash", type = "STRING", mode = "NULLABLE" },
+    { name = "_run_id", type = "STRING", mode = "NULLABLE" },
+    { name = "_lote_id", type = "STRING", mode = "NULLABLE" },
+    { name = "_payload_hash", type = "STRING", mode = "NULLABLE" },
+    { name = "_row_hash", type = "STRING", mode = "NULLABLE" },
+    { name = "source_empresa", type = "STRING", mode = "NULLABLE" },
+  ]
 
   staging_schemas = {
     for f in local.staging_schema_files :
-    trimsuffix(f, ".json") => [
-      for col in jsondecode(file("${local.staging_schema_dir}/${f}")).columns : {
-        name = col.name
-        type = (
-          lower(col.type) == "number" ? "FLOAT64" :
-          lower(col.type) == "integer" ? "INT64" :
-          lower(col.type) == "boolean" ? "BOOL" :
-          "STRING"
-        )
-        mode = "NULLABLE"
-      }
-    ]
+    trimsuffix(replace(f, "_v1.json", ""), ".json") => concat(
+      [
+        for col in jsondecode(file("${local.staging_schema_dir}/${f}")).columns : {
+          name = col.name
+          type = (
+            lower(col.type) == "number" ? "FLOAT64" :
+            lower(col.type) == "integer" ? "INT64" :
+            lower(col.type) == "boolean" ? "BOOL" :
+            "STRING"
+          )
+          mode = "NULLABLE"
+        }
+      ],
+      local.audit_columns
+    )
   }
 }
 
@@ -117,13 +141,21 @@ module "service_account" {
   environment            = var.environment
   bronze_bucket_name     = module.storage.bronze_bucket_name
   quarantine_bucket_name = module.storage.quarantine_bucket_name
-  control_dataset_id     = module.bigquery.dataset_id
+  control_dataset_id     = local.workflow_control_dataset_id
   secret_ids             = module.secrets.secret_ids
   bronze_stg_dataset_id  = var.bronze_stg_dataset_id
   silver_dataset_id      = var.silver_dataset_id
   gold_dataset_id        = var.gold_dataset_id
 
   depends_on = [google_project_service.required]
+}
+
+resource "google_bigquery_dataset_iam_member" "additional_control_editor" {
+  count      = local.workflow_control_dataset_id == module.bigquery.dataset_id ? 0 : 1
+  project    = var.project_id
+  dataset_id = local.workflow_control_dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${module.service_account.email}"
 }
 
 # -----------------------------------------------------------------------------
@@ -187,13 +219,13 @@ module "cloud_run_job" {
 
   project_id             = var.project_id
   region                 = var.region
-  job_name               = "factory-etl-articulos-${var.environment}"
+  job_name               = local.cloud_run_job_name
   image_uri              = "${module.artifact_registry.repository_url}/${var.container_image_name}:${var.container_image_tag}"
   service_account_email  = module.service_account.email
   environment            = var.environment
   bronze_bucket_name     = module.storage.bronze_bucket_name
   quarantine_bucket_name = module.storage.quarantine_bucket_name
-  control_dataset_id     = module.bigquery.dataset_id
+  control_dataset_id     = local.workflow_control_dataset_id
   query_id               = "articulos_v1"
   source_empresa         = "tinito"
   cpu_limit              = var.articulos_cpu_limit
@@ -217,10 +249,10 @@ module "workflows" {
 
   project_id            = var.project_id
   region                = var.region
-  workflow_name         = "factory-etl-daily-${var.environment}"
+  workflow_name         = local.daily_workflow_name
   job_name              = module.cloud_run_job.job_name
   bucket_name           = module.storage.bronze_bucket_name
-  control_dataset_id    = module.bigquery.dataset_id
+  control_dataset_id    = local.workflow_control_dataset_id
   service_account_email = module.service_account.email
   labels                = local.common_labels
   queries               = var.daily_queries
@@ -233,10 +265,10 @@ module "workflows_full" {
 
   project_id            = var.project_id
   region                = var.region
-  workflow_name         = "factory-etl-daily-full-${var.environment}"
+  workflow_name         = local.full_workflow_name
   job_name              = module.cloud_run_job.job_name
   bucket_name           = module.storage.bronze_bucket_name
-  control_dataset_id    = module.bigquery.dataset_id
+  control_dataset_id    = local.workflow_control_dataset_id
   service_account_email = module.service_account.email
   labels                = local.common_labels
   queries               = var.daily_queries_full
@@ -249,10 +281,10 @@ module "workflows_consolidation" {
 
   project_id            = var.project_id
   region                = var.region
-  workflow_name         = "factory-etl-consolidation-${var.environment}"
+  workflow_name         = local.consolidation_workflow_name
   job_name              = module.cloud_run_job.job_name
   bucket_name           = module.storage.bronze_bucket_name
-  control_dataset_id    = module.bigquery.dataset_id
+  control_dataset_id    = local.workflow_control_dataset_id
   service_account_email = module.service_account.email
   labels                = local.common_labels
   queries               = var.daily_queries_full
@@ -269,6 +301,21 @@ module "workflows_consolidation" {
   security_dataset_id            = "factory_etl_security"
 
   depends_on = [google_project_service.required, module.dataform]
+}
+
+# Staging nativo paralelo: los destinos de los load jobs no pueden ser tablas
+# EXTERNAL. Se conservan las tablas legacy y Dataform consume estas tablas
+# versionadas, administradas por Terraform.
+resource "google_bigquery_table" "staging_native" {
+  for_each            = local.staging_schemas
+  project             = var.project_id
+  dataset_id          = var.bronze_stg_dataset_id
+  table_id            = each.key == "ventas_diarias_v2" ? "stg_ventas_diarias_v2" : "stg_${each.key}_snapshot"
+  schema              = jsonencode(each.value)
+  deletion_protection = true
+  labels              = local.common_labels
+
+  depends_on = [module.bigquery, google_project_service.required]
 }
 
 # -----------------------------------------------------------------------------
