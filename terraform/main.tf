@@ -7,9 +7,9 @@ locals {
   }
 
   cloud_run_job_name          = var.environment == "prod" ? "factory-etl-extractor-prod" : "factory-etl-articulos-${var.environment}"
-  daily_workflow_name         = var.environment == "prod" ? "factory-etl-daily-transaccional-prod" : "factory-etl-daily-transaccional-${var.environment}"
-  full_workflow_name          = var.environment == "prod" ? "factory-etl-full-prod" : "factory-etl-full-${var.environment}"
-  consolidation_workflow_name = var.environment == "prod" ? "factory-etl-consolidation-prod" : "factory-etl-consolidation-${var.environment}"
+  daily_workflow_name         = "factory-etl-daily-transaccional-${var.environment}-scd2"
+  full_workflow_name          = "factory-etl-full-${var.environment}-scd2"
+  consolidation_workflow_name = "factory-etl-consolidation-${var.environment}-scd2"
   workflow_control_dataset_id = var.additional_control_dataset_id != "" ? var.additional_control_dataset_id : (
     var.environment == "dev" ? "factory_etl_control_dev" : module.bigquery.dataset_id
   )
@@ -374,8 +374,8 @@ module "cloud_scheduler" {
 
   project_id            = var.project_id
   region                = var.region
-  scheduler_name        = "factory-etl-daily-scheduler-${var.environment}"
-  workflow_name         = "factory-etl-daily-${var.environment}"
+  scheduler_name        = "factory-etl-daily-scheduler-${var.environment}-scd2"
+  workflow_name         = local.daily_workflow_name
   service_account_email = module.service_account.email
   cron_schedule         = var.cron_schedule
   time_zone             = var.time_zone
@@ -388,8 +388,8 @@ module "cloud_scheduler_full" {
 
   project_id            = var.project_id
   region                = var.region
-  scheduler_name        = "factory-etl-daily-scheduler-full-${var.environment}"
-  workflow_name         = "factory-etl-daily-full-${var.environment}"
+  scheduler_name        = "factory-etl-daily-scheduler-full-${var.environment}-scd2"
+  workflow_name         = local.full_workflow_name
   service_account_email = module.service_account.email
   cron_schedule         = var.cron_schedule_full
   time_zone             = var.time_zone
@@ -402,8 +402,8 @@ module "cloud_scheduler_consolidation" {
 
   project_id            = var.project_id
   region                = var.region
-  scheduler_name        = "factory-etl-consolidation-scheduler-${var.environment}"
-  workflow_name         = "factory-etl-consolidation-${var.environment}"
+  scheduler_name        = "factory-etl-consolidation-scheduler-${var.environment}-scd2"
+  workflow_name         = local.consolidation_workflow_name
   service_account_email = module.service_account.email
   cron_schedule         = var.cron_schedule_consolidation
   time_zone             = var.time_zone

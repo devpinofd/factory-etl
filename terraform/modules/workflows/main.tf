@@ -5,6 +5,7 @@ resource "google_workflows_workflow" "workflow" {
   description     = "Orquestador diario que registra etl_runs en BigQuery y ejecuta el Cloud Run Job"
   service_account = var.service_account_email
   labels          = var.labels
+  deletion_protection = false
 
   user_env_vars = {
     PROJECT_ID         = var.project_id
