@@ -324,6 +324,9 @@ run_dataform_consolidation:
           body:
             gitCommitish: "main"
             codeCompilationConfig:
+              pipelineConfig:
+                pipelineType: "DATAFORM"
+                path: "dataform"
               defaultDatabase: $${project_id}
               vars:
                 gcpProject: $${project_id}
