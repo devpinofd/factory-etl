@@ -87,7 +87,7 @@ main:
           - read_execution_context:
               assign:
                 - wf_parent: $${"projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_ID") + "/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/workflows/" + sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID")}
-                - self_execution: $${"projects/" + sys.get_env("GOOGLE_CLOUD_PROJECT_ID") + "/locations/" + sys.get_env("GOOGLE_CLOUD_LOCATION") + "/workflows/" + sys.get_env("GOOGLE_CLOUD_WORKFLOW_ID") + "/executions/" + sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
+                - self_suffix: $${"/executions/" + sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
                 - other_active: 0
           - list_active_executions:
               call: googleapis.workflowexecutions.v1.projects.locations.workflows.executions.list
@@ -101,7 +101,7 @@ main:
                 steps:
                   - maybe_count:
                       switch:
-                        - condition: $${ex.name != self_execution AND ex.state == "ACTIVE"}
+                        - condition: $${ex.state == "ACTIVE" AND NOT text.match_regex(ex.name, self_suffix + "$")}
                           assign:
                             - other_active: $${other_active + 1}
           - decide_guard:
@@ -183,7 +183,12 @@ load_staging_table:
                 sourceFormat: "NEWLINE_DELIMITED_JSON"
                 schema:
                   fields: $${schema_fields}
-                ignoreUnknownValues: false
+                # Bronze fue escrito por multiples generadores; algunos objetos
+                # legacy incluyen claves de particion (p.ej. source_empresa)
+                # dentro del JSON. Esas claves son autoritativas via ruta Hive,
+                # asi que se toleran/descartan los campos JSON redundantes en
+                # vez de abortar toda la carga.
+                ignoreUnknownValues: true
                 writeDisposition: "WRITE_TRUNCATE"
                 hivePartitioningOptions:
                   mode: "AUTO"
@@ -208,6 +213,7 @@ load_staging_table:
               args:
                 projectId: $${project_id}
                 jobId: $${job_id}
+                location: "${region}"
               result: job_status
           - check_errors:
               switch:
