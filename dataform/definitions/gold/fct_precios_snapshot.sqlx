@@ -1,0 +1,37 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "fct_precios_snapshot",
+  description: "Hecho temporal de precios por empresa, documento, renglón, artículo y fecha de registro.",
+  bigquery: {
+    partitionBy: "DATE(registro)",
+    clusterBy: ["source_empresa", "cod_art"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "documento", "renglon"],
+    nonNull: ["source_empresa", "documento", "renglon", "registro"]
+  }
+}
+
+SELECT
+  p.source_empresa,
+  p.documento,
+  p.renglon,
+  p.cod_art,
+  a.surrogate_key AS articulo_sk,
+  p.pre_ant AS precio_anterior,
+  p.pre_nue AS precio_nuevo,
+  p.cos_ult1 AS costo_ultimo,
+  p.tip_pre,
+  p.notas,
+  p.registro,
+  p.fecha_registro
+FROM ${ref("sil_renglones_aprecios")} p
+LEFT JOIN ${ref("dim_articulo_scd2")} a
+  ON a.source_empresa = p.source_empresa
+ AND a.cod_art = p.cod_art
+ AND a.is_current
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY p.source_empresa, p.documento, p.renglon
+  ORDER BY a.valid_from DESC
+) = 1

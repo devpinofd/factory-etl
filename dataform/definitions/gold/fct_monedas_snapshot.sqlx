@@ -1,0 +1,25 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "fct_monedas_snapshot",
+  description: "Hecho temporal de tasas de cambio por empresa, moneda, renglón y fecha de registro.",
+  bigquery: {
+    partitionBy: "DATE(registro)",
+    clusterBy: ["source_empresa", "cod_mon"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_mon", "renglon"],
+    nonNull: ["source_empresa", "cod_mon", "renglon", "registro", "tasa"]
+  }
+}
+
+SELECT
+  source_empresa,
+  cod_mon,
+  renglon,
+  fecha,
+  tasa,
+  comentario,
+  registro,
+  fecha_registro
+FROM ${ref("sil_renglones_monedas")}
