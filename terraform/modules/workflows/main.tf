@@ -17,6 +17,7 @@ resource "google_workflows_workflow" "workflow" {
     project_id                     = var.project_id
     region                         = var.region
     job_name                       = var.job_name
+    service_account_email          = var.service_account_email
     bucket_name                    = var.bucket_name
     control_dataset_id             = var.control_dataset_id
     queries_json                   = jsonencode(var.queries)

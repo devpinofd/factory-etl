@@ -142,6 +142,7 @@ main:
                 silver_dataset_id: "${silver_dataset_id}"
                 gold_dataset_id: "${gold_dataset_id}"
                 security_dataset_id: "${security_dataset_id}"
+                service_account_email: "${service_account_email}"
 %{ endif }
     - return_success:
         return:
@@ -309,7 +310,7 @@ quarantine_staging_drift:
 # -----------------------------------------------------------------------------
 
 run_dataform_consolidation:
-  params: [project_id, location, repository_id, bucket_name, staging_dataset_id, silver_dataset_id, gold_dataset_id, security_dataset_id]
+  params: [project_id, location, repository_id, bucket_name, staging_dataset_id, silver_dataset_id, gold_dataset_id, security_dataset_id, service_account_email]
   steps:
     - repo_parent:
         assign:
@@ -347,6 +348,8 @@ run_dataform_consolidation:
             type: OAuth2
           body:
             compilationResult: $${compilation_result.name}
+            invocationConfig:
+              serviceAccount: "${service_account_email}"
         result: invocation_response
     - assign_invocation:
         assign:
