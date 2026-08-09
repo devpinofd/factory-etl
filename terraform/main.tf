@@ -442,7 +442,7 @@ module "cloud_scheduler" {
   project_id            = var.project_id
   region                = var.region
   scheduler_name        = local.daily_scheduler_name
-  workflow_name         = local.daily_workflow_name
+  workflow_name         = var.environment == "prod" ? "factory-etl-daily-transaccional-prod" : local.daily_workflow_name
   service_account_email = module.service_account.email
   cron_schedule         = var.cron_schedule
   time_zone             = var.time_zone
@@ -456,7 +456,7 @@ module "cloud_scheduler_full" {
   project_id            = var.project_id
   region                = var.region
   scheduler_name        = local.full_scheduler_name
-  workflow_name         = local.full_workflow_name
+  workflow_name         = var.environment == "prod" ? "factory-etl-full-prod" : local.full_workflow_name
   service_account_email = module.service_account.email
   cron_schedule         = var.cron_schedule_full
   time_zone             = var.time_zone
@@ -473,6 +473,36 @@ module "cloud_scheduler_consolidation" {
   workflow_name         = local.consolidation_workflow_name
   service_account_email = module.service_account.email
   cron_schedule         = var.cron_schedule_consolidation
+  time_zone             = var.time_zone
+
+  depends_on = [google_project_service.required]
+}
+
+module "cloud_scheduler_scd2_daily" {
+  count  = var.environment == "prod" ? 1 : 0
+  source = "./modules/cloud_scheduler"
+
+  project_id            = var.project_id
+  region                = var.region
+  scheduler_name        = "factory-etl-daily-scheduler-transaccional-prod-scd2"
+  workflow_name         = local.daily_workflow_name
+  service_account_email = module.service_account.email
+  cron_schedule         = var.cron_schedule
+  time_zone             = var.time_zone
+
+  depends_on = [google_project_service.required]
+}
+
+module "cloud_scheduler_scd2_full" {
+  count  = var.environment == "prod" ? 1 : 0
+  source = "./modules/cloud_scheduler"
+
+  project_id            = var.project_id
+  region                = var.region
+  scheduler_name        = "factory-etl-full-scheduler-prod-scd2"
+  workflow_name         = local.full_workflow_name
+  service_account_email = module.service_account.email
+  cron_schedule         = var.cron_schedule_full
   time_zone             = var.time_zone
 
   depends_on = [google_project_service.required]
