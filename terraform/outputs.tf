@@ -65,5 +65,5 @@ output "scheduler_name" {
 
 output "scheduler_consolidation_name" {
   description = "Nombre del Cloud Scheduler de consolidacion."
-  value       = module.cloud_scheduler_consolidation.scheduler_name
+  value       = try(module.cloud_scheduler_consolidation[0].scheduler_name, "")
 }

@@ -335,15 +335,16 @@ module "cloud_run_job" {
 module "workflows" {
   source = "./modules/workflows"
 
-  project_id            = var.project_id
-  region                = var.region
-  workflow_name         = local.daily_workflow_name
-  job_name              = module.cloud_run_job.job_name
-  bucket_name           = module.storage.bronze_bucket_name
-  control_dataset_id    = local.workflow_control_dataset_id
-  service_account_email = module.service_account.email
-  labels                = local.common_labels
-  queries               = var.daily_queries
+  project_id                  = var.project_id
+  region                      = var.region
+  workflow_name               = local.daily_workflow_name
+  consolidation_workflow_name = local.consolidation_workflow_name
+  job_name                    = module.cloud_run_job.job_name
+  bucket_name                 = module.storage.bronze_bucket_name
+  control_dataset_id          = local.workflow_control_dataset_id
+  service_account_email       = module.service_account.email
+  labels                      = local.common_labels
+  queries                     = var.daily_queries
 
   depends_on = [google_project_service.required, module.cloud_run_job]
 }
@@ -351,15 +352,16 @@ module "workflows" {
 module "workflows_full" {
   source = "./modules/workflows"
 
-  project_id            = var.project_id
-  region                = var.region
-  workflow_name         = local.full_workflow_name
-  job_name              = module.cloud_run_job.job_name
-  bucket_name           = module.storage.bronze_bucket_name
-  control_dataset_id    = local.workflow_control_dataset_id
-  service_account_email = module.service_account.email
-  labels                = local.common_labels
-  queries               = var.daily_queries_full
+  project_id                  = var.project_id
+  region                      = var.region
+  workflow_name               = local.full_workflow_name
+  consolidation_workflow_name = local.consolidation_workflow_name
+  job_name                    = module.cloud_run_job.job_name
+  bucket_name                 = module.storage.bronze_bucket_name
+  control_dataset_id          = local.workflow_control_dataset_id
+  service_account_email       = module.service_account.email
+  labels                      = local.common_labels
+  queries                     = var.daily_queries_full
 
   depends_on = [google_project_service.required, module.cloud_run_job, module.dataform]
 }
@@ -465,6 +467,7 @@ module "cloud_scheduler_full" {
 }
 
 module "cloud_scheduler_consolidation" {
+  count  = 0
   source = "./modules/cloud_scheduler"
 
   project_id            = var.project_id

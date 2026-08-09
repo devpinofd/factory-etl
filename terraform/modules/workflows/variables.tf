@@ -47,6 +47,12 @@ variable "queries" {
   }))
 }
 
+variable "consolidation_workflow_name" {
+  description = "Workflow SCD2 de consolidación invocado al finalizar una ingesta."
+  type        = string
+  default     = ""
+}
+
 # --- Consolidacion Medallion automatizada (opcional por instancia del modulo) --
 
 variable "enable_medallion_consolidation" {
