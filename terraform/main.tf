@@ -27,11 +27,15 @@ locals {
       "factory-etl-daily-transaccional-prod",
       "factory-etl-data-quality-prod",
       "factory-etl-full-prod",
+      "factory-etl-daily-transaccional-prod-scd2",
+      "factory-etl-full-prod-scd2",
+      "factory-etl-consolidation-prod-scd2",
     ]
     schedulers = [
       "factory-etl-daily-scheduler-transaccional-prod",
       "factory-etl-full-scheduler-prod",
       "factory-etl-data-quality-daily-prod",
+      "factory-etl-consolidation-scheduler-prod-scd2",
     ]
     cloud_run_jobs        = ["factory-etl-extractor-prod"]
     dataform_repositories = ["factory-etl-prod"]
