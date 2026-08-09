@@ -56,3 +56,7 @@ output "repository_id" {
 output "location" {
   value = var.region
 }
+
+output "service_agent_email" {
+  value = google_project_service_identity.dataform_agent.email
+}

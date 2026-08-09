@@ -324,6 +324,12 @@ module "workflows_consolidation" {
   depends_on = [google_project_service.required, module.dataform]
 }
 
+resource "google_service_account_iam_member" "dataform_service_agent_act_as" {
+  service_account_id = module.service_account.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${module.dataform.service_agent_email}"
+}
+
 # Staging nativo paralelo: los destinos de los load jobs no pueden ser tablas
 # EXTERNAL. Se conservan las tablas legacy y Dataform consume estas tablas
 # versionadas, administradas por Terraform.
