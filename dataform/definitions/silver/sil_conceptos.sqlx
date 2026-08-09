@@ -4,7 +4,7 @@ config {
   name: "sil_conceptos",
   description: "Tabla Silver de conceptos (limpia, tipada y deduplicada) generada desde stg_conceptos",
   bigquery: {
-    clusterBy: ["source_empresa"]
+    clusterBy: ["source_empresa", "cod_con"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_con"],

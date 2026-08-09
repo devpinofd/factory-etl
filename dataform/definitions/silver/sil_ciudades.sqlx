@@ -4,7 +4,7 @@ config {
   name: "sil_ciudades",
   description: "Tabla Silver de ciudades (limpia, tipada y deduplicada) generada desde stg_ciudades",
   bigquery: {
-    clusterBy: ["source_empresa"]
+    clusterBy: ["source_empresa", "cod_ciu"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_ciu"],

@@ -4,7 +4,7 @@ config {
   name: "sil_marcas",
   description: "Tabla Silver de marcas (limpia, tipada y deduplicada) generada desde stg_marcas",
   bigquery: {
-    clusterBy: ["source_empresa"]
+    clusterBy: ["source_empresa", "cod_mar"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_mar"],

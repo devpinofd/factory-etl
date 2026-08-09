@@ -5,7 +5,7 @@ config {
   description: "Tabla Silver de renglones_aprecios (limpia, tipada y deduplicada) generada desde stg_renglones_aprecios",
   bigquery: {
     partitionBy: "DATE(registro)",
-    clusterBy: ["source_empresa"]
+    clusterBy: ["source_empresa", "documento", "renglon"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "documento", "renglon"],

@@ -4,7 +4,7 @@ config {
   name: "sil_secciones",
   description: "Tabla Silver de secciones (limpia, tipada y deduplicada) generada desde stg_secciones",
   bigquery: {
-    clusterBy: ["source_empresa"]
+    clusterBy: ["source_empresa", "cod_sec"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_sec"],

@@ -4,7 +4,7 @@ config {
   name: "sil_articulos",
   description: "Tabla Silver de articulos (limpia, tipada y deduplicada) generada desde stg_articulos",
   bigquery: {
-    clusterBy: ["source_empresa"]
+    clusterBy: ["source_empresa", "cod_art"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_art"],

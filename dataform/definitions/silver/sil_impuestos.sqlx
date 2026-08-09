@@ -4,7 +4,7 @@ config {
   name: "sil_impuestos",
   description: "Tabla Silver de impuestos (limpia, tipada y deduplicada) generada desde stg_impuestos",
   bigquery: {
-    clusterBy: ["source_empresa"]
+    clusterBy: ["source_empresa", "cod_imp"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_imp"],

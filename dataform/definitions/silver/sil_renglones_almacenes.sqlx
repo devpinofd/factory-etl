@@ -5,7 +5,7 @@ config {
   description: "Tabla Silver de renglones_almacenes (limpia, tipada y deduplicada) generada desde stg_renglones_almacenes_snapshot",
   bigquery: {
     partitionBy: "DATE(registro)",
-    clusterBy: ["source_empresa"]
+    clusterBy: ["source_empresa", "cod_alm", "cod_art"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_alm", "cod_art"],
