@@ -51,8 +51,8 @@ SELECT
   run_id,
   cod_alm,
   cod_art,
-  almacen_sk,
-  articulo_sk,
+  COALESCE(almacen_sk, "UNKNOWN") AS almacen_sk,
+  COALESCE(articulo_sk, "UNKNOWN") AS articulo_sk,
   exi_act1 AS unidades_disponibles,
   registro,
   CURRENT_TIMESTAMP() AS _processed_at
