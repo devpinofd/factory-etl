@@ -108,6 +108,14 @@ resource "google_project_iam_member" "sa_token_creator" {
   member  = "serviceAccount:${google_service_account.runtime.email}"
 }
 
+# Dataform strict act-as checks require the workflow identity to be allowed to
+# impersonate the same runtime identity used for the invocation.
+resource "google_service_account_iam_member" "self_act_as" {
+  service_account_id = google_service_account.runtime.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.runtime.email}"
+}
+
 output "email" {
   value = google_service_account.runtime.email
 }
@@ -115,4 +123,3 @@ output "email" {
 output "name" {
   value = google_service_account.runtime.name
 }
-
