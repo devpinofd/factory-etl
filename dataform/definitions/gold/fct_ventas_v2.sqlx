@@ -25,7 +25,18 @@ resolved AS (
     ve.surrogate_key AS vendedor_sk,
     su.surrogate_key AS sucursal_sk,
     al.surrogate_key AS almacen_sk,
-    p.surrogate_key AS proveedor_sk
+    p.surrogate_key AS proveedor_sk,
+    c_current.surrogate_key AS cliente_current_sk,
+    ar_current.surrogate_key AS articulo_current_sk,
+    ve_current.surrogate_key AS vendedor_current_sk,
+    su_current.surrogate_key AS sucursal_current_sk,
+    al_current.surrogate_key AS almacen_current_sk,
+    p_current.surrogate_key AS proveedor_current_sk,
+    c_current.nom_cli AS current_nom_cli,
+    ar_current.nom_art AS current_nom_art,
+    ve_current.nom_ven AS current_nom_ven,
+    p_current.nom_pro AS current_nom_pro,
+    c_current.rif AS current_rif
   FROM sales v
   LEFT JOIN ${ref("dim_cliente_scd2")} c
     ON c.source_empresa = v.source_empresa
@@ -57,6 +68,30 @@ resolved AS (
    AND p.cod_pro = v.cod_pro
    AND p.valid_from <= v.registro
    AND (p.valid_to IS NULL OR p.valid_to > v.registro)
+  LEFT JOIN ${ref("dim_cliente_scd2")} c_current
+    ON c_current.source_empresa = v.source_empresa
+   AND c_current.cod_cli = v.cod_cli
+   AND c_current.is_current
+  LEFT JOIN ${ref("dim_articulo_scd2")} ar_current
+    ON ar_current.source_empresa = v.source_empresa
+   AND ar_current.cod_art = v.cod_art
+   AND ar_current.is_current
+  LEFT JOIN ${ref("dim_vendedor_scd2")} ve_current
+    ON ve_current.source_empresa = v.source_empresa
+   AND ve_current.cod_ven = v.cod_ven
+   AND ve_current.is_current
+  LEFT JOIN ${ref("dim_sucursal_scd2")} su_current
+    ON su_current.source_empresa = v.source_empresa
+   AND su_current.cod_suc = v.cod_suc
+   AND su_current.is_current
+  LEFT JOIN ${ref("dim_almacen_scd2")} al_current
+    ON al_current.source_empresa = v.source_empresa
+   AND al_current.cod_alm = v.cod_alm
+   AND al_current.is_current
+  LEFT JOIN ${ref("dim_proveedor_scd2")} p_current
+    ON p_current.source_empresa = v.source_empresa
+   AND p_current.cod_pro = v.cod_pro
+   AND p_current.is_current
   QUALIFY ROW_NUMBER() OVER (
     PARTITION BY v.source_empresa, v.tipo_documento, v.cod_suc, v.documento, v.renglon
     ORDER BY c.valid_from DESC, ar.valid_from DESC
@@ -69,21 +104,21 @@ SELECT
   documento,
   renglon,
   registro,
-  COALESCE(cliente_sk, "UNKNOWN") AS cliente_sk,
-  COALESCE(articulo_sk, "UNKNOWN") AS articulo_sk,
-  COALESCE(vendedor_sk, "UNKNOWN") AS vendedor_sk,
-  COALESCE(sucursal_sk, "UNKNOWN") AS sucursal_sk,
-  COALESCE(almacen_sk, "UNKNOWN") AS almacen_sk,
-  COALESCE(proveedor_sk, "UNKNOWN") AS proveedor_sk,
-  nom_cli AS source_nom_cli,
-  nom_art AS source_nom_art,
-  nom_ven AS source_nom_ven,
+  COALESCE(cliente_sk, cliente_current_sk, "UNKNOWN") AS cliente_sk,
+  COALESCE(articulo_sk, articulo_current_sk, "UNKNOWN") AS articulo_sk,
+  COALESCE(vendedor_sk, vendedor_current_sk, "UNKNOWN") AS vendedor_sk,
+  COALESCE(sucursal_sk, sucursal_current_sk, "UNKNOWN") AS sucursal_sk,
+  COALESCE(almacen_sk, almacen_current_sk, "UNKNOWN") AS almacen_sk,
+  COALESCE(proveedor_sk, proveedor_current_sk, "UNKNOWN") AS proveedor_sk,
+  COALESCE(nom_cli, current_nom_cli) AS source_nom_cli,
+  COALESCE(nom_art, current_nom_art) AS source_nom_art,
+  COALESCE(nom_ven, current_nom_ven) AS source_nom_ven,
   nom_mar AS source_nom_mar,
   nom_dep AS source_nom_dep,
   cod_sec AS source_cod_sec,
   cod_suc AS source_cod_suc,
-  nom_pro AS source_nom_pro,
-  rif AS source_rif,
+  COALESCE(nom_pro, current_nom_pro) AS source_nom_pro,
+  COALESCE(rif, current_rif) AS source_rif,
   (
     cliente_sk IS NULL
     OR articulo_sk IS NULL
@@ -93,6 +128,19 @@ SELECT
     OR proveedor_sk IS NULL
   ) AS is_inferred,
   CASE
+    WHEN cliente_sk IS NULL
+      AND cliente_current_sk IS NOT NULL
+      OR articulo_sk IS NULL
+      AND articulo_current_sk IS NOT NULL
+      OR vendedor_sk IS NULL
+      AND vendedor_current_sk IS NOT NULL
+      OR sucursal_sk IS NULL
+      AND sucursal_current_sk IS NOT NULL
+      OR almacen_sk IS NULL
+      AND almacen_current_sk IS NOT NULL
+      OR proveedor_sk IS NULL
+      AND proveedor_current_sk IS NOT NULL
+    THEN "CURRENT_MASTER_BACKFILL"
     WHEN cliente_sk IS NULL
       OR articulo_sk IS NULL
       OR vendedor_sk IS NULL
