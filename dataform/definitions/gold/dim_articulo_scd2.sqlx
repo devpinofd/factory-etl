@@ -1,0 +1,33 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_articulo_scd2",
+  description: "Dimensión SCD2 de artículos con vigencias por empresa.",
+  bigquery: {
+    partitionBy: "DATE(valid_from)",
+    clusterBy: ["source_empresa", "cod_art", "is_current"]
+  },
+  assertions: {
+    uniqueKey: ["surrogate_key"],
+    nonNull: ["surrogate_key", "source_empresa", "cod_art", "valid_from", "record_hash"]
+  }
+}
+
+SELECT
+  s.surrogate_key,
+  s.source_empresa,
+  s.natural_key AS cod_art,
+  s.valid_from,
+  s.valid_to,
+  s.is_current,
+  s.run_id,
+  s.record_hash,
+  JSON_VALUE(s.record_json, "$.nom_art") AS nom_art,
+  JSON_VALUE(s.record_json, "$.modelo") AS modelo,
+  JSON_VALUE(s.record_json, "$.cod_mar") AS cod_mar,
+  JSON_VALUE(s.record_json, "$.cod_dep") AS cod_dep,
+  JSON_VALUE(s.record_json, "$.cod_sec") AS cod_sec,
+  JSON_VALUE(s.record_json, "$.cod_uni1") AS cod_uni1,
+  JSON_VALUE(s.record_json, "$.status") AS status
+FROM ${ref("sil_maestros_scd2")} s
+WHERE s.entity_name = "articulos"

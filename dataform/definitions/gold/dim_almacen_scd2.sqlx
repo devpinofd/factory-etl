@@ -1,0 +1,29 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_almacen_scd2",
+  description: "Dimensión SCD2 de almacenes con vigencias por empresa.",
+  bigquery: {
+    partitionBy: "DATE(valid_from)",
+    clusterBy: ["source_empresa", "cod_alm", "is_current"]
+  },
+  assertions: {
+    uniqueKey: ["surrogate_key"],
+    nonNull: ["surrogate_key", "source_empresa", "cod_alm", "valid_from", "record_hash"]
+  }
+}
+
+SELECT
+  s.surrogate_key,
+  s.source_empresa,
+  s.natural_key AS cod_alm,
+  s.valid_from,
+  s.valid_to,
+  s.is_current,
+  s.run_id,
+  s.record_hash,
+  JSON_VALUE(s.record_json, "$.nom_alm") AS nom_alm,
+  JSON_VALUE(s.record_json, "$.cod_suc") AS cod_suc,
+  JSON_VALUE(s.record_json, "$.status") AS status
+FROM ${ref("sil_maestros_scd2")} s
+WHERE s.entity_name = "almacenes"

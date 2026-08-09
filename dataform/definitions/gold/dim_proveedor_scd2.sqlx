@@ -1,0 +1,30 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_proveedor_scd2",
+  description: "Dimensión SCD2 de proveedores con vigencias por empresa.",
+  bigquery: {
+    partitionBy: "DATE(valid_from)",
+    clusterBy: ["source_empresa", "cod_pro", "is_current"]
+  },
+  assertions: {
+    uniqueKey: ["surrogate_key"],
+    nonNull: ["surrogate_key", "source_empresa", "cod_pro", "valid_from", "record_hash"]
+  }
+}
+
+SELECT
+  s.surrogate_key,
+  s.source_empresa,
+  s.natural_key AS cod_pro,
+  s.valid_from,
+  s.valid_to,
+  s.is_current,
+  s.run_id,
+  s.record_hash,
+  JSON_VALUE(s.record_json, "$.nom_pro") AS nom_pro,
+  JSON_VALUE(s.record_json, "$.rif") AS rif,
+  JSON_VALUE(s.record_json, "$.dir_fis") AS dir_fis,
+  JSON_VALUE(s.record_json, "$.status") AS status
+FROM ${ref("sil_maestros_scd2")} s
+WHERE s.entity_name = "proveedores"
