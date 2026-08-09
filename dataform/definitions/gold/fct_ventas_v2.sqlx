@@ -65,6 +65,7 @@ resolved AS (
 SELECT
   source_empresa,
   tipo_documento,
+  cod_suc,
   documento,
   renglon,
   registro,
