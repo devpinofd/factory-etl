@@ -4,7 +4,7 @@ config {
   name: "sil_maestros_scd2",
   description: "Versiones SCD2 de todos los maestros a partir de snapshots Bronze, con clave sustituta, vigencia y hash de cambio.",
   bigquery: {
-    partitionBy: "valid_from",
+    partitionBy: "DATE(valid_from)",
     clusterBy: ["entity_name", "source_empresa", "natural_key"]
   },
   assertions: {

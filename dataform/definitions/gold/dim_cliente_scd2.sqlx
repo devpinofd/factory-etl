@@ -4,12 +4,12 @@ config {
   name: "dim_cliente_scd2",
   description: "Dimensión SCD2 de clientes. Conserva una versión por cambio de atributos relevantes y permite resolver el cliente vigente en la fecha de venta.",
   bigquery: {
-    partitionBy: "valid_from",
-    clusterBy: ["source_empresa", "natural_key", "is_current"]
+    partitionBy: "DATE(valid_from)",
+    clusterBy: ["source_empresa", "cod_cli", "is_current"]
   },
   assertions: {
     uniqueKey: ["surrogate_key"],
-    nonNull: ["surrogate_key", "source_empresa", "natural_key", "valid_from", "record_hash"]
+    nonNull: ["surrogate_key", "source_empresa", "cod_cli", "valid_from", "record_hash"]
   }
 }
 
