@@ -80,8 +80,8 @@ SELECT
   nom_ven AS source_nom_ven,
   nom_mar AS source_nom_mar,
   nom_dep AS source_nom_dep,
-  nom_sec AS source_nom_sec,
-  nom_suc AS source_nom_suc,
+  cod_sec AS source_cod_sec,
+  cod_suc AS source_cod_suc,
   nom_pro AS source_nom_pro,
   rif AS source_rif,
   (
