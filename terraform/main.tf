@@ -336,6 +336,13 @@ resource "google_service_account_iam_member" "dataform_service_agent_token_creat
   member             = "serviceAccount:${module.dataform.service_agent_email}"
 }
 
+resource "google_bigquery_dataset_iam_member" "runtime_assertions_editor" {
+  project    = var.project_id
+  dataset_id = "factory_etl_assertions"
+  role       = "roles/bigquery.dataEditor"
+  member     = "serviceAccount:${module.service_account.email}"
+}
+
 # Staging nativo paralelo: los destinos de los load jobs no pueden ser tablas
 # EXTERNAL. Se conservan las tablas legacy y Dataform consume estas tablas
 # versionadas, administradas por Terraform.
