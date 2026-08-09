@@ -1,0 +1,90 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "fct_ventas_v2",
+  description: "Hecho transaccional de ventas por línea de factura con claves sustitutas SCD2 y dimensiones degeneradas de documento y renglón.",
+  bigquery: {
+    partitionBy: "DATE(registro)",
+    clusterBy: ["source_empresa", "cliente_sk", "articulo_sk", "sucursal_sk"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
+    nonNull: ["source_empresa", "tipo_documento", "documento", "renglon", "cliente_sk", "articulo_sk", "registro"]
+  }
+}
+
+WITH sales AS (
+  SELECT *
+  FROM ${ref("vw_facturas_renglones_consolidado")}
+),
+resolved AS (
+  SELECT
+    v.*,
+    c.surrogate_key AS cliente_sk,
+    ar.surrogate_key AS articulo_sk,
+    ve.surrogate_key AS vendedor_sk,
+    su.surrogate_key AS sucursal_sk,
+    al.surrogate_key AS almacen_sk,
+    p.surrogate_key AS proveedor_sk
+  FROM sales v
+  LEFT JOIN ${ref("dim_cliente_scd2")} c
+    ON c.source_empresa = v.source_empresa
+   AND c.cod_cli = v.cod_cli
+   AND c.valid_from <= v.registro
+   AND (c.valid_to IS NULL OR c.valid_to > v.registro)
+  LEFT JOIN ${ref("dim_articulo_scd2")} ar
+    ON ar.source_empresa = v.source_empresa
+   AND ar.cod_art = v.cod_art
+   AND ar.valid_from <= v.registro
+   AND (ar.valid_to IS NULL OR ar.valid_to > v.registro)
+  LEFT JOIN ${ref("dim_vendedor_scd2")} ve
+    ON ve.source_empresa = v.source_empresa
+   AND ve.cod_ven = v.cod_ven
+   AND ve.valid_from <= v.registro
+   AND (ve.valid_to IS NULL OR ve.valid_to > v.registro)
+  LEFT JOIN ${ref("dim_sucursal_scd2")} su
+    ON su.source_empresa = v.source_empresa
+   AND su.cod_suc = v.cod_suc
+   AND su.valid_from <= v.registro
+   AND (su.valid_to IS NULL OR su.valid_to > v.registro)
+  LEFT JOIN ${ref("dim_almacen_scd2")} al
+    ON al.source_empresa = v.source_empresa
+   AND al.cod_alm = v.cod_alm
+   AND al.valid_from <= v.registro
+   AND (al.valid_to IS NULL OR al.valid_to > v.registro)
+  LEFT JOIN ${ref("dim_proveedor_scd2")} p
+    ON p.source_empresa = v.source_empresa
+   AND p.cod_pro = v.cod_pro
+   AND p.valid_from <= v.registro
+   AND (p.valid_to IS NULL OR p.valid_to > v.registro)
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY v.source_empresa, v.tipo_documento, v.cod_suc, v.documento, v.renglon
+    ORDER BY c.valid_from DESC, ar.valid_from DESC
+  ) = 1
+)
+SELECT
+  source_empresa,
+  tipo_documento,
+  documento,
+  renglon,
+  registro,
+  cliente_sk,
+  articulo_sk,
+  vendedor_sk,
+  sucursal_sk,
+  almacen_sk,
+  proveedor_sk,
+  cod_mon,
+  cod_imp,
+  unidades_vendidas,
+  cajas_vendidas,
+  peso_total_kg,
+  peso_total_toneladas,
+  volumen_total_m3,
+  monto_bruto,
+  neto,
+  dcto,
+  tasa,
+  neto_dcto,
+  rif
+FROM resolved
