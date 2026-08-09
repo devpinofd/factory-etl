@@ -34,6 +34,12 @@ variable "control_dataset_id" {
   default     = "factory_etl_control"
 }
 
+variable "additional_control_dataset_id" {
+  description = "Dataset de control adicional usado por workflows históricos del entorno."
+  type        = string
+  default     = ""
+}
+
 variable "control_dataset_location" {
   description = "Ubicacion del dataset BQ. US multi-region para queries cross-region baratas."
   type        = string
@@ -206,7 +212,7 @@ variable "daily_queries" {
   }))
   default = [
     { id = "renglones_almacenes_v1", has_param = false },
-    { id = "ventas_diarias_v1", has_param = true },
+    { id = "ventas_diarias_v2", has_param = true },
     { id = "renglones_monedas_v1", has_param = true },
     { id = "renglones_aprecios_v1", has_param = true },
   ]
@@ -220,7 +226,7 @@ variable "daily_queries_full" {
   }))
   default = [
     { id = "renglones_almacenes_v1", has_param = false },
-    { id = "ventas_diarias_v1", has_param = true },
+    { id = "ventas_diarias_v2", has_param = true },
     { id = "renglones_monedas_v1", has_param = true },
     { id = "renglones_aprecios_v1", has_param = true },
     { id = "articulos_v1", has_param = false },

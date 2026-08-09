@@ -1,7 +1,7 @@
 """Script de Backfill Organizado por Empresa y Quincenas (2022 - 2026)
 
 Queries objetivo:
-  - ventas_diarias_v1
+  - ventas_diarias_v2
   - renglones_monedas_v1
 
 Estrategia de Carga Quincenal Directa:
@@ -25,7 +25,7 @@ from typing import List, Tuple
 # Configurar variables de entorno por defecto si no existen
 os.environ.setdefault("FACTORY_ETL_GCP_PROJECT", "factory-etl-dev-0y1dhf")
 os.environ.setdefault("FACTORY_ETL_BRONZE_BUCKET", "factory-etl-dev-0y1dhf-bronze")
-os.environ.setdefault("FACTORY_ETL_CONTROL_DATASET", "factory_etl_control")
+os.environ.setdefault("FACTORY_ETL_CONTROL_DATASET", "factory_etl_control_dev")
 os.environ.setdefault("FACTORY_ETL_QUARANTINE_BUCKET", "factory-etl-dev-0y1dhf-quarantine")
 os.environ.setdefault("FACTORY_ETL_ENV", "dev")
 
@@ -39,7 +39,7 @@ from factory_etl.ids import new_run_id
 EMPRESAS_DISPONIBLES = ["tinito", "ctb", "daroan", "roldan", "ctm"]
 
 # Queries transaccionales de ventas y renglones monedas
-QUERIES = ["ventas_diarias_v1", "renglones_monedas_v1"]
+QUERIES = ["ventas_diarias_v2", "renglones_monedas_v1"]
 
 START_YEAR = 2022
 END_YEAR = 2026

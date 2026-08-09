@@ -29,7 +29,7 @@ from factory_etl.ids import new_run_id
 from factory_etl.factory_queries.catalog import get as get_query_def
 
 EMPRESAS = ["tinito", "ctb", "daroan", "roldan", "ctm"]
-QUERIES = ["ventas_diarias_v1", "renglones_aprecios_v1"]
+QUERIES = ["ventas_diarias_v2", "renglones_aprecios_v1"]
 
 START_DATE = date(2022, 1, 1)
 END_DATE = date(2026, 7, 29)

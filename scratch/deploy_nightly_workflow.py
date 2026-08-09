@@ -20,7 +20,7 @@ NIGHTLY_WORKFLOW_YAML = """main:
           - dt_param: ${default(map.get(args, "target_date"), default(map.get(args, "dt"), "TODAY"))}
           - empresas: ["tinito", "ctb", "daroan", "roldan", "ctm"]
           - queries_list:
-              - id: "ventas_diarias_v1"
+              - id: "ventas_diarias_v2"
                 has_param: true
               - id: "renglones_almacenes_v1"
                 has_param: false

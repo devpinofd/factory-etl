@@ -1,5 +1,5 @@
 """Script para Corregir y Desplegar el Cloud Workflow (factory-etl-daily-dev)
-Asegura que renglones_almacenes_v1 tenga has_param: false para ejecutarse como Snapshot de Inventario diario junto con ventas_diarias_v1 en el Scheduler.
+Asegura que renglones_almacenes_v1 tenga has_param: false para ejecutarse como Snapshot de Inventario diario junto con ventas_diarias_v2 en el Scheduler.
 """
 
 import os
@@ -20,7 +20,7 @@ WORKFLOW_YAML = """main:
           - dt_param: ${default(map.get(args, "target_date"), default(map.get(args, "dt"), "TODAY"))}
           - empresas: ["tinito", "ctb", "daroan", "roldan", "ctm"]
           - queries_list:
-              - id: "ventas_diarias_v1"
+              - id: "ventas_diarias_v2"
                 has_param: true
               - id: "renglones_monedas_v1"
                 has_param: true

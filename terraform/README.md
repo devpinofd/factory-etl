@@ -12,6 +12,21 @@ Provisionar de manera reproducible, versionada y revisable en PR los recursos GC
 
 Este código Terraform es la **fuente autoritativa** de la infraestructura descrita en `PLAN_IMPLEMENTACION_FASE_1.md` §2 (Etapa 0) y §4.
 
+## Regla obligatoria de despliegue
+
+- Los **Cloud Workflows**, sus schedulers, permisos y recursos asociados se
+  despliegan exclusivamente con Terraform.
+- Las transformaciones **Dataform** se versionan en `dataform/` y se
+  despliegan/invocan mediante la configuración administrada por Terraform.
+- No se permiten despliegues manuales con `gcloud workflows deploy`, llamadas
+  directas para crear revisiones de Dataform ni scripts de despliegue fuera de
+  Terraform como fuente operativa.
+- Antes de aplicar, se debe ejecutar `terraform plan` con el archivo de
+  variables del ambiente y revisar cualquier `destroy` o reemplazo.
+- La ejecución real de Dataform debe ocurrir desde el Workflow de consolidación
+  administrado por Terraform; `dataform compile` y `dataform run --dry-run`
+  quedan como validaciones locales.
+
 ## Estructura
 
 ```

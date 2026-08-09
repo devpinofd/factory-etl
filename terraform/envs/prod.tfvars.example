@@ -9,9 +9,12 @@ bronze_bucket_name     = "factory-etl-prod-bronze-XXXXXX"
 quarantine_bucket_name = "factory-etl-prod-quarantine-XXXXXX"
 
 control_dataset_id       = "factory_etl_control"
-control_dataset_location = "US"
+control_dataset_location = "us-central1"
 
 service_account_name = "factory-etl-runtime"
+artifact_repo_id     = "factory-etl-repo"
+container_image_name = "factory-etl-extractor"
+container_image_tag  = "v1.0.1"
 
 # Workload Identity Federation
 wif_enabled         = true

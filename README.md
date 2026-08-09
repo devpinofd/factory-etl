@@ -72,7 +72,7 @@ El catálogo de consultas SQL en `src/factory_etl/factory_queries/` cubre 19 ent
 
 ### 💳 4 Tablas Transaccionales:
 16. `renglones_almacenes_v1` (`cod_alm`, `cod_art`) — Stock físico snapshot por almacén.
-17. `ventas_diarias_v1` (`tipo_documento`, `cod_suc`, `documento`, `renglon`) — Renglones de facturas de venta (Parámetro: `fec_des` / `fec_has`).
+17. `ventas_diarias_v2` (`tipo_documento`, `cod_suc`, `cod_alm`, `documento`, `renglon`) — Renglones de facturas de venta y devoluciones (Parámetro: `fec_des` / `fec_has`).
 18. `renglones_monedas_v1` (`cod_mon`, `renglon`) — Tasas de cambio de moneda (Parámetro: `fec_des` / `fec_has`).
 19. `renglones_aprecios_v1` (`documento`, `renglon`) — Listas de precios.
 
@@ -130,11 +130,18 @@ La gobernanza se integra con **FirebaseAuth** y **Firestore (`conciliapp-prod`)*
 ## ⚙️ 7. Orquestación e Infraestructura en la Nube
 
 1. **Cloud Run Job:** `factory-etl-articulos-dev` (Imagen Docker Python 3.12, Typer CLI, httpx, tenacity, structlog).
-2. **Cloud Workflows:** `factory-etl-daily-dev` (Ejecución plana paralela con límite de concurrencia 10, completa en <5 minutos).
+2. **Cloud Workflows:** Workflows transaccional, full y de consolidación, administrados exclusivamente por Terraform.
 3. **Cloud Scheduler Dual-Schedule:**
    - **Corte de la Tarde:** `0 21 * * *` (5:30 PM VET / 21:30 UTC)
    - **Corte de la Noche:** `0 3 * * *` (11:45 PM VET / 03:45 UTC)
-4. **Dataform CLI:** Modelo de transformaciones SQLX en `dataform/`.
+4. **Dataform CLI:** Modelo de transformaciones SQLX en `dataform/`; su ejecución operativa se invoca desde el Workflow de consolidación administrado por Terraform.
+
+### Regla de despliegue
+
+Terraform es la única fuente operativa para desplegar Workflows, schedulers,
+IAM y recursos de integración. Dataform es la única fuente de transformaciones
+SQLX y Terraform administra su repositorio e invocación. No se deben aplicar
+cambios manuales en GCP fuera de este flujo.
 
 ---
 
@@ -145,7 +152,7 @@ La gobernanza se integra con **FirebaseAuth** y **Firestore (`conciliapp-prod`)*
 uv sync --all-extras
 
 # 1. Ingesta Diaria Local (Caja Chica / Debug)
-uv run factory-etl run --query-id ventas_diarias_v1 --source-empresa tinito --params '{"fec_des":"2026-07-31","fec_has":"2026-07-31"}'
+uv run factory-etl run --query-id ventas_diarias_v2 --source-empresa tinito --params '{"fec_des":"2026-07-31","fec_has":"2026-07-31"}'
 
 # 2. Seed Masivo por Quincenas
 uv run python scratch/backfill_sales_biweekly.py ALL 2026 7 2

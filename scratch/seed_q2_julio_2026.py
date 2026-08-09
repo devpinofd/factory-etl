@@ -1,5 +1,5 @@
 """Script de Seed para la Segunda Quincena de Julio 2026 (2026-07-16 a 2026-07-31)
-1. Extrae de eFactory (ventas_diarias_v1, renglones_monedas_v1, etc.) para las 5 empresas.
+1. Extrae de eFactory (ventas_diarias_v2, renglones_monedas_v1, etc.) para las 5 empresas.
 2. Escribe los archivos JSONL.GZ a GCS Bronze.
 3. Reconstruye e inserta las capas Staging, Silver y Gold (fct_ventas y dimensiones).
 """
@@ -25,7 +25,7 @@ from factory_etl.ids import new_run_id
 from scratch.build_all_medallion_tables import build_all
 
 EMPRESAS = ["tinito", "ctb", "daroan", "roldan", "ctm"]
-QUERIES_TRANSACTIONAL = ["ventas_diarias_v1", "renglones_monedas_v1"]
+QUERIES_TRANSACTIONAL = ["ventas_diarias_v2", "renglones_monedas_v1"]
 
 FEC_DES = "2026-07-16"
 FEC_HAS = "2026-07-31"

@@ -45,14 +45,14 @@ def build_staging_and_silver():
     schema_ventas = load_bq_schema("ventas_diarias.json")
     
     external_config_ventas = bigquery.ExternalConfig("NEWLINE_DELIMITED_JSON")
-    external_config_ventas.source_uris = [f"gs://{BRONZE_BUCKET}/bronze/ventas_diarias_v1/*"]
+    external_config_ventas.source_uris = [f"gs://{BRONZE_BUCKET}/bronze/ventas_diarias_v2/*"]
     external_config_ventas.schema = schema_ventas
     external_config_ventas.ignore_unknown_values = True
     
     # Hive Partitioning
     hive_options = bigquery.HivePartitioningOptions()
     hive_options.mode = "AUTO"
-    hive_options.source_uri_prefix = f"gs://{BRONZE_BUCKET}/bronze/ventas_diarias_v1/"
+    hive_options.source_uri_prefix = f"gs://{BRONZE_BUCKET}/bronze/ventas_diarias_v2/"
     external_config_ventas.hive_partitioning = hive_options
     
     table_ventas.external_data_configuration = external_config_ventas

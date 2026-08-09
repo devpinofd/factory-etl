@@ -56,7 +56,7 @@ Se recomiendan **dos modalidades de notificación**:
 - **Contenido del Mensaje (Slack/Teams Card):**
   > 🚨 **ALERTA: Lote en Cuarentena Detectado**
   > - **Empresa:** `daroan`
-  > - **Entidad:** `ventas_diarias_v1`
+  > - **Entidad:** `ventas_diarias_v2`
   > - **Fecha Lote (`dt`):** `2026-01-31`
   > - **Razón:** `SCHEMA_MISMATCH` (Payload HTML devuelto por eFactory)
   > - **Run ID:** `4dc66876-9476-4fa5-8355-e865a15271b4`

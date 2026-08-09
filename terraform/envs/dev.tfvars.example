@@ -9,6 +9,7 @@ bronze_bucket_name     = "factory-etl-dev-bronze-XXXXXX"
 quarantine_bucket_name = "factory-etl-dev-quarantine-XXXXXX"
 
 control_dataset_id       = "factory_etl_control"
+additional_control_dataset_id = "factory_etl_control_dev"
 control_dataset_location = "US"
 
 service_account_name = "factory-etl-runtime"

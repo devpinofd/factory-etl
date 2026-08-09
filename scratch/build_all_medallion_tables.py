@@ -34,7 +34,7 @@ ENTITIES = [
     ("renglones_almacenes_v1", "renglones_almacenes", ["source_empresa", "cod_alm", "cod_art"], "renglones_almacenes.json"),
     ("renglones_monedas_v1", "renglones_monedas", ["source_empresa", "cod_mon", "renglon"], "renglones_monedas.json"),
     ("renglones_aprecios_v1", "renglones_aprecios", ["source_empresa", "documento", "renglon"], "renglones_aprecios.json"),
-    ("ventas_diarias_v1", "ventas_diarias", ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"], "ventas_diarias.json"),
+    ("ventas_diarias_v2", "ventas_diarias", ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"], "ventas_diarias_v2.json"),
 ]
 
 def load_schema_def(schema_filename: str):
