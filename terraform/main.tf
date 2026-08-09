@@ -330,6 +330,12 @@ resource "google_service_account_iam_member" "dataform_service_agent_act_as" {
   member             = "serviceAccount:${module.dataform.service_agent_email}"
 }
 
+resource "google_service_account_iam_member" "dataform_service_agent_token_creator" {
+  service_account_id = module.service_account.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${module.dataform.service_agent_email}"
+}
+
 # Staging nativo paralelo: los destinos de los load jobs no pueden ser tablas
 # EXTERNAL. Se conservan las tablas legacy y Dataform consume estas tablas
 # versionadas, administradas por Terraform.
