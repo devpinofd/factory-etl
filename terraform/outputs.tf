@@ -18,6 +18,11 @@ output "service_account_email" {
   value       = module.service_account.email
 }
 
+output "environment_inventory" {
+  description = "Inventario observado de recursos operativos por ambiente."
+  value       = local.environment_inventory
+}
+
 output "wif_provider_id" {
   description = "Full resource name del WIF provider para usar en GitHub Actions."
   value       = try(module.wif[0].provider_id, null)

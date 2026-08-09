@@ -6,10 +6,73 @@ locals {
     owner       = "data-platform"
   }
 
-  cloud_run_job_name          = var.environment == "prod" ? "factory-etl-extractor-prod" : "factory-etl-articulos-${var.environment}"
-  daily_workflow_name         = "factory-etl-daily-transaccional-${var.environment}-scd2"
-  full_workflow_name          = "factory-etl-full-${var.environment}-scd2"
-  consolidation_workflow_name = "factory-etl-consolidation-${var.environment}-scd2"
+  # Inventario operativo observado en GCP por ambiente. Se mantiene
+  # declarativo para que el plan exponga diferencias entre legacy y SCD2 sin
+  # migrar datos ni asumir que ambos proyectos tienen los mismos recursos.
+  environment_inventory = var.environment == "prod" ? {
+    project_id        = var.project_id
+    bronze_bucket     = "factory-etl-prod-bronze"
+    quarantine_bucket = "factory-etl-prod-quarantine"
+    datasets = [
+      "factory_etl_assertions",
+      "factory_etl_bronze_stg",
+      "factory_etl_control",
+      "factory_etl_gold",
+      "factory_etl_security",
+      "factory_etl_shared",
+      "factory_etl_silver",
+    ]
+    workflows = [
+      "factory-etl-consolidation-prod",
+      "factory-etl-daily-transaccional-prod",
+      "factory-etl-data-quality-prod",
+      "factory-etl-full-prod",
+    ]
+    schedulers = [
+      "factory-etl-daily-scheduler-transaccional-prod",
+      "factory-etl-full-scheduler-prod",
+      "factory-etl-data-quality-daily-prod",
+    ]
+    cloud_run_jobs        = ["factory-etl-extractor-prod"]
+    dataform_repositories = ["factory-etl-prod"]
+    artifact_repositories = ["factory-etl-repo"]
+    } : {
+    project_id        = var.project_id
+    bronze_bucket     = "factory-etl-dev-0y1dhf-bronze"
+    quarantine_bucket = "factory-etl-dev-0y1dhf-quarantine"
+    datasets = [
+      "factory_etl_assertions",
+      "factory_etl_bronze_stg",
+      "factory_etl_control",
+      "factory_etl_control_dev",
+      "factory_etl_gold",
+      "factory_etl_security",
+      "factory_etl_shared",
+      "factory_etl_silver",
+    ]
+    workflows = [
+      "factory-etl-consolidation-dev-scd2",
+      "factory-etl-daily-transaccional-dev-scd2",
+      "factory-etl-full-dev-scd2",
+    ]
+    schedulers = [
+      "factory-etl-nightly-scheduler-dev",
+      "factory-etl-daily-scheduler-full-dev-scd2",
+      "factory-etl-consolidation-scheduler-dev-scd2",
+      "factory-etl-daily-scheduler-dev-scd2",
+    ]
+    cloud_run_jobs        = ["factory-etl-articulos-dev"]
+    dataform_repositories = ["factory-etl-dev"]
+    artifact_repositories = ["factory-etl"]
+  }
+
+  cloud_run_job_name           = var.environment == "prod" ? "factory-etl-extractor-prod" : "factory-etl-articulos-${var.environment}"
+  daily_workflow_name          = "factory-etl-daily-transaccional-${var.environment}-scd2"
+  full_workflow_name           = "factory-etl-full-${var.environment}-scd2"
+  consolidation_workflow_name  = "factory-etl-consolidation-${var.environment}-scd2"
+  daily_scheduler_name         = var.environment == "prod" ? "factory-etl-daily-scheduler-transaccional-prod" : "factory-etl-daily-scheduler-dev-scd2"
+  full_scheduler_name          = var.environment == "prod" ? "factory-etl-full-scheduler-prod" : "factory-etl-daily-scheduler-full-dev-scd2"
+  consolidation_scheduler_name = var.environment == "prod" ? "factory-etl-consolidation-scheduler-prod-scd2" : "factory-etl-consolidation-scheduler-dev-scd2"
   workflow_control_dataset_id = var.additional_control_dataset_id != "" ? var.additional_control_dataset_id : (
     var.environment == "dev" ? "factory_etl_control_dev" : module.bigquery.dataset_id
   )
@@ -374,7 +437,7 @@ module "cloud_scheduler" {
 
   project_id            = var.project_id
   region                = var.region
-  scheduler_name        = "factory-etl-daily-scheduler-${var.environment}-scd2"
+  scheduler_name        = local.daily_scheduler_name
   workflow_name         = local.daily_workflow_name
   service_account_email = module.service_account.email
   cron_schedule         = var.cron_schedule
@@ -388,7 +451,7 @@ module "cloud_scheduler_full" {
 
   project_id            = var.project_id
   region                = var.region
-  scheduler_name        = "factory-etl-daily-scheduler-full-${var.environment}-scd2"
+  scheduler_name        = local.full_scheduler_name
   workflow_name         = local.full_workflow_name
   service_account_email = module.service_account.email
   cron_schedule         = var.cron_schedule_full
@@ -402,7 +465,7 @@ module "cloud_scheduler_consolidation" {
 
   project_id            = var.project_id
   region                = var.region
-  scheduler_name        = "factory-etl-consolidation-scheduler-${var.environment}-scd2"
+  scheduler_name        = local.consolidation_scheduler_name
   workflow_name         = local.consolidation_workflow_name
   service_account_email = module.service_account.email
   cron_schedule         = var.cron_schedule_consolidation
