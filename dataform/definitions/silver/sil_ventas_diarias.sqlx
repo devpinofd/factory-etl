@@ -72,7 +72,7 @@ deduplicated AS (
   SELECT *
   FROM source_rows
   QUALIFY ROW_NUMBER() OVER (
-    PARTITION BY source_empresa, tipo_documento, cod_suc, documento, renglon
+    PARTITION BY source_empresa, tipo_documento, cod_suc, documento, SAFE_CAST(renglon AS INT64)
     ORDER BY source_priority DESC, _ingested_at DESC
   ) = 1
 )
@@ -122,6 +122,6 @@ WHERE
   AND renglon IS NOT NULL
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY source_empresa, tipo_documento, cod_suc, documento, renglon
+  PARTITION BY source_empresa, tipo_documento, cod_suc, documento, SAFE_CAST(renglon AS INT64)
   ORDER BY _ingested_at DESC
 ) = 1
