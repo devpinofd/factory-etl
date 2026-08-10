@@ -151,15 +151,15 @@ variable "enable_object_versioning" {
 # --- Cloud Scheduler & Compute ------------------------------------------------
 
 variable "cron_schedule" {
-  description = "Expresion cron del WF transaccional (5:30 PM)."
+  description = "Expresion cron del WF transaccional nocturno (11:30 PM)."
   type        = string
-  default     = "30 17 * * *" # 05:30 PM diario
+  default     = "30 23 * * *" # 11:30 PM diario
 }
 
 variable "cron_schedule_full" {
-  description = "Expresion cron del WF full, transaccionales + maestras (11:30 PM)."
+  description = "Expresion cron del WF full (4:30 PM)."
   type        = string
-  default     = "30 23 * * *" # 11:30 PM diario
+  default     = "30 16 * * *" # 04:30 PM diario
 }
 
 variable "cron_schedule_consolidation" {

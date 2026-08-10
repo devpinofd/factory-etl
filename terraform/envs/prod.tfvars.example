@@ -10,6 +10,8 @@ quarantine_bucket_name = "factory-etl-prod-quarantine-XXXXXX"
 
 control_dataset_id       = "factory_etl_control"
 control_dataset_location = "us-central1"
+cron_schedule             = "30 23 * * *"
+cron_schedule_full        = "30 16 * * *"
 
 service_account_name = "factory-etl-runtime"
 artifact_repo_id     = "factory-etl-repo"
