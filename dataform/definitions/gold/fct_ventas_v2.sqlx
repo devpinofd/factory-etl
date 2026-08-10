@@ -139,6 +139,15 @@ SELECT
   cod_suc AS source_cod_suc,
   COALESCE(nom_pro, current_nom_pro) AS source_nom_pro,
   COALESCE(rif, current_rif) AS source_rif,
+  COALESCE(nom_ven, current_nom_ven) AS nom_ven,
+  COALESCE(nom_cli, current_nom_cli) AS nom_cli,
+  nom_cla,
+  nom_est,
+  nom_ciu,
+  nom_mar,
+  nom_dep,
+  COALESCE(nom_pro, current_nom_pro) AS nom_pro,
+  COALESCE(nom_art, current_nom_art) AS nom_art,
   (
     cliente_sk IS NULL
     OR articulo_sk IS NULL
