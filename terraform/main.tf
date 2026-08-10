@@ -412,6 +412,14 @@ resource "google_bigquery_dataset_iam_member" "runtime_assertions_editor" {
   member     = "serviceAccount:${module.service_account.email}"
 }
 
+resource "google_bigquery_dataset_iam_member" "powerbi_gold_reader" {
+  for_each   = var.powerbi_reader_emails
+  project    = var.project_id
+  dataset_id = var.gold_dataset_id
+  role       = "roles/bigquery.dataViewer"
+  member     = "user:${each.value}"
+}
+
 # Staging nativo paralelo: los destinos de los load jobs no pueden ser tablas
 # EXTERNAL. Se conservan las tablas legacy y Dataform consume estas tablas
 # versionadas, administradas por Terraform.

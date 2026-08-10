@@ -136,6 +136,12 @@ variable "bronze_retention_days" {
   default     = 90
 }
 
+variable "powerbi_reader_emails" {
+  description = "Cuentas de Power BI con lectura sobre el dataset Gold."
+  type        = set(string)
+  default     = []
+}
+
 variable "enable_object_versioning" {
   description = "Si true, activa versioning en ambos buckets. Recomendado en prod."
   type        = bool
