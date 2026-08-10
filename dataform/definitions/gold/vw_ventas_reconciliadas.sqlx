@@ -7,6 +7,11 @@ config {
 
 SELECT
   v.*,
+  v.source_nom_cli AS cliente_nombre,
+  v.source_nom_art AS articulo_nombre,
+  v.source_nom_ven AS vendedor_nombre,
+  v.source_nom_alm AS almacen_nombre,
+  v.source_nom_pro AS proveedor_nombre,
   DATE '2026-08-10' AS scd_cutover_date,
   CASE
     WHEN DATE(v.registro) < DATE '2026-08-10'
