@@ -1,0 +1,22 @@
+config {
+  type: "view",
+  schema: "factory_etl_gold",
+  name: "vw_ventas_reconciliadas",
+  description: "Capa semántica de reconciliación legacy/SCD2 para ventas. Usa datos legacy antes del corte y SCD2 o maestro actual desde el corte.",
+}
+
+SELECT
+  v.*,
+  DATE '2026-08-10' AS scd_cutover_date,
+  CASE
+    WHEN DATE(v.registro) < DATE '2026-08-10'
+      AND v.resolution_status = "CURRENT_MASTER_BACKFILL"
+      THEN "LEGACY_FACT_BACKFILL"
+    ELSE v.resolution_status
+  END AS reconciliation_status,
+  CASE
+    WHEN DATE(v.registro) < DATE '2026-08-10'
+      THEN "PRODUCTION_LEGACY_HISTORY"
+    ELSE "SCD2_OPERATIONAL"
+  END AS resolution_source
+FROM ${ref("fct_ventas_v2")} v
