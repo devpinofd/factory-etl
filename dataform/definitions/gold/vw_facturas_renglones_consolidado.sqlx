@@ -13,22 +13,22 @@ SELECT
   v.renglon,
   v.registro,
   v.cod_ven,
-  v.nom_ven,
+  COALESCE(NULLIF(TRIM(v.nom_ven), ''), ven.nom_ven) AS nom_ven,
   v.cod_cli,
-  v.nom_cli,
+  COALESCE(NULLIF(TRIM(v.nom_cli), ''), cli.nom_cli) AS nom_cli,
   v.nom_cla,
   v.nom_est,
   v.nom_ciu,
   v.cod_art,
   v.cod_alm,
   v.cod_mar,
-  v.nom_mar,
-  v.nom_dep,
+  COALESCE(NULLIF(TRIM(v.nom_mar), ''), mar.nom_mar) AS nom_mar,
+  COALESCE(NULLIF(TRIM(v.nom_dep), ''), dep.nom_dep) AS nom_dep,
   v.cod_sec,
   v.modelo,
   v.cod_pro,
-  v.nom_pro,
-  v.nom_art,
+  COALESCE(NULLIF(TRIM(v.nom_pro), ''), pro.nom_pro) AS nom_pro,
+  COALESCE(NULLIF(TRIM(v.nom_art), ''), art.nom_art) AS nom_art,
   v.cod_uni1,
 
   -- Conversión de unidades a cajas usando la capacidad de bulto del artículo.
@@ -48,4 +48,14 @@ SELECT
 FROM ${ref("sil_ventas_diarias")} v
 LEFT JOIN ${ref("sil_articulos")} art
   ON v.source_empresa = art.source_empresa AND v.cod_art = art.cod_art
+LEFT JOIN ${ref("sil_clientes")} cli
+  ON v.source_empresa = cli.source_empresa AND v.cod_cli = cli.cod_cli
+LEFT JOIN ${ref("sil_vendedores")} ven
+  ON v.source_empresa = ven.source_empresa AND v.cod_ven = ven.cod_ven
+LEFT JOIN ${ref("sil_proveedores")} pro
+  ON v.source_empresa = pro.source_empresa AND v.cod_pro = pro.cod_pro
+LEFT JOIN ${ref("sil_marcas")} mar
+  ON v.source_empresa = mar.source_empresa AND v.cod_mar = mar.cod_mar
+LEFT JOIN ${ref("sil_departamentos")} dep
+  ON v.source_empresa = dep.source_empresa AND v.cod_dep = dep.cod_dep
 WHERE EXTRACT(YEAR FROM v.registro) IN (2025, 2026)
