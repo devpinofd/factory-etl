@@ -57,5 +57,5 @@ LEFT JOIN ${ref("sil_proveedores")} pro
 LEFT JOIN ${ref("sil_marcas")} mar
   ON v.source_empresa = mar.source_empresa AND v.cod_mar = mar.cod_mar
 LEFT JOIN ${ref("sil_departamentos")} dep
-  ON v.source_empresa = dep.source_empresa AND v.cod_dep = dep.cod_dep
+  ON v.source_empresa = dep.source_empresa AND art.cod_dep = dep.cod_dep
 WHERE EXTRACT(YEAR FROM v.registro) IN (2025, 2026)
