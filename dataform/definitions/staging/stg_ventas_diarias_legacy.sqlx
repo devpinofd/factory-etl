@@ -1,0 +1,6 @@
+config {
+  type: "declaration",
+  schema: "factory_etl_bronze_stg",
+  name: "stg_ventas_diarias",
+  description: "Tabla staging legacy de ventas conservada para reconciliar históricos productivos durante el cutover SCD2."
+}

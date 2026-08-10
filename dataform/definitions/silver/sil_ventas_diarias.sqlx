@@ -13,6 +13,69 @@ config {
   }
 }
 
+WITH source_rows AS (
+  SELECT
+    v2.*,
+    2 AS source_priority
+  FROM ${ref("stg_ventas_diarias_v2")} v2
+  UNION ALL
+  SELECT
+    legacy.tipo_documento,
+    legacy.cod_suc,
+    legacy.documento,
+    legacy.renglon,
+    legacy.registro,
+    legacy.cod_ven,
+    legacy.nom_ven,
+    legacy.cod_cli,
+    legacy.nom_cli,
+    legacy.nom_cla,
+    legacy.nom_est,
+    legacy.nom_ciu,
+    legacy.cod_art,
+    CAST(NULL AS STRING) AS cod_alm,
+    legacy.cod_mar,
+    legacy.nom_mar,
+    legacy.nom_dep,
+    legacy.cod_sec,
+    legacy.modelo,
+    legacy.cod_pro,
+    legacy.nom_pro,
+    legacy.nom_art,
+    legacy.cod_uni1,
+    legacy.can_ven,
+    legacy.monto_bruto,
+    legacy.cod_mon,
+    legacy.rif,
+    legacy.cod_imp,
+    CAST(NULL AS FLOAT64) AS por_imp1,
+    legacy.neto,
+    legacy.dcto,
+    legacy.tasa,
+    legacy.neto_dcto,
+    legacy._ingested_at,
+    legacy._source_empresa,
+    legacy._query_id,
+    legacy._query_version,
+    legacy._query_sql_hash,
+    legacy._run_id,
+    legacy._lote_id,
+    legacy._payload_hash,
+    legacy._row_hash,
+    legacy.source_empresa,
+    CAST(NULL AS DATE) AS dt,
+    CAST(NULL AS STRING) AS run_id,
+    1 AS source_priority
+  FROM ${ref("stg_ventas_diarias")} legacy
+),
+deduplicated AS (
+  SELECT *
+  FROM source_rows
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY source_empresa, tipo_documento, cod_suc, documento, renglon
+    ORDER BY source_priority DESC, _ingested_at DESC
+  ) = 1
+)
 SELECT
   source_empresa,
   ${helpers.trimStr("tipo_documento")} AS tipo_documento,
@@ -50,7 +113,7 @@ SELECT
   ${helpers.toNumeric("tasa")} AS tasa,
   ${helpers.toNumeric("neto_dcto")} AS neto_dcto,
   _ingested_at
-FROM ${ref("stg_ventas_diarias_v2")}
+FROM deduplicated
 -- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
 WHERE
   (tipo_documento IS NOT NULL AND TRIM(CAST(tipo_documento AS STRING)) != '')
