@@ -156,7 +156,6 @@ SELECT
   cajas_vendidas,
   peso_total_kg,
   peso_total_toneladas,
-  volumen_total_m3,
   monto_bruto,
   neto,
   dcto,

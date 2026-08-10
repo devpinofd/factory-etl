@@ -53,7 +53,6 @@ SELECT
   v.cajas_vendidas,
   v.peso_total_kg,
   v.peso_total_toneladas,
-  v.volumen_total_m3,
   v.monto_bruto,
   v.cod_mon,
   v.rif,

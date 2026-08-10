@@ -2,7 +2,7 @@ config {
   type: "view",
   schema: "factory_etl_gold",
   name: "vw_facturas_renglones_consolidado",
-  description: "Consolida sil_ventas_diarias con sil_articulos para derivar unidades/cajas/peso por renglón de factura. Fuente real usada por fct_ventas.sqlx (antes apuntaba a una vista inexistente).",
+  description: "Consolida ventas de 2025 y 2026 con artículos para derivar unidades, cajas y peso por renglón de factura.",
 }
 
 SELECT
@@ -31,13 +31,11 @@ SELECT
   v.nom_art,
   v.cod_uni1,
 
-  -- 📦 CONVERSIÓN DE UNIDADES USANDO MAESTRO DE ARTÍCULOS (fracción/peso de sil_articulos)
+  -- Conversión de unidades a cajas usando la capacidad de bulto del artículo.
   v.can_ven AS unidades_vendidas,
-  ROUND(SAFE_DIVIDE(v.can_ven, NULLIF(art.fraccion, 0)), 2) AS cajas_vendidas,
+  ROUND(SAFE_DIVIDE(v.can_ven, NULLIF(art.cap_bulto, 0)), 2) AS cajas_vendidas,
   ROUND(v.can_ven * COALESCE(art.peso, 0), 2) AS peso_total_kg,
   ROUND(SAFE_DIVIDE(v.can_ven * COALESCE(art.peso, 0), 1000), 3) AS peso_total_toneladas,
-  -- ⚠️ No existe campo de volumen en el esquema de articulos.json; sin dato fuente para calcularlo
-  CAST(NULL AS NUMERIC) AS volumen_total_m3,
 
   v.monto_bruto,
   v.cod_mon,
@@ -50,3 +48,4 @@ SELECT
 FROM ${ref("sil_ventas_diarias")} v
 LEFT JOIN ${ref("sil_articulos")} art
   ON v.source_empresa = art.source_empresa AND v.cod_art = art.cod_art
+WHERE EXTRACT(YEAR FROM v.registro) IN (2025, 2026)
