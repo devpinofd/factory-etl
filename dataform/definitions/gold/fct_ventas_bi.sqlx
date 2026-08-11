@@ -40,7 +40,7 @@ SELECT
   v.cod_pro,
   pro.nom_pro,
   art.cod_uni1,
-  v.  v.cod_mon,
+  v.cod_mon,
   v.cod_imp,
   v.unidades_vendidas,
   v.monto_bruto,
