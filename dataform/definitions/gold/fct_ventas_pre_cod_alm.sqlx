@@ -1,6 +1,5 @@
 config {
   type: "table",
-  disabled: dataform.projectConfig.vars.enableLegacyFacts != "true",
   schema: "factory_etl_gold",
   name: "fct_ventas_pre_cod_alm",
   description: "Hecho legacy anterior al 2026-08-10. cod_alm se respalda con cod_suc porque la fuente histórica no lo capturaba.",
