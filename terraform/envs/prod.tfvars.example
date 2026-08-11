@@ -16,7 +16,7 @@ cron_schedule_full        = "30 16 * * *"
 service_account_name = "factory-etl-runtime"
 artifact_repo_id     = "factory-etl-repo"
 container_image_name = "factory-etl-extractor"
-container_image_tag  = "v1.0.1"
+container_image_tag  = "v1.0.3"
 
 # Workload Identity Federation
 wif_enabled         = true
