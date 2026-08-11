@@ -307,6 +307,24 @@ VENTAS_DIARIAS_V2 = QueryDefinition(
     reject_empty=False,
 )
 
+VENTAS_DIARIAS_V3 = QueryDefinition(
+    query_id="ventas_diarias_v3",
+    version="3.0.0",
+    category=Category.TRANSACTION,
+    transport=Transport.GENERIC_SQL_API,
+    load_strategy=LoadStrategy.INCREMENTAL_BY_DATE,
+    natural_key=("source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"),
+    required_columns=("tipo_documento", "cod_suc", "documento", "renglon", "cod_alm"),
+    sql_path=_PACKAGE_ROOT / "transactions" / "ventas_diarias_v3.sql",
+    schema_path=_PACKAGE_ROOT / "schemas" / "ventas_diarias_v3.json",
+    allowed_companies=_ALLOWED_COMPANIES,
+    parameters=(
+        ParamSpec(name="fec_des", type=ParamType.DATE),
+        ParamSpec(name="fec_has", type=ParamType.DATE),
+    ),
+    reject_empty=False,
+)
+
 RENGLONES_MONEDAS_V1 = QueryDefinition(
     query_id="renglones_monedas_v1",
     version="1.0.0",
@@ -364,6 +382,7 @@ _REGISTRY: dict[str, QueryDefinition] = {
     RENGLONES_ALMACENES_V1.query_id: RENGLONES_ALMACENES_V1,
     VENTAS_DIARIAS_V1.query_id: VENTAS_DIARIAS_V1,
     VENTAS_DIARIAS_V2.query_id: VENTAS_DIARIAS_V2,
+    VENTAS_DIARIAS_V3.query_id: VENTAS_DIARIAS_V3,
     RENGLONES_MONEDAS_V1.query_id: RENGLONES_MONEDAS_V1,
     RENGLONES_APRECIOS_V1.query_id: RENGLONES_APRECIOS_V1,
 }
