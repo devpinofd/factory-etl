@@ -1,0 +1,37 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "fct_ventas_pre_cod_alm",
+  description: "Hecho legacy anterior al 2026-08-10. cod_alm se respalda con cod_suc porque la fuente histórica no lo capturaba.",
+  bigquery: {
+    partitionBy: "DATE(registro)",
+    clusterBy: ["source_empresa", "cod_suc", "cod_art"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
+    nonNull: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon", "registro", "cod_alm"]
+  }
+}
+
+SELECT
+  v.source_empresa,
+  v.tipo_documento,
+  v.cod_suc,
+  v.documento,
+  v.renglon,
+  v.registro,
+  v.cod_ven,
+  v.cod_cli,
+  v.cod_art,
+  COALESCE(NULLIF(TRIM(v.cod_alm), ""), v.cod_suc) AS cod_alm,
+  v.cod_pro,
+  v.cod_mon,
+  v.cod_imp,
+  v.can_ven AS unidades_vendidas,
+  v.monto_bruto,
+  v.neto,
+  v.dcto,
+  v.tasa,
+  v.neto_dcto
+FROM ${ref("sil_ventas_diarias")} v
+WHERE DATE(v.registro) < DATE '2026-08-10'
