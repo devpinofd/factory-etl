@@ -19,6 +19,7 @@ resource "google_workflows_workflow" "workflow" {
     region                         = var.region
     job_name                       = var.job_name
     consolidation_workflow_name    = var.consolidation_workflow_name
+    enable_scd2                    = var.enable_scd2
     service_account_email          = var.service_account_email
     bucket_name                    = var.bucket_name
     control_dataset_id             = var.control_dataset_id

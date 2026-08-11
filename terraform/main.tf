@@ -74,6 +74,7 @@ locals {
   daily_workflow_name          = var.environment == "prod" ? "factory-etl-daily-transaccional-prod" : "factory-etl-daily-transaccional-${var.environment}-scd2"
   full_workflow_name           = var.environment == "prod" ? "factory-etl-full-prod" : "factory-etl-full-${var.environment}-scd2"
   consolidation_workflow_name  = var.environment == "prod" ? "factory-etl-consolidation-prod" : "factory-etl-consolidation-${var.environment}-scd2"
+  enable_scd2                  = var.environment != "prod"
   daily_scheduler_name         = var.environment == "prod" ? "factory-etl-daily-scheduler-transaccional-prod" : "factory-etl-daily-scheduler-dev-scd2"
   full_scheduler_name          = var.environment == "prod" ? "factory-etl-full-scheduler-prod" : "factory-etl-daily-scheduler-full-dev-scd2"
   consolidation_scheduler_name = var.environment == "prod" ? "factory-etl-consolidation-scheduler-prod-scd2" : "factory-etl-consolidation-scheduler-dev-scd2"
@@ -362,6 +363,7 @@ module "workflows" {
   region                      = var.region
   workflow_name               = local.daily_workflow_name
   consolidation_workflow_name = var.environment == "prod" ? "" : local.consolidation_workflow_name
+  enable_scd2                 = local.enable_scd2
   job_name                    = module.cloud_run_job.job_name
   bucket_name                 = module.storage.bronze_bucket_name
   control_dataset_id          = local.workflow_control_dataset_id
@@ -379,6 +381,7 @@ module "workflows_full" {
   region                      = var.region
   workflow_name               = local.full_workflow_name
   consolidation_workflow_name = var.environment == "prod" ? "" : local.consolidation_workflow_name
+  enable_scd2                 = local.enable_scd2
   job_name                    = module.cloud_run_job.job_name
   bucket_name                 = module.storage.bronze_bucket_name
   control_dataset_id          = local.workflow_control_dataset_id
@@ -395,6 +398,7 @@ module "workflows_consolidation" {
   project_id            = var.project_id
   region                = var.region
   workflow_name         = local.consolidation_workflow_name
+  enable_scd2           = local.enable_scd2
   job_name              = module.cloud_run_job.job_name
   bucket_name           = module.storage.bronze_bucket_name
   control_dataset_id    = local.workflow_control_dataset_id

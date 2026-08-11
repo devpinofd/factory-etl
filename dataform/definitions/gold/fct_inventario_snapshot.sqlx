@@ -1,5 +1,6 @@
 config {
   type: "table",
+  disabled: dataform.projectConfig.vars.enableScd2 != "true",
   schema: "factory_etl_gold",
   name: "fct_inventario_snapshot",
   description: "Hecho de snapshot periódico de inventario por empresa, fecha, almacén y artículo, con claves sustitutas SCD2.",

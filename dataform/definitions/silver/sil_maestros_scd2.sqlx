@@ -1,5 +1,6 @@
 config {
   type: "table",
+  disabled: dataform.projectConfig.vars.enableScd2 != "true",
   schema: "factory_etl_silver",
   name: "sil_maestros_scd2",
   description: "Versiones SCD2 de todos los maestros a partir de snapshots Bronze, con clave sustituta, vigencia y hash de cambio.",

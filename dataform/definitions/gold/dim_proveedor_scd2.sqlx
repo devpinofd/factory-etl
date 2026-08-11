@@ -1,5 +1,6 @@
 config {
   type: "table",
+  disabled: dataform.projectConfig.vars.enableScd2 != "true",
   schema: "factory_etl_gold",
   name: "dim_proveedor_scd2",
   description: "Dimensión SCD2 de proveedores con vigencias por empresa.",

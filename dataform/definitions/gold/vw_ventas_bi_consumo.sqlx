@@ -1,5 +1,6 @@
 config {
   type: "view",
+  disabled: dataform.projectConfig.vars.enableScd2 != "true",
   schema: "factory_etl_gold",
   name: "vw_ventas_bi_consumo",
   description: "Vista de consumo BI de ventas 2025-2026. Expone sólo dimensiones de negocio, fechas y medidas; excluye claves técnicas, hashes y metadatos de reconciliación.",

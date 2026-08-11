@@ -53,6 +53,12 @@ variable "consolidation_workflow_name" {
   default     = ""
 }
 
+variable "enable_scd2" {
+  description = "Activa acciones Dataform SCD2 durante la consolidación."
+  type        = bool
+  default     = true
+}
+
 # --- Consolidacion Medallion automatizada (opcional por instancia del modulo) --
 
 variable "enable_medallion_consolidation" {

@@ -1,5 +1,6 @@
 config {
   type: "table",
+  disabled: dataform.projectConfig.vars.enableScd2 != "true",
   schema: "factory_etl_gold",
   name: "fct_precios_snapshot",
   description: "Hecho temporal de precios por empresa, documento, renglón, artículo y fecha de registro.",

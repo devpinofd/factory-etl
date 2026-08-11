@@ -1,5 +1,6 @@
 config {
   type: "view",
+  disabled: dataform.projectConfig.vars.enableScd2 != "true",
   schema: "factory_etl_gold",
   name: "vw_ventas_reconciliadas",
   description: "Capa semántica de reconciliación legacy/SCD2 para ventas. Usa datos legacy antes del corte y SCD2 o maestro actual desde el corte.",

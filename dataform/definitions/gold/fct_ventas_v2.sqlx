@@ -1,5 +1,6 @@
 config {
   type: "table",
+  disabled: dataform.projectConfig.vars.enableScd2 != "true",
   schema: "factory_etl_gold",
   name: "fct_ventas_v2",
   description: "Hecho transaccional de ventas por línea de factura con claves sustitutas SCD2 y dimensiones degeneradas de documento y renglón.",
