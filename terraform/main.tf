@@ -71,12 +71,35 @@ locals {
   }
 
   cloud_run_job_name           = var.environment == "prod" ? "factory-etl-extractor-prod" : "factory-etl-articulos-${var.environment}"
-  daily_workflow_name          = "factory-etl-daily-transaccional-${var.environment}-scd2"
-  full_workflow_name           = "factory-etl-full-${var.environment}-scd2"
-  consolidation_workflow_name  = "factory-etl-consolidation-${var.environment}-scd2"
+  daily_workflow_name          = var.environment == "prod" ? "factory-etl-daily-transaccional-prod" : "factory-etl-daily-transaccional-${var.environment}-scd2"
+  full_workflow_name           = var.environment == "prod" ? "factory-etl-full-prod" : "factory-etl-full-${var.environment}-scd2"
+  consolidation_workflow_name  = var.environment == "prod" ? "factory-etl-consolidation-prod" : "factory-etl-consolidation-${var.environment}-scd2"
   daily_scheduler_name         = var.environment == "prod" ? "factory-etl-daily-scheduler-transaccional-prod" : "factory-etl-daily-scheduler-dev-scd2"
   full_scheduler_name          = var.environment == "prod" ? "factory-etl-full-scheduler-prod" : "factory-etl-daily-scheduler-full-dev-scd2"
   consolidation_scheduler_name = var.environment == "prod" ? "factory-etl-consolidation-scheduler-prod-scd2" : "factory-etl-consolidation-scheduler-dev-scd2"
+  effective_daily_queries = var.environment == "prod" ? [
+    { id = "renglones_almacenes_v1", has_param = false },
+    { id = "ventas_diarias_v1", has_param = true },
+    { id = "renglones_monedas_v1", has_param = true },
+    { id = "renglones_aprecios_v1", has_param = true },
+  ] : var.daily_queries
+  effective_full_queries = var.environment == "prod" ? concat(local.effective_daily_queries, [
+    { id = "articulos_v1", has_param = false },
+    { id = "impuestos_v1", has_param = false },
+    { id = "departamentos_v1", has_param = false },
+    { id = "marcas_v1", has_param = false },
+    { id = "secciones_v1", has_param = false },
+    { id = "proveedores_v1", has_param = false },
+    { id = "paises_v1", has_param = false },
+    { id = "estados_v1", has_param = false },
+    { id = "ciudades_v1", has_param = false },
+    { id = "vendedores_v1", has_param = false },
+    { id = "sucursales_v1", has_param = false },
+    { id = "almacenes_v1", has_param = false },
+    { id = "clientes_v1", has_param = false },
+    { id = "clases_clientes_v1", has_param = false },
+    { id = "conceptos_v1", has_param = false },
+  ]) : var.daily_queries_full
   workflow_control_dataset_id = var.additional_control_dataset_id != "" ? var.additional_control_dataset_id : (
     var.environment == "dev" ? "factory_etl_control_dev" : module.bigquery.dataset_id
   )
@@ -338,13 +361,13 @@ module "workflows" {
   project_id                  = var.project_id
   region                      = var.region
   workflow_name               = local.daily_workflow_name
-  consolidation_workflow_name = local.consolidation_workflow_name
+  consolidation_workflow_name = var.environment == "prod" ? "" : local.consolidation_workflow_name
   job_name                    = module.cloud_run_job.job_name
   bucket_name                 = module.storage.bronze_bucket_name
   control_dataset_id          = local.workflow_control_dataset_id
   service_account_email       = module.service_account.email
   labels                      = local.common_labels
-  queries                     = var.daily_queries
+  queries                     = local.effective_daily_queries
 
   depends_on = [google_project_service.required, module.cloud_run_job]
 }
@@ -355,13 +378,13 @@ module "workflows_full" {
   project_id                  = var.project_id
   region                      = var.region
   workflow_name               = local.full_workflow_name
-  consolidation_workflow_name = local.consolidation_workflow_name
+  consolidation_workflow_name = var.environment == "prod" ? "" : local.consolidation_workflow_name
   job_name                    = module.cloud_run_job.job_name
   bucket_name                 = module.storage.bronze_bucket_name
   control_dataset_id          = local.workflow_control_dataset_id
   service_account_email       = module.service_account.email
   labels                      = local.common_labels
-  queries                     = var.daily_queries_full
+  queries                     = local.effective_full_queries
 
   depends_on = [google_project_service.required, module.cloud_run_job, module.dataform]
 }
@@ -377,7 +400,7 @@ module "workflows_consolidation" {
   control_dataset_id    = local.workflow_control_dataset_id
   service_account_email = module.service_account.email
   labels                = local.common_labels
-  queries               = var.daily_queries_full
+  queries               = local.effective_full_queries
 
   enable_medallion_consolidation = true
   consolidation_only             = true
@@ -490,7 +513,7 @@ module "cloud_scheduler_consolidation" {
 }
 
 module "cloud_scheduler_scd2_daily" {
-  count  = var.environment == "prod" ? 1 : 0
+  count  = 0
   source = "./modules/cloud_scheduler"
 
   project_id            = var.project_id
@@ -505,7 +528,7 @@ module "cloud_scheduler_scd2_daily" {
 }
 
 module "cloud_scheduler_scd2_full" {
-  count  = var.environment == "prod" ? 1 : 0
+  count  = 0
   source = "./modules/cloud_scheduler"
 
   project_id            = var.project_id

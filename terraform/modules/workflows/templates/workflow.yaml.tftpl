@@ -80,6 +80,7 @@ main:
                       - increment_counter:
                           assign:
                             - total_queries: $${total_queries + 1}
+%{ if consolidation_workflow_name != "" }
     - trigger_consolidation:
         call: googleapis.workflowexecutions.v1.projects.locations.workflows.executions.create
         args:
@@ -87,6 +88,7 @@ main:
           body:
             argument: "{}"
         result: consolidation_execution
+%{ endif }
 %{ endif }
 %{ if enable_medallion_consolidation }
     - guard_single_execution:
