@@ -1,0 +1,62 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "fct_ventas_gold",
+  description: "Hecho único Gold de ventas. Unifica el histórico pre-cod_alm con el período post-cod_alm sin cambiar el grano de línea de factura.",
+  bigquery: {
+    partitionBy: "DATE(registro)",
+    clusterBy: ["source_empresa", "cod_alm", "cod_art"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
+    nonNull: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon", "registro", "cod_alm"]
+  }
+}
+
+SELECT
+  source_empresa,
+  tipo_documento,
+  cod_suc,
+  documento,
+  renglon,
+  registro,
+  cod_ven,
+  cod_cli,
+  cod_art,
+  cod_alm,
+  cod_pro,
+  cod_mon,
+  cod_imp,
+  unidades_vendidas,
+  monto_bruto,
+  neto,
+  dcto,
+  tasa,
+  neto_dcto,
+  "PRE_COD_ALM" AS cod_alm_resolution
+FROM ${ref("fct_ventas_pre_cod_alm")}
+
+UNION ALL
+
+SELECT
+  source_empresa,
+  tipo_documento,
+  cod_suc,
+  documento,
+  renglon,
+  registro,
+  cod_ven,
+  cod_cli,
+  cod_art,
+  cod_alm,
+  cod_pro,
+  cod_mon,
+  cod_imp,
+  unidades_vendidas,
+  monto_bruto,
+  neto,
+  dcto,
+  tasa,
+  neto_dcto,
+  "POST_COD_ALM" AS cod_alm_resolution
+FROM ${ref("fct_ventas_post_cod_alm")}
