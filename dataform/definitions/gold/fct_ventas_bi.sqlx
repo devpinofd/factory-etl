@@ -14,39 +14,39 @@ config {
 }
 
 SELECT
-  source_empresa,
-  tipo_documento,
-  cod_suc,
-  documento,
-  renglon,
-  registro,
-  cod_ven,
+  v.source_empresa,
+  v.tipo_documento,
+  v.cod_suc,
+  v.documento,
+  v.renglon,
+  v.registro,
+  v.cod_ven,
   ven.nom_ven,
-  cod_cli,
+  v.cod_cli,
   cli.nom_cli,
-  cod_art,
+  v.cod_art,
   art.nom_art,
-  cod_alm,
+  v.cod_alm,
   art.cod_mar,
   mar.nom_mar,
   art.cod_dep,
   dep.nom_dep,
   art.cod_sec,
   art.modelo,
-  cod_pro,
+  v.cod_pro,
   pro.nom_pro,
   art.cod_uni1,
-  cod_mon,
-  cod_imp,
-  unidades_vendidas,
-  monto_bruto,
-  neto,
-  dcto,
-  tasa,
-  neto_dcto,
-  ROUND(SAFE_DIVIDE(unidades_vendidas, NULLIF(art.cap_bulto, 0)), 2) AS cajas_vendidas,
-  ROUND(unidades_vendidas * COALESCE(art.peso, 0), 2) AS peso_total_kg,
-  ROUND(SAFE_DIVIDE(unidades_vendidas * COALESCE(art.peso, 0), 1000), 3) AS peso_total_toneladas
+  v.cod_mon,
+  v.cod_imp,
+  v.unidades_vendidas,
+  v.monto_bruto,
+  v.neto,
+  v.dcto,
+  v.tasa,
+  v.neto_dcto,
+  ROUND(SAFE_DIVIDE(v.unidades_vendidas, NULLIF(art.cap_bulto, 0)), 2) AS cajas_vendidas,
+  ROUND(v.unidades_vendidas * COALESCE(art.peso, 0), 2) AS peso_total_kg,
+  ROUND(SAFE_DIVIDE(v.unidades_vendidas * COALESCE(art.peso, 0), 1000), 3) AS peso_total_toneladas
 FROM ${ref("fct_ventas_gold")} v
 LEFT JOIN ${ref("sil_clientes")} cli
   ON v.source_empresa = cli.source_empresa AND v.cod_cli = cli.cod_cli
@@ -60,5 +60,5 @@ LEFT JOIN ${ref("sil_departamentos")} dep
   ON v.source_empresa = dep.source_empresa AND art.cod_dep = dep.cod_dep
 LEFT JOIN ${ref("sil_proveedores")} pro
   ON v.source_empresa = pro.source_empresa AND v.cod_pro = pro.cod_pro
-WHERE DATE(registro) >= DATE '2025-01-01'
-  AND DATE(registro) < DATE '2027-01-01'
+WHERE DATE(v.registro) >= DATE '2025-01-01'
+  AND DATE(v.registro) < DATE '2027-01-01'
