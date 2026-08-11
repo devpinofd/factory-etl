@@ -346,6 +346,7 @@ run_dataform_consolidation:
                 goldDataset: $${gold_dataset_id}
                 securityDataset: $${security_dataset_id}
                 enableScd2: "${enable_scd2 ? "true" : "false"}"
+                enableLegacyFacts: "${enable_scd2 ? "true" : "false"}"
         result: compile_response
     - assign_compilation_result:
         assign:

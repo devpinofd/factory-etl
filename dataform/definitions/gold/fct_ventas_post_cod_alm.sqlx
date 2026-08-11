@@ -1,8 +1,9 @@
 config {
-  type: "table",
+  type: "incremental",
   schema: "factory_etl_gold",
   name: "fct_ventas_post_cod_alm",
   description: "Hecho de ventas desde el 2026-08-10. cod_alm proviene del contrato v3 de Bronze y no se reemplaza por cod_suc.",
+  uniqueKey: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
   bigquery: {
     partitionBy: "DATE(registro)",
     clusterBy: ["source_empresa", "cod_alm", "cod_art"]
