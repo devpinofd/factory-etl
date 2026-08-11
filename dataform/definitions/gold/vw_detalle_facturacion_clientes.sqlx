@@ -1,5 +1,6 @@
 config {
   type: "view",
+  disabled: true,
   schema: "factory_etl_gold",
   name: "vw_detalle_facturacion_clientes",
   description: "Vista de máxima granularidad transaccional: Empresa -> Sucursal -> Vendedor -> Cliente (con RIF) -> Factura / Documento -> Renglón -> SKU / Marca / Proveedor",

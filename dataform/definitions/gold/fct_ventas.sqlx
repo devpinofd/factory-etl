@@ -1,5 +1,6 @@
 config {
   type: "table",
+  disabled: true,
   schema: "factory_etl_gold",
   name: "fct_ventas",
   description: "Tabla de Hechos Gold de Ventas consolidadas por transacción, renglón, empresa, sucursal, vendedor y producto",

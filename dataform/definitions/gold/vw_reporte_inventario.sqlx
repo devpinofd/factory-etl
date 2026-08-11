@@ -1,5 +1,6 @@
 config {
   type: "view",
+  disabled: true,
   schema: "factory_etl_gold",
   name: "vw_reporte_inventario",
   description: "Vista Gold de existencias de inventario por almacén con métricas completas de Fracciones, Unidades Totales, Peso Unitario, Kg Totales, Capacidad Bultos y Bultos Totales",

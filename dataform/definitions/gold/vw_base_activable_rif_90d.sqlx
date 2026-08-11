@@ -1,5 +1,6 @@
 config {
   type: "view",
+  disabled: true,
   schema: "factory_etl_gold",
   name: "vw_base_activable_rif_90d",
   description: "Base Activable a nivel de RIF Fiscal (Razones Sociales / Grupos Económicos) a 90 días y % Tasa de Activación RIF en el mes actual",
