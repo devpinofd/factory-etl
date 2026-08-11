@@ -4,6 +4,7 @@ defaultAssertionDataset: factory_etl_assertions
 defaultLocation: us-central1
 vars:
   enableScd2: "true"
+  enableLegacyFacts: "true"
   gcpProject: factory-etl-dev-0y1dhf
   bronzeBucket: factory-etl-dev-0y1dhf-bronze
   stagingDataset: factory_etl_bronze_stg

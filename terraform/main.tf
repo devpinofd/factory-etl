@@ -447,6 +447,34 @@ resource "google_bigquery_dataset_iam_member" "powerbi_gold_reader" {
   member     = "user:${each.value}"
 }
 
+resource "google_project_iam_member" "powerbi_job_user" {
+  for_each = var.powerbi_reader_emails
+  project  = var.project_id
+  role     = "roles/bigquery.jobUser"
+  member   = "user:${each.value}"
+}
+
+resource "google_project_iam_member" "powerbi_metadata_viewer" {
+  for_each = var.powerbi_reader_emails
+  project  = var.project_id
+  role     = "roles/bigquery.metadataViewer"
+  member   = "user:${each.value}"
+}
+
+resource "google_project_iam_member" "powerbi_read_session_user" {
+  for_each = var.powerbi_reader_emails
+  project  = var.project_id
+  role     = "roles/bigquery.readSessionUser"
+  member   = "user:${each.value}"
+}
+
+resource "google_project_iam_member" "powerbi_service_usage_consumer" {
+  for_each = var.powerbi_reader_emails
+  project  = var.project_id
+  role     = "roles/serviceusage.serviceUsageConsumer"
+  member   = "user:${each.value}"
+}
+
 # Staging nativo paralelo: los destinos de los load jobs no pueden ser tablas
 # EXTERNAL. Se conservan las tablas legacy y Dataform consume estas tablas
 # versionadas, administradas por Terraform.
