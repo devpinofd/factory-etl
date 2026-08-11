@@ -1,0 +1,6 @@
+config {
+  type: "declaration",
+  schema: "factory_etl_bronze_stg",
+  name: "stg_ventas_diarias_v3",
+  description: "Ventas v3 livianas: claves, fechas y medidas, con cod_alm; los atributos descriptivos se enriquecen desde Silver/Gold."
+}

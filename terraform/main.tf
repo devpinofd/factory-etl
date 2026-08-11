@@ -79,7 +79,7 @@ locals {
   consolidation_scheduler_name = var.environment == "prod" ? "factory-etl-consolidation-scheduler-prod-scd2" : "factory-etl-consolidation-scheduler-dev-scd2"
   effective_daily_queries = var.environment == "prod" ? [
     { id = "renglones_almacenes_v1", has_param = false },
-    { id = "ventas_diarias_v1", has_param = true },
+    { id = "ventas_diarias_v3", has_param = true },
     { id = "renglones_monedas_v1", has_param = true },
     { id = "renglones_aprecios_v1", has_param = true },
   ] : var.daily_queries
@@ -450,7 +450,7 @@ resource "google_bigquery_table" "staging_native" {
   for_each            = local.staging_schemas
   project             = var.project_id
   dataset_id          = var.bronze_stg_dataset_id
-  table_id            = each.key == "ventas_diarias_v2" ? "stg_ventas_diarias_v2" : "stg_${each.key}_snapshot"
+  table_id            = (each.key == "ventas_diarias_v2" || each.key == "ventas_diarias_v3") ? "stg_${each.key}" : "stg_${each.key}_snapshot"
   schema              = jsonencode(local.table_schemas[each.key])
   deletion_protection = true
   labels              = local.common_labels

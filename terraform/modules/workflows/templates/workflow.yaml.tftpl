@@ -179,9 +179,9 @@ load_staging_table:
           - schema_fields: $${map.get(staging_schemas, entity_name)}
     - choose_sales_table:
         switch:
-          - condition: $${entity_name == "ventas_diarias_v2"}
+          - condition: $${entity_name == "ventas_diarias_v2" OR entity_name == "ventas_diarias_v3"}
             assign:
-              - table_id: "stg_ventas_diarias_v2"
+              - table_id: $${"stg_" + entity_name}
     - start_load_job:
         call: googleapis.bigquery.v2.jobs.insert
         args:
