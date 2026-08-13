@@ -1,0 +1,59 @@
+config {
+  type: "view",
+  schema: "factory_etl_gold",
+  name: "vw_inventario_bi_matriz",
+  description: "Vista de existencias por almacén para Power BI, enriquecida con dim_articulo y dimensiones descriptivas.",
+}
+
+SELECT
+  r.source_empresa AS `Procedencia`,
+  art.cod_pro AS `Código`,
+  pro.nom_pro AS `Proveedor`,
+  dep.nom_dep AS `Categoría`,
+  mar.nom_mar AS `Marca`,
+  r.cod_art AS `Artículo`,
+  art.nom_art AS `Descripción`,
+  art.codigo_barras AS `Modelo`,
+  sec.nom_sec AS `Observación`,
+  COALESCE(r.exi_act1, 0) AS `Stock`,
+  art.precio AS `Precio`,
+  art.cap_bulto AS `Bulto`,
+  art.fraccion AS `Fracción`,
+  art.peso AS `Peso`,
+  ROUND(
+    SAFE_DIVIDE(
+      COALESCE(r.exi_act1, 0),
+      NULLIF(art.fraccion, 0)
+    ),
+    2
+  ) AS `Fracc Total`,
+  ROUND(COALESCE(r.exi_act1, 0) * COALESCE(art.peso, 0), 2) AS `Kilos`,
+  ROUND(
+    SAFE_DIVIDE(
+      COALESCE(r.exi_act1, 0),
+      COALESCE(NULLIF(art.cap_bulto, 0), NULLIF(art.fraccion, 0), 1)
+    ),
+    2
+  ) AS `Bultos Tot`,
+  r.cod_alm AS `Cód Alm`,
+  alm.nom_alm AS `Nom Alm`
+FROM ${ref("sil_renglones_almacenes")} r
+LEFT JOIN ${ref("dim_articulo")} art
+  ON r.source_empresa = art.source_empresa
+  AND r.cod_art = art.cod_art
+LEFT JOIN ${ref("dim_proveedor")} pro
+  ON art.source_empresa = pro.source_empresa
+  AND art.cod_pro = pro.cod_pro
+LEFT JOIN ${ref("dim_departamento")} dep
+  ON art.source_empresa = dep.source_empresa
+  AND art.cod_dep = dep.cod_dep
+LEFT JOIN ${ref("dim_marca")} mar
+  ON art.source_empresa = mar.source_empresa
+  AND art.cod_mar = mar.cod_mar
+LEFT JOIN ${ref("dim_seccion")} sec
+  ON art.source_empresa = sec.source_empresa
+  AND art.cod_sec = sec.cod_sec
+LEFT JOIN ${ref("dim_almacen")} alm
+  ON r.source_empresa = alm.source_empresa
+  AND r.cod_alm = alm.cod_alm
+WHERE COALESCE(r.exi_act1, 0) > 0

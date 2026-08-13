@@ -1,0 +1,50 @@
+config {
+  type: "view",
+  schema: "factory_etl_gold",
+  name: "vw_ventas_bi_matriz",
+  description: "Matriz de ventas para Power BI, limitada al período 2025-2026 y presentada con el contrato de columnas requerido por el negocio.",
+}
+
+SELECT
+  v.cod_suc AS `S`,
+  v.documento AS `Documento`,
+  DATE(v.registro) AS `Fecha`,
+  v.cod_cli AS `Código`,
+  v.nom_cli AS `Nombre Cliente`,
+  v.modelo AS `Modelo`,
+  v.nom_mar AS `Nom_Mar`,
+  v.nom_dep AS `Categoria`,
+  v.cod_art AS `Código Artículo`,
+  v.nom_art AS `Nombre Artículo`,
+  art.peso AS `Peso`,
+  v.cod_uni1 AS `Unidad`,
+  v.unidades_vendidas AS `Cantidad`,
+  v.peso_total_kg AS `Kilos`,
+  v.cod_mon AS `Cod_Mon`,
+  v.monto_bruto AS `Monto Bruto`,
+  art.cap_bulto AS `Uni Bulto`,
+  v.cajas_vendidas AS `Bultos`,
+  art.fraccion AS `Frac Uni`,
+  ROUND(v.unidades_vendidas * COALESCE(art.fraccion, 0), 2) AS `Fracc_Tot`,
+  v.cod_ven AS `Cod Vend`,
+  v.nom_ven AS `Vendedor`,
+  COALESCE(v.nom_ciu, ciu.nom_ciu) AS `Nom_Ciu`,
+  v.nom_cla AS `Nom_Cla`,
+  v.nom_pro AS `Nom_Pro`,
+  v.rif AS `Rif`,
+  v.cod_imp AS `Cod_Imp`,
+  v.neto AS `Neto`,
+  v.dcto AS `Dcto`,
+  v.tasa AS `Tasa`,
+  v.neto_dcto AS `Neto_Dcto`,
+  v.source_empresa AS `Source Empresa`
+FROM ${ref("fct_ventas_bi")} v
+LEFT JOIN ${ref("sil_articulos")} art
+  ON v.source_empresa = art.source_empresa
+  AND v.cod_art = art.cod_art
+LEFT JOIN ${ref("sil_clientes")} cli
+  ON v.source_empresa = cli.source_empresa
+  AND v.cod_cli = cli.cod_cli
+LEFT JOIN ${ref("sil_ciudades")} ciu
+  ON cli.source_empresa = ciu.source_empresa
+  AND cli.cod_ciu = ciu.cod_ciu

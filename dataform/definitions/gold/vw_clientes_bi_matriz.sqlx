@@ -1,0 +1,36 @@
+config {
+  type: "view",
+  schema: "factory_etl_gold",
+  name: "vw_clientes_bi_matriz",
+  description: "Vista de clientes para Power BI basada en dim_cliente, con el contrato de columnas solicitado y NULL tipado para atributos no disponibles.",
+}
+
+SELECT
+  c.cod_cli AS `Cliente`,
+  c.nom_cli AS `Nombre`,
+  c.rif AS `RIF`,
+  CAST(NULL AS STRING) AS `Telefonos`,
+  CAST(NULL AS STRING) AS `Fax`,
+  CAST(NULL AS STRING) AS `Zona`,
+  ciu.nom_ciu AS `Ciudad`,
+  c.tip_con AS `Contribuyente`,
+  c.tip_cli AS `Categoría`,
+  CAST(NULL AS STRING) AS `Forma Pago`,
+  CAST(NULL AS STRING) AS `Contacto`,
+  CAST(NULL AS STRING) AS `eMail`,
+  CAST(NULL AS STRING) AS `Concepto`,
+  c.dir_fis AS `Dirección Fiscal`,
+  c.dir_exa AS `Dirección Entrega`,
+  c.status AS `Status`,
+  c.cod_ven AS `Codigo Vendedor`,
+  ven.nom_ven AS `Nombre Vendedor`,
+  CAST(NULL AS STRING) AS `Web`,
+  c.segmentacion1 AS `Atributo A`,
+  c.cod_suc AS `Sucursal`
+FROM ${ref("dim_cliente")} c
+LEFT JOIN ${ref("sil_ciudades")} ciu
+  ON c.source_empresa = ciu.source_empresa
+  AND c.cod_ciu = ciu.cod_ciu
+LEFT JOIN ${ref("dim_vendedor")} ven
+  ON c.source_empresa = ven.source_empresa
+  AND c.cod_ven = ven.cod_ven
