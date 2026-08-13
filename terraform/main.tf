@@ -447,32 +447,50 @@ resource "google_bigquery_dataset_iam_member" "powerbi_group_gold_reader" {
   member     = "group:${var.powerbi_group_email}"
 }
 
+resource "google_bigquery_dataset_access" "powerbi_sales_views_silver_authorized" {
+  for_each = var.environment == "prod" ? toset([
+    "vw_facturas_renglones_consolidado",
+    "vw_ventas_bi_matriz",
+    "vw_clientes_bi_matriz",
+    "vw_inventario_bi_matriz",
+  ]) : toset([])
+
+  project    = var.project_id
+  dataset_id = var.silver_dataset_id
+
+  view {
+    project_id = var.project_id
+    dataset_id = var.gold_dataset_id
+    table_id   = each.value
+  }
+}
+
 resource "google_project_iam_member" "powerbi_group_job_user" {
   count   = var.environment == "prod" ? 1 : 0
-  project  = var.project_id
-  role     = "roles/bigquery.jobUser"
-  member   = "group:${var.powerbi_group_email}"
+  project = var.project_id
+  role    = "roles/bigquery.jobUser"
+  member  = "group:${var.powerbi_group_email}"
 }
 
 resource "google_project_iam_member" "powerbi_group_metadata_viewer" {
   count   = var.environment == "prod" ? 1 : 0
-  project  = var.project_id
-  role     = "roles/bigquery.metadataViewer"
-  member   = "group:${var.powerbi_group_email}"
+  project = var.project_id
+  role    = "roles/bigquery.metadataViewer"
+  member  = "group:${var.powerbi_group_email}"
 }
 
 resource "google_project_iam_member" "powerbi_group_read_session_user" {
   count   = var.environment == "prod" ? 1 : 0
-  project  = var.project_id
-  role     = "roles/bigquery.readSessionUser"
-  member   = "group:${var.powerbi_group_email}"
+  project = var.project_id
+  role    = "roles/bigquery.readSessionUser"
+  member  = "group:${var.powerbi_group_email}"
 }
 
 resource "google_project_iam_member" "powerbi_group_service_usage_consumer" {
   count   = var.environment == "prod" ? 1 : 0
-  project  = var.project_id
-  role     = "roles/serviceusage.serviceUsageConsumer"
-  member   = "group:${var.powerbi_group_email}"
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageConsumer"
+  member  = "group:${var.powerbi_group_email}"
 }
 
 # Staging nativo paralelo: los destinos de los load jobs no pueden ser tablas

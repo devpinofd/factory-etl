@@ -1,6 +1,5 @@
 config {
   type: "view",
-  disabled: true,
   schema: "factory_etl_gold",
   name: "vw_facturas_renglones_consolidado",
   description: "Consolida ventas de 2025 y 2026 con artículos para derivar unidades, cajas y peso por renglón de factura.",
