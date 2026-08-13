@@ -10,7 +10,7 @@ quarantine_bucket_name = "factory-etl-prod-quarantine-XXXXXX"
 
 control_dataset_id       = "factory_etl_control"
 control_dataset_location = "us-central1"
-powerbi_reader_emails    = ["raquel.cedeno@tinitot.com", "luis.malave@tinitot.com"]
+powerbi_group_email      = "bi-analistas@tinitot.com"
 cron_schedule             = "30 23 * * *"
 cron_schedule_full        = "30 16 * * *"
 

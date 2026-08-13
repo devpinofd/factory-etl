@@ -142,6 +142,12 @@ variable "powerbi_reader_emails" {
   default     = []
 }
 
+variable "powerbi_group_email" {
+  description = "Grupo de Google Workspace que centraliza el acceso Power BI."
+  type        = string
+  default     = "bi-analistas@tinitot.com"
+}
+
 variable "enable_object_versioning" {
   description = "Si true, activa versioning en ambos buckets. Recomendado en prod."
   type        = bool

@@ -439,40 +439,40 @@ resource "google_bigquery_dataset_iam_member" "runtime_assertions_editor" {
   member     = "serviceAccount:${module.service_account.email}"
 }
 
-resource "google_bigquery_dataset_iam_member" "powerbi_gold_reader" {
-  for_each   = var.powerbi_reader_emails
+resource "google_bigquery_dataset_iam_member" "powerbi_group_gold_reader" {
+  count      = var.environment == "prod" ? 1 : 0
   project    = var.project_id
   dataset_id = var.gold_dataset_id
   role       = "roles/bigquery.dataViewer"
-  member     = "user:${each.value}"
+  member     = "group:${var.powerbi_group_email}"
 }
 
-resource "google_project_iam_member" "powerbi_job_user" {
-  for_each = var.powerbi_reader_emails
+resource "google_project_iam_member" "powerbi_group_job_user" {
+  count   = var.environment == "prod" ? 1 : 0
   project  = var.project_id
   role     = "roles/bigquery.jobUser"
-  member   = "user:${each.value}"
+  member   = "group:${var.powerbi_group_email}"
 }
 
-resource "google_project_iam_member" "powerbi_metadata_viewer" {
-  for_each = var.powerbi_reader_emails
+resource "google_project_iam_member" "powerbi_group_metadata_viewer" {
+  count   = var.environment == "prod" ? 1 : 0
   project  = var.project_id
   role     = "roles/bigquery.metadataViewer"
-  member   = "user:${each.value}"
+  member   = "group:${var.powerbi_group_email}"
 }
 
-resource "google_project_iam_member" "powerbi_read_session_user" {
-  for_each = var.powerbi_reader_emails
+resource "google_project_iam_member" "powerbi_group_read_session_user" {
+  count   = var.environment == "prod" ? 1 : 0
   project  = var.project_id
   role     = "roles/bigquery.readSessionUser"
-  member   = "user:${each.value}"
+  member   = "group:${var.powerbi_group_email}"
 }
 
-resource "google_project_iam_member" "powerbi_service_usage_consumer" {
-  for_each = var.powerbi_reader_emails
+resource "google_project_iam_member" "powerbi_group_service_usage_consumer" {
+  count   = var.environment == "prod" ? 1 : 0
   project  = var.project_id
   role     = "roles/serviceusage.serviceUsageConsumer"
-  member   = "user:${each.value}"
+  member   = "group:${var.powerbi_group_email}"
 }
 
 # Staging nativo paralelo: los destinos de los load jobs no pueden ser tablas
