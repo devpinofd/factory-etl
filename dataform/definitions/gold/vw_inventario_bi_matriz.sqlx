@@ -36,7 +36,8 @@ SELECT
     2
   ) AS `Bultos Tot`,
   r.cod_alm AS `Cód Alm`,
-  alm.nom_alm AS `Nom Alm`
+  alm.nom_alm AS `Nom Alm`,
+  r.source_empresa AS `Source Empresa`
 FROM ${ref("sil_renglones_almacenes")} r
 LEFT JOIN ${ref("dim_articulo")} art
   ON r.source_empresa = art.source_empresa

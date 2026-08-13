@@ -26,7 +26,8 @@ SELECT
   ven.nom_ven AS `Nombre Vendedor`,
   CAST(NULL AS STRING) AS `Web`,
   c.segmentacion1 AS `Atributo A`,
-  c.cod_suc AS `Sucursal`
+  c.cod_suc AS `Sucursal`,
+  c.source_empresa AS `Source Empresa`
 FROM ${ref("dim_cliente")} c
 LEFT JOIN ${ref("sil_ciudades")} ciu
   ON c.source_empresa = ciu.source_empresa
