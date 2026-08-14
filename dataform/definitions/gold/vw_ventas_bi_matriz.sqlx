@@ -37,7 +37,8 @@ SELECT
   v.dcto AS `Dcto`,
   v.tasa AS `Tasa`,
   v.neto_dcto AS `Neto_Dcto`,
-  v.source_empresa AS `Source Empresa`
+  v.source_empresa AS `Source Empresa`,
+  v.tipo_documento AS `Tipo Documento`
 FROM ${ref("fct_ventas_bi")} v
 LEFT JOIN ${ref("sil_articulos")} art
   ON v.source_empresa = art.source_empresa
