@@ -1,60 +1,25 @@
 config {
   type: "table",
-  disabled: dataform.projectConfig.vars.enableScd2 != "true",
   schema: "factory_etl_gold",
   name: "fct_inventario_snapshot",
-  description: "Hecho de snapshot periódico de inventario por empresa, fecha, almacén y artículo, con claves sustitutas SCD2.",
+  description: "Hecho de snapshot periódico de inventario por empresa, fecha, almacén y artículo, compatible con el modelo Gold legacy.",
   bigquery: {
     partitionBy: "snapshot_date",
-    clusterBy: ["source_empresa", "almacen_sk", "articulo_sk"]
+    clusterBy: ["source_empresa", "cod_alm", "cod_art"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "snapshot_date", "run_id", "cod_alm", "cod_art"],
-    nonNull: ["source_empresa", "snapshot_date", "run_id", "almacen_sk", "articulo_sk", "unidades_disponibles"]
+    nonNull: ["source_empresa", "snapshot_date", "run_id", "cod_alm", "cod_art", "unidades_disponibles"]
   }
 }
 
-WITH inventory AS (
-  SELECT
-    source_empresa,
-    snapshot_date,
-    run_id,
-    cod_alm,
-    cod_art,
-    exi_act1,
-    registro
-  FROM ${ref("sil_renglones_almacenes_historico")}
-),
-resolved AS (
-  SELECT
-    i.*,
-    a.surrogate_key AS almacen_sk,
-    ar.surrogate_key AS articulo_sk
-  FROM inventory i
-  LEFT JOIN ${ref("dim_almacen_scd2")} a
-    ON a.source_empresa = i.source_empresa
-   AND a.cod_alm = i.cod_alm
-   AND a.valid_from < TIMESTAMP_ADD(TIMESTAMP(i.snapshot_date), INTERVAL 1 DAY)
-   AND (a.valid_to IS NULL OR a.valid_to > TIMESTAMP(i.snapshot_date))
-  LEFT JOIN ${ref("dim_articulo_scd2")} ar
-    ON ar.source_empresa = i.source_empresa
-   AND ar.cod_art = i.cod_art
-   AND ar.valid_from < TIMESTAMP_ADD(TIMESTAMP(i.snapshot_date), INTERVAL 1 DAY)
-   AND (ar.valid_to IS NULL OR ar.valid_to > TIMESTAMP(i.snapshot_date))
-  QUALIFY ROW_NUMBER() OVER (
-    PARTITION BY i.source_empresa, i.snapshot_date, i.run_id, i.cod_alm, i.cod_art
-    ORDER BY a.valid_from DESC, ar.valid_from DESC
-  ) = 1
-)
 SELECT
-  source_empresa,
-  snapshot_date,
-  run_id,
-  cod_alm,
-  cod_art,
-  COALESCE(almacen_sk, "UNKNOWN") AS almacen_sk,
-  COALESCE(articulo_sk, "UNKNOWN") AS articulo_sk,
-  exi_act1 AS unidades_disponibles,
-  registro,
+  h.source_empresa,
+  h.snapshot_date,
+  h.run_id,
+  h.cod_alm,
+  h.cod_art,
+  h.exi_act1 AS unidades_disponibles,
+  h.registro,
   CURRENT_TIMESTAMP() AS _processed_at
-FROM resolved
+FROM ${ref("sil_renglones_almacenes_historico")} h
