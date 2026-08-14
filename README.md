@@ -49,6 +49,63 @@ flowchart TD
 
 ---
 
+## 🔐 2.1 Gobierno, cuotas y monitoreo del consumo BI
+
+El consumidor oficial de la capa Gold para Power BI es el grupo de Google
+Workspace **`bi-analistas@tinitot.com`**. El grupo debe ser la única identidad
+operativa para compartir los modelos y vistas BI; no se deben conceder permisos
+individuales a los analistas.
+
+### Accesos del grupo
+
+- `roles/bigquery.dataViewer` sobre `factory_etl_gold`.
+- `roles/bigquery.jobUser` para ejecutar consultas.
+- `roles/bigquery.metadataViewer` y `roles/bigquery.readSessionUser`.
+- `roles/serviceusage.serviceUsageConsumer`.
+- Las vistas Gold autorizadas pueden consultar sus dependencias Silver sin
+  exponer el dataset Silver directamente al grupo.
+
+### Cuotas y límites
+
+BigQuery no asigna cuotas de consulta directamente a un grupo de Google. El
+control debe implementarse mediante una combinación de:
+
+1. Proyecto de facturación/consumo BI separado cuando el volumen lo justifique.
+2. Reservas o asignaciones de BigQuery por proyecto si se requiere capacidad
+   dedicada.
+3. Presupuestos y alertas de Billing para `factory-etl-prod`.
+4. Power BI Import con actualización incremental, evitando DirectQuery.
+5. Revisión de bytes procesados y consultas por usuario.
+
+No se debe otorgar `roles/bigquery.dataViewer` sobre Silver o Bronze al grupo
+BI. La capa autorizada de consumo es Gold.
+
+### Consulta de monitoreo
+
+Los administradores pueden revisar el consumo reciente con:
+
+```sql
+SELECT
+  DATE(creation_time, 'America/Caracas') AS fecha,
+  user_email,
+  COUNT(*) AS consultas,
+  ROUND(SUM(total_bytes_processed) / POW(1024, 4), 4) AS tib_procesados,
+  ROUND(SUM(total_slot_ms) / 1000, 2) AS segundos_slot
+FROM `factory-etl-prod`.`region-us-central1`.INFORMATION_SCHEMA.JOBS_BY_PROJECT
+WHERE creation_time >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
+  AND job_type = 'QUERY'
+  AND statement_type = 'SELECT'
+GROUP BY fecha, user_email
+ORDER BY fecha DESC, tib_procesados DESC;
+```
+
+La membresía del grupo debe cruzarse con el resultado de la consulta para
+identificar el consumo atribuible a BI. Los refreshes deben programarse después
+de la consolidación Dataform y sus bytes procesados deben formar parte del
+control mensual de costos.
+
+---
+
 ## 🗂️ 3. Catálogo de las 19 Entidades de Ingesta
 
 El catálogo de consultas SQL en `src/factory_etl/factory_queries/` cubre 19 entidades versionadas:
