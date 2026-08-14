@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_estado",
+  description: "Dimensión Gold de estados, conformada por empresa y código de estado.",
+  bigquery: {
+    clusterBy: ["source_empresa", "cod_est"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_est"],
+    nonNull: ["source_empresa", "cod_est"]
+  }
+}
+
+SELECT * FROM ${ref("sil_estados")}

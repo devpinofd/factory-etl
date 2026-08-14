@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_impuesto",
+  description: "Dimensión Gold de impuestos, conformada por empresa y código de impuesto.",
+  bigquery: {
+    clusterBy: ["source_empresa", "cod_imp"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_imp"],
+    nonNull: ["source_empresa", "cod_imp"]
+  }
+}
+
+SELECT * FROM ${ref("sil_impuestos")}

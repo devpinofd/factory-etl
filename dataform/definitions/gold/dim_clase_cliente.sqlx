@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_clase_cliente",
+  description: "Dimensión Gold de clases de clientes, conformada por empresa y código de clase.",
+  bigquery: {
+    clusterBy: ["source_empresa", "cod_cla"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_cla"],
+    nonNull: ["source_empresa", "cod_cla"]
+  }
+}
+
+SELECT * FROM ${ref("sil_clases_clientes")}

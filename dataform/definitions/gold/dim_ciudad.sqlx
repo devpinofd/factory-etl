@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_ciudad",
+  description: "Dimensión Gold de ciudades, conformada por empresa y código de ciudad.",
+  bigquery: {
+    clusterBy: ["source_empresa", "cod_ciu"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_ciu"],
+    nonNull: ["source_empresa", "cod_ciu"]
+  }
+}
+
+SELECT * FROM ${ref("sil_ciudades")}

@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_pais",
+  description: "Dimensión Gold de países, conformada por empresa y código de país.",
+  bigquery: {
+    clusterBy: ["source_empresa", "cod_pai"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_pai"],
+    nonNull: ["source_empresa", "cod_pai"]
+  }
+}
+
+SELECT * FROM ${ref("sil_paises")}

@@ -1,0 +1,15 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "dim_concepto",
+  description: "Dimensión Gold de conceptos, conformada por empresa y código de concepto.",
+  bigquery: {
+    clusterBy: ["source_empresa", "cod_con"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_con"],
+    nonNull: ["source_empresa", "cod_con"]
+  }
+}
+
+SELECT * FROM ${ref("sil_conceptos")}
