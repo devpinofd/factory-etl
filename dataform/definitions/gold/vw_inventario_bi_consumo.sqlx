@@ -1,0 +1,62 @@
+config {
+  type: "view",
+  schema: "factory_etl_gold",
+  name: "vw_inventario_bi_consumo",
+  description: "Vista de consumo BI para cruce de inventario contra ventas. Parte de fct_inventario_snapshot y enriquece los atributos descriptivos en Gold.",
+}
+
+SELECT
+  i.source_empresa AS `Source Empresa`,
+  i.snapshot_date AS `Fecha Snapshot`,
+  i.run_id AS `Run ID`,
+  i.cod_alm AS `Cod Alm`,
+  alm.nom_alm AS `Nom Alm`,
+  i.cod_art AS `Cod Art`,
+  art.nom_art AS `Nom Art`,
+  art.modelo AS `Modelo`,
+  art.cod_mar AS `Cod Mar`,
+  mar.nom_mar AS `Nom Mar`,
+  art.cod_dep AS `Cod Dep`,
+  dep.nom_dep AS `Nom Dep`,
+  art.cod_pro AS `Cod Pro`,
+  pro.nom_pro AS `Nom Pro`,
+  art.cod_uni1 AS `Unidad`,
+  art.peso AS `Peso Unitario`,
+  art.fraccion AS `Fraccion Unitaria`,
+  art.cap_bulto AS `Uni Bulto`,
+  i.unidades_disponibles AS `Stock`,
+  ROUND(
+    SAFE_DIVIDE(
+      i.unidades_disponibles,
+      NULLIF(art.fraccion, 0)
+    ),
+    2
+  ) AS `Fracc Total`,
+  ROUND(
+    i.unidades_disponibles * COALESCE(art.peso, 0),
+    2
+  ) AS `Kilos`,
+  ROUND(
+    SAFE_DIVIDE(
+      i.unidades_disponibles,
+      COALESCE(NULLIF(art.cap_bulto, 0), NULLIF(art.fraccion, 0), 1)
+    ),
+    2
+  ) AS `Bultos Tot`,
+  i.registro AS `Registro`
+FROM ${ref("fct_inventario_snapshot")} i
+LEFT JOIN ${ref("dim_articulo")} art
+  ON i.source_empresa = art.source_empresa
+  AND i.cod_art = art.cod_art
+LEFT JOIN ${ref("dim_marca")} mar
+  ON art.source_empresa = mar.source_empresa
+  AND art.cod_mar = mar.cod_mar
+LEFT JOIN ${ref("dim_departamento")} dep
+  ON art.source_empresa = dep.source_empresa
+  AND art.cod_dep = dep.cod_dep
+LEFT JOIN ${ref("dim_proveedor")} pro
+  ON art.source_empresa = pro.source_empresa
+  AND art.cod_pro = pro.cod_pro
+LEFT JOIN ${ref("dim_almacen")} alm
+  ON i.source_empresa = alm.source_empresa
+  AND i.cod_alm = alm.cod_alm
