@@ -7,30 +7,30 @@ config {
 
 WITH clientes_validos AS (
   SELECT
-    c.source_empresa AS `Source Empresa`,
-    c.cod_cli AS `Cliente`,
-    c.nom_cli AS `Nombre`,
-    c.rif AS `RIF`,
-    c.cod_ven AS `Codigo Vendedor`,
-    c.cod_suc AS `Sucursal`,
-    c.cod_ciu AS `Codigo Ciudad`,
-    c.latitud AS `Latitud`,
-    c.longitud AS `Longitud`,
+    c.source_empresa,
+    c.cod_cli,
+    c.nom_cli,
+    c.rif,
+    c.cod_ven,
+    c.cod_suc,
+    c.cod_ciu,
+    c.latitud,
+    c.longitud,
     ST_GEOGPOINT(c.longitud, c.latitud) AS geografia
   FROM ${ref("dim_cliente")} c
   WHERE c.latitud BETWEEN -90 AND 90
     AND c.longitud BETWEEN -180 AND 180
 )
 SELECT
-  `Source Empresa`,
-  `Cliente`,
-  `Nombre`,
-  `RIF`,
-  `Codigo Vendedor`,
-  `Sucursal`,
-  `Codigo Ciudad`,
-  `Latitud`,
-  `Longitud`,
-  geografia AS `Geografia`,
-  S2_CELLIDFROMPOINT(geografia) AS `S2 Cell ID`
+  source_empresa,
+  cod_cli,
+  nom_cli,
+  rif,
+  cod_ven,
+  cod_suc,
+  cod_ciu,
+  latitud,
+  longitud,
+  geografia,
+  S2_CELLIDFROMPOINT(geografia) AS s2_cell_id
 FROM clientes_validos
