@@ -1,0 +1,36 @@
+config {
+  type: "view",
+  schema: "factory_etl_gold",
+  name: "vw_clientes_geoespacial_bi",
+  description: "Vista geoespacial de clientes para Power BI. Expone coordenadas válidas y la celda S2 nativa de BigQuery para análisis de densidad y cruce con ventas.",
+}
+
+WITH clientes_validos AS (
+  SELECT
+    c.source_empresa AS `Source Empresa`,
+    c.cod_cli AS `Cliente`,
+    c.nom_cli AS `Nombre`,
+    c.rif AS `RIF`,
+    c.cod_ven AS `Codigo Vendedor`,
+    c.cod_suc AS `Sucursal`,
+    c.cod_ciu AS `Codigo Ciudad`,
+    c.latitud AS `Latitud`,
+    c.longitud AS `Longitud`,
+    ST_GEOGPOINT(c.longitud, c.latitud) AS geografia
+  FROM ${ref("dim_cliente")} c
+  WHERE c.latitud BETWEEN -90 AND 90
+    AND c.longitud BETWEEN -180 AND 180
+)
+SELECT
+  `Source Empresa`,
+  `Cliente`,
+  `Nombre`,
+  `RIF`,
+  `Codigo Vendedor`,
+  `Sucursal`,
+  `Codigo Ciudad`,
+  `Latitud`,
+  `Longitud`,
+  geografia AS `Geografia`,
+  S2_CELLIDFROMPOINT(geografia) AS `S2 Cell ID`
+FROM clientes_validos
