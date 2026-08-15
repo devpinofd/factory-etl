@@ -43,7 +43,7 @@ variable "additional_control_dataset_id" {
 variable "control_dataset_location" {
   description = "Ubicacion del dataset BQ. US multi-region para queries cross-region baratas."
   type        = string
-  default     = "US"
+  default     = "us-central1"
 }
 
 variable "partition_control_tables" {
@@ -55,7 +55,7 @@ variable "partition_control_tables" {
 variable "artifact_repo_id" {
   description = "ID del repositorio Artifact Registry Docker. Prod usa un nombre distinto al de dev (creado fuera de Terraform)."
   type        = string
-  default     = "factory-etl"
+  default     = "factory-etl-repo"
 }
 
 variable "service_account_name" {
