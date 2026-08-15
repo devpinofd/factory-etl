@@ -362,7 +362,7 @@ module "workflows" {
   project_id                  = var.project_id
   region                      = var.region
   workflow_name               = local.daily_workflow_name
-  consolidation_workflow_name = var.environment == "prod" ? "" : local.consolidation_workflow_name
+  consolidation_workflow_name = local.consolidation_workflow_name
   enable_scd2                 = local.enable_scd2
   job_name                    = module.cloud_run_job.job_name
   bucket_name                 = module.storage.bronze_bucket_name
@@ -380,7 +380,7 @@ module "workflows_full" {
   project_id                  = var.project_id
   region                      = var.region
   workflow_name               = local.full_workflow_name
-  consolidation_workflow_name = var.environment == "prod" ? "" : local.consolidation_workflow_name
+  consolidation_workflow_name = local.consolidation_workflow_name
   enable_scd2                 = local.enable_scd2
   job_name                    = module.cloud_run_job.job_name
   bucket_name                 = module.storage.bronze_bucket_name

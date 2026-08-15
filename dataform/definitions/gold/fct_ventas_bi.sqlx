@@ -65,4 +65,4 @@ LEFT JOIN ${ref("sil_departamentos")} dep
 LEFT JOIN ${ref("sil_proveedores")} pro
   ON v.source_empresa = pro.source_empresa AND v.cod_pro = pro.cod_pro
 WHERE DATE(v.registro) >= DATE '2025-01-01'
-  AND DATE(v.registro) < DATE '2027-01-01'
+  AND DATE(v.registro) <= CURRENT_DATE()
