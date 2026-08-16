@@ -1,0 +1,6 @@
+config {
+  type: "declaration",
+  schema: "factory_etl_bronze_stg",
+  name: "stg_ventas_diarias_snapshot",
+  description: "Snapshot histórico de ventas conservado en staging para backfill no destructivo de períodos anteriores al cutover."
+}

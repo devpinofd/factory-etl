@@ -124,6 +124,15 @@ deduplicated AS (
     PARTITION BY source_empresa, tipo_documento, cod_suc, documento, SAFE_CAST(renglon AS INT64)
     ORDER BY source_priority DESC, _ingested_at DESC
   ) = 1
+),
+enriched AS (
+  SELECT
+    v.*,
+    COALESCE(NULLIF(TRIM(v.cod_pro), ''), a.cod_pro) AS cod_pro_resolved
+  FROM deduplicated v
+  LEFT JOIN ${ref("sil_articulos")} a
+    ON v.source_empresa = a.source_empresa
+    AND TRIM(v.cod_art) = a.cod_art
 )
 SELECT
   source_empresa,
@@ -147,7 +156,7 @@ SELECT
   ${helpers.trimStr("nom_dep")} AS nom_dep,
   ${helpers.trimStr("cod_sec")} AS cod_sec,
   ${helpers.trimStr("modelo")} AS modelo,
-  ${helpers.trimStr("cod_pro")} AS cod_pro,
+  ${helpers.trimStr("cod_pro_resolved")} AS cod_pro,
   ${helpers.trimStr("nom_pro")} AS nom_pro,
   ${helpers.trimStr("nom_art")} AS nom_art,
   ${helpers.trimStr("cod_uni1")} AS cod_uni1,
@@ -162,7 +171,7 @@ SELECT
   ${helpers.toNumeric("tasa")} AS tasa,
   ${helpers.toNumeric("neto_dcto")} AS neto_dcto,
   _ingested_at
-FROM deduplicated
+FROM enriched
 -- 🔒 Filtro de calidad: excluye filas que no cumplen campos requeridos (ver sil_*_rechazados)
 WHERE
   (tipo_documento IS NOT NULL AND TRIM(CAST(tipo_documento AS STRING)) != '')

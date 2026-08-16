@@ -8,7 +8,7 @@ config {
     clusterBy: ["source_empresa", "cod_mon"]
   },
   assertions: {
-    uniqueKey: ["source_empresa", "cod_mon", "renglon"],
+    uniqueKey: ["source_empresa", "cod_mon", "renglon", "registro"],
     nonNull: ["source_empresa", "cod_mon", "renglon", "registro"]
   }
 }
@@ -30,6 +30,6 @@ WHERE
   AND renglon IS NOT NULL
 
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY source_empresa, cod_mon, renglon
+  PARTITION BY source_empresa, cod_mon, renglon, registro
   ORDER BY _ingested_at DESC
 ) = 1

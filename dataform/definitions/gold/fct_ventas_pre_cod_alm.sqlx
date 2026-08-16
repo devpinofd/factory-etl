@@ -35,3 +35,28 @@ SELECT
   v.neto_dcto
 FROM ${ref("sil_ventas_diarias")} v
 WHERE DATE(v.registro) < DATE '2026-08-10'
+
+UNION ALL
+
+SELECT
+  h.source_empresa,
+  TRIM(h.tipo_documento) AS tipo_documento,
+  TRIM(h.cod_suc) AS cod_suc,
+  TRIM(h.documento) AS documento,
+  CAST(h.renglon AS INT64) AS renglon,
+  ${helpers.toTimestamp("h.registro")} AS registro,
+  TRIM(h.cod_ven) AS cod_ven,
+  TRIM(h.cod_cli) AS cod_cli,
+  TRIM(h.cod_art) AS cod_art,
+  TRIM(h.cod_suc) AS cod_alm,
+  TRIM(h.cod_pro) AS cod_pro,
+  TRIM(h.cod_mon) AS cod_mon,
+  TRIM(h.cod_imp) AS cod_imp,
+  h.can_ven AS unidades_vendidas,
+  h.monto_bruto,
+  h.neto,
+  h.dcto,
+  h.tasa,
+  h.neto_dcto
+FROM ${ref("stg_ventas_diarias_snapshot")} h
+WHERE DATE(${helpers.toTimestamp("h.registro")}) < DATE '2026-01-05'

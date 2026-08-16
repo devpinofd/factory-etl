@@ -12,4 +12,5 @@ config {
   }
 }
 
-SELECT * FROM ${ref("sil_clientes")}
+SELECT * REPLACE (CAST(gps AS STRING) AS gps)
+FROM ${ref("sil_clientes")}

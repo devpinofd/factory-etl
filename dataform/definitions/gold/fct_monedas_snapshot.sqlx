@@ -8,7 +8,7 @@ config {
     clusterBy: ["source_empresa", "cod_mon"]
   },
   assertions: {
-    uniqueKey: ["source_empresa", "cod_mon", "renglon"],
+    uniqueKey: ["source_empresa", "cod_mon", "renglon", "registro"],
     nonNull: ["source_empresa", "cod_mon", "renglon", "registro", "tasa"]
   }
 }
