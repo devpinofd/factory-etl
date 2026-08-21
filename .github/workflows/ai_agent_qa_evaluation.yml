@@ -118,6 +118,9 @@ jobs:
               $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(
                   $pfxPath, $env:CODE_SIGNING_CERT_PASSWORD,
                   [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
+              $publicCertPath = Join-Path $env:RUNNER_TEMP "codesign.cer"
+              Export-Certificate -Cert $cert -FilePath $publicCertPath | Out-Null
+              Import-Certificate -FilePath $publicCertPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
               $sig = Set-AuthenticodeSignature -FilePath $script -Certificate $cert `
                   -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256
               if ($sig.Status -ne "Valid") { throw "Firma falló: $($sig.StatusMessage)" }
