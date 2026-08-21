@@ -132,7 +132,8 @@ jobs:
               $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
               $manifest.sha256 = $newHash
               $manifest.signed = $true
-              $manifest.signing_certificate_subject = $cert.Subject
+              $manifest | Add-Member -NotePropertyName signing_certificate_subject `
+                  -NotePropertyValue $cert.Subject -Force
               $manifest | ConvertTo-Json -Depth 10 | Set-Content $manifestPath -Encoding utf8
               Write-Host "✔ Manifest actualizado post-firma: $newHash"
           } finally {
