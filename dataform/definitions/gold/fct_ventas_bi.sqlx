@@ -9,7 +9,16 @@ config {
   },
   assertions: {
     uniqueKey: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
-    nonNull: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon", "registro"]
+    nonNull: [
+      "source_empresa",
+      "tipo_documento",
+      "cod_suc",
+      "documento",
+      "renglon",
+      "registro",
+      "nom_est",
+      "nom_ciu"
+    ]
   }
 }
 
@@ -26,8 +35,8 @@ SELECT
   cli.nom_cli,
   cli.rif,
   CAST(NULL AS STRING) AS nom_cla,
-  CAST(NULL AS STRING) AS nom_est,
-  CAST(NULL AS STRING) AS nom_ciu,
+  est.nom_est,
+  ciu.nom_ciu,
   v.cod_art,
   art.nom_art,
   v.cod_alm,
@@ -54,6 +63,10 @@ SELECT
 FROM ${ref("fct_ventas_gold")} v
 LEFT JOIN ${ref("sil_clientes")} cli
   ON v.source_empresa = cli.source_empresa AND v.cod_cli = cli.cod_cli
+LEFT JOIN ${ref("sil_estados")} est
+  ON cli.source_empresa = est.source_empresa AND cli.cod_est = est.cod_est
+LEFT JOIN ${ref("sil_ciudades")} ciu
+  ON cli.source_empresa = ciu.source_empresa AND cli.cod_ciu = ciu.cod_ciu
 LEFT JOIN ${ref("sil_vendedores")} ven
   ON v.source_empresa = ven.source_empresa AND v.cod_ven = ven.cod_ven
 LEFT JOIN ${ref("sil_articulos")} art
