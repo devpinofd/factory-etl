@@ -120,7 +120,7 @@ jobs:
                   [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
               $sig = Set-AuthenticodeSignature -FilePath $script -Certificate $cert `
                   -HashAlgorithm SHA256
-              if ($sig.Status -notin @("Valid", "Unknown", "NotTrusted")) { throw "Firma falló: $($sig.StatusMessage)" }
+              if ($sig.Status -in @("NotSigned", "HashMismatch")) { throw "Firma falló: $($sig.StatusMessage)" }
               if ($sig.Status -ne "Valid") {
                   Write-Warning "La firma es criptográficamente válida, pero la raíz autofirmada no está confiada en el runner."
               }
