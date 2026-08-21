@@ -57,6 +57,8 @@ dev = [
 target-version = "py312"
 line-length = 100
 src = ["src", "tests"]
+# Herramientas operativas y prototipos tienen ciclos de calidad independientes.
+extend-exclude = ["agents", "scratch"]
 
 [tool.ruff.lint]
 select = [

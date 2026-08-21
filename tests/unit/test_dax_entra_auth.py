@@ -7,13 +7,7 @@ from pathlib import Path
 
 import pytest
 
-AUTH_PATH = (
-    Path(__file__).parents[2]
-    / "agents"
-    / "dax_copilot"
-    / "proxy"
-    / "entra_auth.py"
-)
+AUTH_PATH = Path(__file__).parents[2] / "agents" / "dax_copilot" / "proxy" / "entra_auth.py"
 SPEC = importlib.util.spec_from_file_location("dax_entra_auth", AUTH_PATH)
 assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)

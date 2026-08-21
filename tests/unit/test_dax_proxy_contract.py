@@ -6,11 +6,7 @@ from pathlib import Path
 import pytest
 
 VALIDATION_PATH = (
-    Path(__file__).parents[2]
-    / "agents"
-    / "dax_copilot"
-    / "proxy"
-    / "request_validation.py"
+    Path(__file__).parents[2] / "agents" / "dax_copilot" / "proxy" / "request_validation.py"
 )
 SPEC = importlib.util.spec_from_file_location("dax_request_validation", VALIDATION_PATH)
 assert SPEC and SPEC.loader
