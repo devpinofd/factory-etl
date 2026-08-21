@@ -91,7 +91,7 @@ jobs:
           with open(script_path, "rb") as f:
               current_hash = hashlib.sha256(f.read()).hexdigest().upper()
           
-          with open(manifest_path, "r", encoding="utf-8") as f:
+          with open(manifest_path, "r", encoding="utf-8-sig") as f:
               manifest = json.load(f)
               
           assert manifest.get("sha256") == current_hash, f"Discrepancia SHA256: Esperado {manifest.get('sha256')}, Calculado {current_hash}"
