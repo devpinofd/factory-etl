@@ -158,7 +158,8 @@ jobs:
   deploy-to-azure-hub:
     name: ☁️ Desplegar a Azure Storage Hub (Solo en Merge a Main)
     needs: validate-agent-integrity
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
 
     steps:
