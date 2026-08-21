@@ -1,0 +1,3 @@
+agents/dax_copilot/client/*.ps1 text eol=lf
+agents/dax_copilot/client/*.bat text eol=crlf
+agents/dax_copilot/client/manifest.json text eol=lf
