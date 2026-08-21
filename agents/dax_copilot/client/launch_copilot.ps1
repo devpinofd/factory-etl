@@ -18,6 +18,14 @@ $manifestUrl = $env:DAX_COPILOT_MANIFEST_URL
 # LAN Fallback Path
 $lanScriptPath = $env:DAX_COPILOT_LAN_SCRIPT_PATH
 $lanManifestPath = $env:DAX_COPILOT_LAN_MANIFEST_PATH
+if (-not $lanScriptPath -and -not $scriptUrl -and -not $manifestUrl) {
+    $bundledScript = Join-Path $PSScriptRoot "pbi_copilot_assistant.ps1"
+    $bundledManifest = Join-Path $PSScriptRoot "manifest.json"
+    if ((Test-Path $bundledScript) -and (Test-Path $bundledManifest)) {
+        $lanScriptPath = $bundledScript
+        $lanManifestPath = $bundledManifest
+    }
+}
 if ($lanScriptPath -and -not $lanManifestPath) {
     $candidateManifest = Join-Path (Split-Path $lanScriptPath -Parent) "manifest.json"
     if (Test-Path $candidateManifest) {
@@ -31,7 +39,8 @@ $adminContact = if ($env:DAX_COPILOT_ADMIN_CONTACT) {
 }
 
 if ((-not $lanScriptPath) -and (-not $scriptUrl -or -not $manifestUrl)) {
-    Write-Host "Error: configura DAX_COPILOT_SCRIPT_URL y DAX_COPILOT_MANIFEST_URL." -ForegroundColor Red
+    Write-Host "Error: configura DAX_COPILOT_SCRIPT_URL y DAX_COPILOT_MANIFEST_URL," -ForegroundColor Red
+    Write-Host "o DAX_COPILOT_LAN_SCRIPT_PATH y DAX_COPILOT_LAN_MANIFEST_PATH." -ForegroundColor Red
     exit 1
 }
 
@@ -111,12 +120,6 @@ if (-not $scriptToRun) {
     if (Test-Path $localCachedScript) {
         Write-Host "ℹ Modo Offline: Utilizando versión local cacheada previamente verificada." -ForegroundColor Yellow
         $scriptToRun = $localCachedScript
-    } else {
-        # Fallback al archivo local del repositorio de desarrollo
-        $devScript = Join-Path $PSScriptRoot "pbi_copilot_assistant.ps1"
-        if (Test-Path $devScript) {
-            $scriptToRun = $devScript
-        }
     }
 }
 

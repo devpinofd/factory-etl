@@ -135,16 +135,21 @@ recurso compartido interno. Ejemplo para una estación Windows:
 az login --tenant e9545efd-83a8-4b56-a297-1c05c7d1f51b `
   --scope api://e9545efd-83a8-4b56-a297-1c05c7d1f51b/func-dax-copilot-proxy-auth/access_as_user
 
+$packageDir = (Get-Location).Path
 .\install_copilot.ps1 `
   -ProxyUrl "https://func-dax-copilot-proxy.azurewebsites.net/api/chat-stream" `
-  -Audience "api://e9545efd-83a8-4b56-a297-1c05c7d1f51b/func-dax-copilot-proxy-auth"
+  -Audience "api://e9545efd-83a8-4b56-a297-1c05c7d1f51b/func-dax-copilot-proxy-auth" `
+  -LanScriptPath (Join-Path $packageDir "pbi_copilot_assistant.ps1") `
+  -LanManifestPath (Join-Path $packageDir "manifest.json")
 ```
 
 La cuenta de Storage de distribución es privada; no se deben abrir los blobs
 al público ni incrustar SAS permanentes en el instalador. El pipeline publica
 los artefactos y el mecanismo corporativo de distribución debe entregar
 `install_copilot.ps1`, `launch_copilot.ps1` y `launch_copilot.bat` desde una
-fuente interna aprobada.
+fuente interna aprobada, junto con `pbi_copilot_assistant.ps1` y
+`manifest.json`. Si el launcher se ejecuta directamente desde ese paquete,
+autodetecta ambos artefactos y verifica el hash antes de iniciar.
 
 ### Firma Authenticode (opcional, recomendada)
 
