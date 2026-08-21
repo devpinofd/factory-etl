@@ -62,7 +62,7 @@ jobs:
           for t in tests:
               assert "id" in t and "dax_esperado" in t and "criterio" in t, f"Test inválido: {t}"
               assert t["criterio"] in allowed, f"Criterio no soportado: {t['criterio']}"
-          print(f"✔ Golden Dataset validado con {len(tests)} casos de prueba.")
+          print(f"[OK] Golden Dataset validado con {len(tests)} casos de prueba.")
 
       - name: 🧠 Validar prompt del sistema versionado
         shell: python
@@ -78,7 +78,7 @@ jobs:
           ]
           for token in required:
               assert token in content, f"Sección obligatoria ausente en prompt: {token}"
-          print(f"✔ Prompt del sistema validado ({len(content)} caracteres).")
+          print(f"[OK] Prompt del sistema validado ({len(content)} caracteres).")
 
       - name: 🔒 Verificar Hash SHA-256 en Manifest
         shell: python
@@ -94,7 +94,7 @@ jobs:
               manifest = json.load(f)
               
           assert manifest.get("sha256") == current_hash, f"Discrepancia SHA256: Esperado {manifest.get('sha256')}, Calculado {current_hash}"
-          print(f"✔ Integridad criptográfica SHA-256 verificada: {current_hash}")
+          print(f"[OK] Integridad criptográfica SHA-256 verificada: {current_hash}")
 
       - name: 🔏 Firmar script del cliente (si hay certificado disponible)
         shell: pwsh
