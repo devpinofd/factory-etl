@@ -12,6 +12,7 @@ SELECT
   documento,
   renglon,
   registro,
+  DATE(registro) AS fec_ini,
   cod_ven,
   nom_ven,
   cod_cli,

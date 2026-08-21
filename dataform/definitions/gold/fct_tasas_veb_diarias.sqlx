@@ -1,0 +1,41 @@
+config {
+  type: "table",
+  schema: "factory_etl_gold",
+  name: "fct_tasas_veb_diarias",
+  description: "Hecho diario deduplicado de tasas VEB desde 2025-01-01 hasta 2026-08-17. El grano es empresa, moneda y día de registro.",
+  bigquery: {
+    partitionBy: "fecha_registro",
+    clusterBy: ["source_empresa", "cod_mon"]
+  },
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_mon", "fecha_registro"],
+    nonNull: ["source_empresa", "cod_mon", "fecha_registro", "tasa"]
+  }
+}
+
+WITH tasas AS (
+  SELECT
+    source_empresa,
+    cod_mon,
+    fecha,
+    tasa,
+    comentario,
+    registro,
+    DATE(registro) AS fecha_registro
+  FROM ${ref("fct_monedas_snapshot")}
+  WHERE cod_mon = "VEB"
+    AND DATE(registro) BETWEEN DATE "2025-01-01" AND DATE "2026-08-17"
+)
+SELECT
+  source_empresa,
+  cod_mon,
+  fecha,
+  tasa,
+  comentario,
+  registro,
+  fecha_registro
+FROM tasas
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY source_empresa, cod_mon, fecha_registro
+  ORDER BY registro DESC
+) = 1
