@@ -210,12 +210,6 @@ jobs:
             agents/dax_copilot/proxy/host.json \
             agents/dax_copilot/proxy/requirements.txt
 
-          az functionapp deployment source config-zip \
-            --resource-group "$AZURE_RESOURCE_GROUP" \
-            --name "$AZURE_FUNCTION_APP" \
-            --src .release/proxy/proxy_package.zip \
-            --build-remote true
-
           az storage blob upload \
             --account-name "$AZURE_STORAGE_ACCOUNT" \
             --container-name "$AZURE_STORAGE_CONTAINER" \
@@ -251,6 +245,23 @@ jobs:
             --auth-mode login \
             --overwrite true \
             --content-type text/plain
+
+          for attempt in 1 2 3; do
+            if az functionapp deployment source config-zip \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name "$AZURE_FUNCTION_APP" \
+              --src .release/proxy/proxy_package.zip \
+              --build-remote true; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Azure Function ZIP deployment failed after $attempt attempts." >&2
+              exit 1
+            fi
+            sleep_seconds=$((attempt * 60))
+            echo "Azure deployment is busy; retrying in ${sleep_seconds}s." >&2
+            sleep "$sleep_seconds"
+          done
 
       - name: ✅ Verificar despliegue activo
         env:
