@@ -122,7 +122,7 @@ jobs:
               Export-Certificate -Cert $cert -FilePath $publicCertPath | Out-Null
               Import-Certificate -FilePath $publicCertPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
               $sig = Set-AuthenticodeSignature -FilePath $script -Certificate $cert `
-                  -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256
+                  -HashAlgorithm SHA256
               if ($sig.Status -ne "Valid") { throw "Firma falló: $($sig.StatusMessage)" }
               Write-Host "✔ Script firmado con $($cert.Subject)" -ForegroundColor Green
 
