@@ -5,13 +5,9 @@ import json
 import logging
 from pathlib import Path
 
-TELEMETRY_PATH = (
-    Path(__file__).parents[2]
-    / "agents"
-    / "dax_copilot"
-    / "proxy"
-    / "telemetry.py"
-)
+import pytest
+
+TELEMETRY_PATH = Path(__file__).parents[2] / "agents" / "dax_copilot" / "proxy" / "telemetry.py"
 SPEC = importlib.util.spec_from_file_location("dax_telemetry", TELEMETRY_PATH)
 assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -25,7 +21,9 @@ def test_subject_is_pseudonymized() -> None:
     assert "user@example.com" not in MODULE.pseudonymize_subject("user@example.com")
 
 
-def test_event_is_structured_and_does_not_log_subject(caplog, monkeypatch) -> None:
+def test_event_is_structured_and_does_not_log_subject(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("DAX_COPILOT_SUCCESS_SAMPLE_PERCENT", "100")
     with caplog.at_level(logging.INFO):
         event_id = MODULE.emit_event(
@@ -76,14 +74,16 @@ def test_build_dcr_record_maps_suffixes() -> None:
     assert "attributes_s" in record
 
 
-def test_dcr_url_requires_configuration(monkeypatch) -> None:
+def test_dcr_url_requires_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DAX_COPILOT_DCE_INGESTION_ENDPOINT", raising=False)
     monkeypatch.delenv("DAX_COPILOT_DCR_IMMUTABLE_ID", raising=False)
-    MODULE._DCR_INGESTION_URL = None
+    monkeypatch.setattr(MODULE, "_DCR_INGESTION_URL", None)
     assert MODULE._dcr_ingestion_url() is None
-    monkeypatch.setenv("DAX_COPILOT_DCE_INGESTION_ENDPOINT", "https://dce.example.ingest.monitor.azure.com")
+    monkeypatch.setenv(
+        "DAX_COPILOT_DCE_INGESTION_ENDPOINT", "https://dce.example.ingest.monitor.azure.com"
+    )
     monkeypatch.setenv("DAX_COPILOT_DCR_IMMUTABLE_ID", "dcr-abc123")
-    MODULE._DCR_INGESTION_URL = None
+    monkeypatch.setattr(MODULE, "_DCR_INGESTION_URL", None)
     url = MODULE._dcr_ingestion_url()
     assert url and "dcr-abc123" in url and "Custom-DaxCopilotEvent_CL" in url
-    MODULE._DCR_INGESTION_URL = None
+    monkeypatch.setattr(MODULE, "_DCR_INGESTION_URL", None)

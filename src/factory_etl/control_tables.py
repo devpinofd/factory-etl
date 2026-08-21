@@ -300,7 +300,10 @@ class ControlTables:
             # estructuralmente compatible en runtime; el cast es solo para
             # el type checker.
             self._client = cast(
-                "_BigQueryClient", bigquery.Client(project=self._settings.gcp_project, location=self._settings.gcp_region)
+                "_BigQueryClient",
+                bigquery.Client(
+                    project=self._settings.gcp_project, location=self._settings.gcp_region
+                ),
             )
         return self._client
 
