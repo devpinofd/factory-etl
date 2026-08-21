@@ -1,0 +1,9 @@
+﻿{
+    "name":  "Tinito-DAX-Copilot",
+    "version":  "1.3.0",
+    "releaseDate":  "2026-08-21",
+    "sha256":  "992625B3CC83121019E48B30D9DFFB8859793229630B6954ED544A452F3FADCD",
+    "minPowerShellVersion":  "5.1",
+    "signed":  false,
+    "changelog":  "Fase 3: DCR Log Analytics, muestreo de telemetria, rollback TOM, distribucion Entra y soporte de firma Authenticode condicional."
+}

@@ -1,0 +1,261 @@
+name: 🤖 DAX Copilot AI-Agent QA & CI/CD Pipeline
+
+on:
+  pull_request:
+    paths:
+      - 'agents/dax_copilot/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'agents/dax_copilot/**'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  validate-agent-integrity:
+    name: 🛡️ Validar Integridad, Guardrails y Sintaxis del Agente
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Clonar Repositorio
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 🧪 Ejecutar contratos del proxy y telemetría
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip pytest ruff
+          ruff check agents/dax_copilot/proxy tests/unit/test_dax_*.py
+          pytest -q -o addopts="" tests/unit/test_dax_proxy_contract.py tests/unit/test_dax_entra_auth.py tests/unit/test_dax_telemetry.py
+
+      - name: 🧪 Validar Sintaxis de Scripts PowerShell
+        shell: pwsh
+        run: |
+          $scripts = Get-ChildItem -Path "agents/dax_copilot/client/*.ps1" -Recurse
+          foreach ($s in $scripts) {
+              $errs = $null
+              [System.Management.Automation.Language.Parser]::ParseFile($s.FullName, [ref]$null, [ref]$errs)
+              if ($errs.Count -gt 0) {
+                  Write-Error "Error de sintaxis en $($s.Name): $errs"
+                  exit 1
+              }
+              Write-Host "✔ $($s.Name) sintaxis validada correctamente." -ForegroundColor Green
+          }
+
+      - name: 📋 Validar Esquema de Golden Dataset
+        shell: python
+        run: |
+          import json, os
+          path = "agents/dax_copilot/qa_judge/golden_dataset.json"
+          assert os.path.exists(path), "golden_dataset.json no existe"
+          with open(path, "r", encoding="utf-8") as f:
+              tests = json.load(f)
+          assert len(tests) >= 12, "Se requieren al menos 12 casos de prueba en el Golden Dataset"
+          allowed = {"ExactNumeric", "NonZeroNumeric", "PercentageRange", "RowCountExact", "RowCountMinimum", "NonNegativeNumeric"}
+          for t in tests:
+              assert "id" in t and "dax_esperado" in t and "criterio" in t, f"Test inválido: {t}"
+              assert t["criterio"] in allowed, f"Criterio no soportado: {t['criterio']}"
+          print(f"✔ Golden Dataset validado con {len(tests)} casos de prueba.")
+
+      - name: 🧠 Validar prompt del sistema versionado
+        shell: python
+        run: |
+          from pathlib import Path
+          prompt_path = Path("agents/dax_copilot/prompts/system_prompt_v1.0.md")
+          content = prompt_path.read_text(encoding="utf-8")
+          required = [
+              "PRINCIPIOS DE EJECUCIÓN DETERMINISTA",
+              "REGLAS DE ORO DE MODELADO Y VERTIIPAQ",
+              "ESTÁNDAR DE DOCUMENTACIÓN DE MEDIDAS",
+              "COMANDOS ESPECIALES DE CONTROL",
+          ]
+          for token in required:
+              assert token in content, f"Sección obligatoria ausente en prompt: {token}"
+          print(f"✔ Prompt del sistema validado ({len(content)} caracteres).")
+
+      - name: 🔒 Verificar Hash SHA-256 en Manifest
+        shell: python
+        run: |
+          import hashlib, json, os
+          script_path = "agents/dax_copilot/client/pbi_copilot_assistant.ps1"
+          manifest_path = "agents/dax_copilot/client/manifest.json"
+          
+          with open(script_path, "rb") as f:
+              current_hash = hashlib.sha256(f.read()).hexdigest().upper()
+          
+          with open(manifest_path, "r", encoding="utf-8") as f:
+              manifest = json.load(f)
+              
+          assert manifest.get("sha256") == current_hash, f"Discrepancia SHA256: Esperado {manifest.get('sha256')}, Calculado {current_hash}"
+          print(f"✔ Integridad criptográfica SHA-256 verificada: {current_hash}")
+
+      - name: 🔏 Firmar script del cliente (si hay certificado disponible)
+        shell: pwsh
+        env:
+          CODE_SIGNING_CERT_PFX: ${{ secrets.CODE_SIGNING_CERT_PFX }}
+          CODE_SIGNING_CERT_PASSWORD: ${{ secrets.CODE_SIGNING_CERT_PASSWORD }}
+        run: |
+          $script = "agents/dax_copilot/client/pbi_copilot_assistant.ps1"
+          if (-not $env:CODE_SIGNING_CERT_PFX) {
+              Write-Warning "CODE_SIGNING_CERT_PFX no configurado; se omite la firma Authenticode (solo hash SHA-256)."
+              exit 0
+          }
+          if (-not $env:CODE_SIGNING_CERT_PASSWORD) {
+              throw "CODE_SIGNING_CERT_PASSWORD es obligatorio cuando CODE_SIGNING_CERT_PFX está configurado."
+          }
+          $pfxBytes = [Convert]::FromBase64String($env:CODE_SIGNING_CERT_PFX)
+          $pfxPath = Join-Path $env:RUNNER_TEMP "codesign.pfx"
+          [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          try {
+              $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(
+                  $pfxPath, $env:CODE_SIGNING_CERT_PASSWORD,
+                  [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
+              $sig = Set-AuthenticodeSignature -FilePath $script -Certificate $cert `
+                  -TimestampServer "http://timestamp.digicert.com" -HashAlgorithm SHA256
+              if ($sig.Status -ne "Valid") { throw "Firma falló: $($sig.StatusMessage)" }
+              Write-Host "✔ Script firmado con $($cert.Subject)" -ForegroundColor Green
+
+              # Recalcular hash en el manifest tras la firma
+              $manifestPath = "agents/dax_copilot/client/manifest.json"
+              $newHash = (Get-FileHash $script -Algorithm SHA256).Hash
+              $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+              $manifest.sha256 = $newHash
+              $manifest.signed = $true
+              $manifest.signing_certificate_subject = $cert.Subject
+              $manifest | ConvertTo-Json -Depth 10 | Set-Content $manifestPath -Encoding utf8
+              Write-Host "✔ Manifest actualizado post-firma: $newHash"
+          } finally {
+              Remove-Item $pfxPath -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: 📦 Preparar artefactos del cliente
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path ".release" -Force | Out-Null
+          Compress-Archive `
+           -Path "agents/dax_copilot/client/pbi_copilot_assistant.ps1", "agents/dax_copilot/client/manifest.json" `
+           -DestinationPath ".release/client-artifacts.zip" -Force
+
+      - name: ⬆️ Publicar artefactos firmados
+        uses: actions/upload-artifact@v4
+        with:
+          name: dax-copilot-client
+          path: .release/client-artifacts.zip
+          if-no-files-found: error
+
+  deploy-to-azure-hub:
+    name: ☁️ Desplegar a Azure Storage Hub (Solo en Merge a Main)
+    needs: validate-agent-integrity
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clonar Repositorio
+        uses: actions/checkout@v4
+
+      - name: ⬇️ Descargar artefactos validados
+        uses: actions/download-artifact@v4
+        with:
+          name: dax-copilot-client
+          path: .release
+
+      - name: 📦 Aplicar artefactos del cliente
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -o .release/client-artifacts.zip \
+            -d agents/dax_copilot/client
+
+      - name: 🔑 Iniciar Sesión en Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: 🔎 Verificar contexto Azure CLI
+        shell: bash
+        run: |
+          az account show \
+            --query "{subscription:id,tenant:tenantId,user:user.name}" \
+            --output json
+
+      - name: 🚀 Publicar en Azure Storage Hub
+        env:
+          AZURE_RESOURCE_GROUP: rg-powerbi-ai-prod
+          AZURE_FUNCTION_APP: func-dax-copilot-proxy
+          AZURE_STORAGE_ACCOUNT: stpbicopilotprod
+          AZURE_STORAGE_CONTAINER: agent
+        run: |
+          set -euo pipefail
+          mkdir -p .release/proxy
+          zip -j .release/proxy/proxy_package.zip \
+            agents/dax_copilot/proxy/function_app.py \
+            agents/dax_copilot/proxy/entra_auth.py \
+            agents/dax_copilot/proxy/request_validation.py \
+            agents/dax_copilot/proxy/telemetry.py \
+            agents/dax_copilot/proxy/host.json \
+            agents/dax_copilot/proxy/requirements.txt
+
+          az functionapp deployment source config-zip \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_FUNCTION_APP" \
+            --src .release/proxy/proxy_package.zip \
+            --build-remote true
+
+          az storage blob upload \
+            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --container-name "$AZURE_STORAGE_CONTAINER" \
+            --name pbi_copilot_assistant.ps1 \
+            --file agents/dax_copilot/client/pbi_copilot_assistant.ps1 \
+            --auth-mode login \
+            --overwrite true \
+            --content-type text/plain
+
+          az storage blob upload \
+            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --container-name "$AZURE_STORAGE_CONTAINER" \
+            --name manifest.json \
+            --file agents/dax_copilot/client/manifest.json \
+            --auth-mode login \
+            --overwrite true \
+            --content-type application/json
+
+          az storage blob upload \
+            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --container-name "$AZURE_STORAGE_CONTAINER" \
+            --name launch_copilot.ps1 \
+            --file agents/dax_copilot/client/launch_copilot.ps1 \
+            --auth-mode login \
+            --overwrite true \
+            --content-type text/plain
+
+          az storage blob upload \
+            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --container-name "$AZURE_STORAGE_CONTAINER" \
+            --name install_copilot.ps1 \
+            --file agents/dax_copilot/client/install_copilot.ps1 \
+            --auth-mode login \
+            --overwrite true \
+            --content-type text/plain
+
+      - name: ✅ Verificar despliegue activo
+        env:
+          AZURE_RESOURCE_GROUP: rg-powerbi-ai-prod
+          AZURE_FUNCTION_APP: func-dax-copilot-proxy
+        run: |
+          set -euo pipefail
+          deployment_json="$(az rest --method get \
+            --url "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.Web/sites/$AZURE_FUNCTION_APP/deployments?api-version=2022-03-01" \
+            --query 'value[0].{active:properties.active,status:properties.status}' \
+            --output json)"
+          echo "$deployment_json"
+          test "$(echo "$deployment_json" | jq -r '.active')" = "true"
+          test "$(echo "$deployment_json" | jq -r '.status')" = "4"

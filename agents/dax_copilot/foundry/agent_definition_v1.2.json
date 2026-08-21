@@ -1,0 +1,81 @@
+{
+  "name": "Tinito-DAX-Copilot-Prod",
+  "version": "1.2.0",
+  "description": "Agente Experto en Inteligencia de Negocios, DAX y Modelado Semántico de Comercial Tinito.",
+  "model": "gpt-5-mini",
+  "azure_openai_endpoint": "${AZURE_OPENAI_ENDPOINT}",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "execute_dax_query",
+        "description": "Ejecuta una consulta de solo lectura en DAX (iniciando con EVALUATE) contra el motor VertiPaq en memoria para obtener tablas de datos, rankings o metricas de ventas y cartera.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "dax_query": {
+              "type": "string",
+              "description": "La consulta DAX completa iniciando con EVALUATE."
+            },
+            "purpose": {
+              "type": "string",
+              "description": "Breve explicacion de que calcula la consulta para auditoria."
+            }
+          },
+          "required": [
+            "dax_query"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "inject_measure",
+        "description": "Inyecta o actualiza formalmente una medida DAX dentro del archivo .pbix abierto en Power BI Desktop utilizando Microsoft TOM.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "measure_name": {
+              "type": "string",
+              "description": "Nombre exacto de la medida (ej. 'Cartera_Activable_90D')."
+            },
+            "expression": {
+              "type": "string",
+              "description": "Formula DAX completa con encabezado de documentacion obligatoria."
+            },
+            "format_string": {
+              "type": "string",
+              "description": "Formato numerico (ej. '#,##0.00', '$#,##0', '0.0%')."
+            },
+            "display_folder": {
+              "type": "string",
+              "description": "Carpeta de dominio (ej. '03. Cartera y Cobertura')."
+            },
+            "description": {
+              "type": "string",
+              "description": "Documentacion con • CONTEXTO, • PROPOSITO y • USO PREVISTO."
+            }
+          },
+          "required": [
+            "measure_name",
+            "expression"
+          ]
+        }
+      }
+    }
+  ],
+  "guardrails": {
+    "max_rows_limit": 5000,
+    "command_timeout_seconds": 60,
+    "allowed_statements": [
+      "EVALUATE",
+      "ROW",
+      "SUMMARIZECOLUMNS",
+      "CALCULATETABLE",
+      "SELECTCOLUMNS",
+      "TOPN"
+    ],
+    "pii_scrubbing": "SHA256_HASH_USER"
+  }
+}

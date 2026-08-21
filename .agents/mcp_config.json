@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "powerbi-modeling": {
+      "command": "cmd.exe",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@microsoft/powerbi-modeling-mcp@latest",
+        "--readonly",
+        "--require-confirmation"
+      ]
+    }
+  }
+}
