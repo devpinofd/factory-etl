@@ -1,9 +1,9 @@
 {
     "name": "Tinito-DAX-Copilot",
-    "version": "1.4.2",
+    "version": "1.4.3",
     "releaseDate": "2026-08-22",
-    "sha256": "F92EC2384600D6C3C662337304AE7B879726E210EC631DB0FAE492F06AC51FB6",
+    "sha256": "789B46747473E8054AA75D3FE957F1A1DEAEF789A93759D60B6AF61EEEF4E339",
     "minPowerShellVersion": "5.1",
     "signed": false,
-    "changelog": "Autenticacion nativa Microsoft 365 / Entra ID via MSAL.NET con cache DPAPI, login proactivo y fallback a Azure CLI."
+    "changelog": "Deteccion automatica del catalogo GUID y puerto activo de Power BI Desktop para ADOMD.NET / TOM."
 }

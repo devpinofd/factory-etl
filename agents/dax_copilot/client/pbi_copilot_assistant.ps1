@@ -476,29 +476,64 @@ function Export-NativeExcelXlsx {
     Remove-Item $tempDir -Recurse -Force
 }
 
-# 7. Deteccion automatica del puerto de Power BI Desktop
-if (-not $Server -or $Server -eq "%server%") {
-    $pbiProcesses = Get-Process msmdsrv -ErrorAction SilentlyContinue
-    if ($pbiProcesses) {
-        $ports = @()
-        foreach ($p in $pbiProcesses) {
-            $conns = Get-NetTCPConnection -OwningProcess $p.Id -State Listen -ErrorAction SilentlyContinue
-            if ($conns) {
-                foreach ($c in $conns) { $ports += $c.LocalPort }
-            }
-        }
-        $ports = $ports | Select-Object -Unique
-        if ($ports.Count -gt 0) {
-            $Server = "localhost:$($ports[0])"
+# 7. Deteccion automatica del puerto y catalogo activo de Power BI Desktop
+function Get-PbiDesktopConnectionInfo {
+    param ([string]$preferredServer, [string]$preferredDatabase)
+
+    $candidatePorts = @()
+    if ($preferredServer -and $preferredServer -ne "%server%") {
+        if ($preferredServer -match '^(?:localhost:)?(\d+)$') {
+            $candidatePorts += [int]$Matches[1]
         }
     }
+
+    $pbiProcesses = Get-Process msmdsrv -ErrorAction SilentlyContinue
+    if ($pbiProcesses) {
+        foreach ($p in $pbiProcesses) {
+            $conns = Get-NetTCPConnection -OwningProcess $p.Id -State Listen -ErrorAction SilentlyContinue |
+                Where-Object { $_.LocalPort -ne 2382 -and $_.LocalPort -ne 2383 }
+            if ($conns) {
+                foreach ($c in $conns) { $candidatePorts += [int]$c.LocalPort }
+            }
+        }
+    }
+    $candidatePorts = $candidatePorts | Select-Object -Unique
+
+    foreach ($port in $candidatePorts) {
+        try {
+            $srv = New-Object Microsoft.AnalysisServices.Tabular.Server
+            $srv.Connect("localhost:$port")
+            if ($srv.Databases.Count -gt 0) {
+                $targetDb = if ($preferredDatabase -and $preferredDatabase -ne "%database%" -and $srv.Databases.Contains($preferredDatabase)) {
+                    $srv.Databases[$preferredDatabase]
+                } else {
+                    $srv.Databases[0]
+                }
+                $dbName = $targetDb.Name
+                $tableCount = $targetDb.Model.Tables.Count
+                $srv.Disconnect()
+                return [pscustomobject]@{
+                    Server = "localhost:$port"
+                    Port = $port
+                    Database = $dbName
+                    TableCount = $tableCount
+                }
+            }
+            $srv.Disconnect()
+        } catch { }
+    }
+    return $null
 }
 
-if (-not $Server) {
-    Write-Host "Error: No se detecto ninguna instancia de Power BI Desktop abierta." -ForegroundColor Red
+$pbiInfo = Get-PbiDesktopConnectionInfo -preferredServer $Server -preferredDatabase $Database
+if (-not $pbiInfo) {
+    Write-Host "Error: No se detecto ninguna instancia activa de Power BI Desktop con modelo tabular cargado." -ForegroundColor Red
     pause
     exit
 }
+
+$Server = $pbiInfo.Server
+$global:PbiCatalogName = $pbiInfo.Database
 
 # 8. Invocacion Determinista de Consultas DAX
 function Invoke-DaxQueryInternal([string]$query, [string]$serverEndpoint) {
@@ -506,7 +541,8 @@ function Invoke-DaxQueryInternal([string]$query, [string]$serverEndpoint) {
         $guardrail = Test-DaxQuerySafe -DaxQuery $query
         $safeQuery = $guardrail.SanitizedQuery
         
-        $connStr = "Provider=MSOLAP;Data Source=$serverEndpoint;Initial Catalog=;"
+        $catalog = if ($global:PbiCatalogName) { $global:PbiCatalogName } elseif ($Database -and $Database -ne "%database%") { $Database } else { "" }
+        $connStr = "Provider=MSOLAP;Data Source=$serverEndpoint;Initial Catalog=$catalog;"
         $conn = New-Object Microsoft.AnalysisServices.AdomdClient.AdomdConnection($connStr)
         $conn.Open()
         
