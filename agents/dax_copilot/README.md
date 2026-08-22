@@ -110,9 +110,16 @@ productivos: `DAX_COPILOT_PROXY_URL`, `DAX_COPILOT_SCRIPT_URL`,
 `DAX_COPILOT_MANIFEST_URL`, `DAX_COPILOT_LAN_SCRIPT_PATH` y
 `DAX_COPILOT_ADMIN_CONTACT`. El proxy y el QA Judge requieren
 `AZURE_OPENAI_ENDPOINT` y usan exclusivamente Managed Identity.
-El cliente solicita el scope delegado `access_as_user` mediante Azure CLI; el
-primer uso requiere `az login --tenant <tenant> --scope
-<audiencia>/access_as_user` y el consentimiento corporativo correspondiente.
+El cliente solicita el scope delegado `access_as_user` mediante Azure CLI. Al
+abrir el agente, `Ensure-DaxProxyLogin` verifica de forma proactiva si existe
+una sesión válida para ese scope; si no la hay, activa el broker de cuentas de
+Windows (`az config set core.enable_broker_on_windows=true`) y abre el selector
+nativo de cuentas **antes** de mostrar el prompt de preguntas, reutilizando la
+misma sesión de Microsoft 365/Entra ID ya conectada en el equipo (la misma que
+usa Power BI), sin volver a pedir credenciales. Esto evita el error tardío
+"No se pudo obtener un token Entra" a mitad de una consulta. Si la sesión
+expira durante una conversación larga, el agente reintenta el login
+automático una sola vez antes de fallar con el detalle real de Azure CLI.
 La telemetría aplica muestreo configurable con `DAX_COPILOT_SUCCESS_SAMPLE_PERCENT`;
 por defecto conserva el 10% de los éxitos y el 100% de los errores.
 En producción conviene exigir asignación explícita del principal Entra del proxy
@@ -135,21 +142,16 @@ recurso compartido interno. Ejemplo para una estación Windows:
 az login --tenant e9545efd-83a8-4b56-a297-1c05c7d1f51b `
   --scope api://e9545efd-83a8-4b56-a297-1c05c7d1f51b/func-dax-copilot-proxy-auth/access_as_user
 
-$packageDir = (Get-Location).Path
 .\install_copilot.ps1 `
   -ProxyUrl "https://func-dax-copilot-proxy.azurewebsites.net/api/chat-stream" `
-  -Audience "api://e9545efd-83a8-4b56-a297-1c05c7d1f51b/func-dax-copilot-proxy-auth" `
-  -LanScriptPath (Join-Path $packageDir "pbi_copilot_assistant.ps1") `
-  -LanManifestPath (Join-Path $packageDir "manifest.json")
+  -Audience "api://e9545efd-83a8-4b56-a297-1c05c7d1f51b/func-dax-copilot-proxy-auth"
 ```
 
 La cuenta de Storage de distribución es privada; no se deben abrir los blobs
 al público ni incrustar SAS permanentes en el instalador. El pipeline publica
 los artefactos y el mecanismo corporativo de distribución debe entregar
 `install_copilot.ps1`, `launch_copilot.ps1` y `launch_copilot.bat` desde una
-fuente interna aprobada, junto con `pbi_copilot_assistant.ps1` y
-`manifest.json`. Si el launcher se ejecuta directamente desde ese paquete,
-autodetecta ambos artefactos y verifica el hash antes de iniciar.
+fuente interna aprobada.
 
 ### Firma Authenticode (opcional, recomendada)
 
