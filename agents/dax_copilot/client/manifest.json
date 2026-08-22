@@ -1,9 +1,9 @@
 {
     "name": "Tinito-DAX-Copilot",
-    "version": "1.5.1",
+    "version": "1.5.2",
     "releaseDate": "2026-08-22",
-    "sha256": "0E7F7FE8432EA83C79619BBECFC98415D6DB7BC1F6AFAE6E23742102FB38757A",
+    "sha256": "4E2A88D69D964D358BFA009ECFE3FA3B21EE22778C4D7606DF79671F078DE2E9",
     "minPowerShellVersion": "5.1",
     "signed": false,
-    "changelog": "Lector de flujo IDataReader libre de restricciones DataTable y reglas DAX anti-errores de contexto escalar en prompt."
+    "changelog": "Instrucciones de negocio y formulas de activacion de clientes embebidas con patrones TREATAS/SUMMARIZECOLUMNS."
 }
