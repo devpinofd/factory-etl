@@ -1,9 +1,10 @@
 ﻿{
     "name":  "Tinito-DAX-Copilot",
-    "version":  "1.4.0",
+    "version":  "1.4.1",
     "releaseDate":  "2026-08-22",
-    "sha256":  "2776E556AFCC61778541AE0683E18B5575CBE5BC8D2F56F452281762BE194D45",
+    "sha256":  "F147387F13221C58E8BCFC2C0DD7942859BF256DE1891B64680184CA2258801A",
     "minPowerShellVersion":  "5.1",
     "signed":  false,
-    "changelog":  "Login Entra proactivo al abrir el agente con broker WAM (selector de cuentas de Windows, mismo SSO de Microsoft 365/Power BI) y reintento automatico de relogin si la sesion expira."
+    "changelog":  "Login Entra proactivo al abrir el agente con broker WAM (selector de cuentas de Windows, mismo SSO de Microsoft 365/Power BI) y sin pantalla de seleccion de suscripciones (--allow-no-subscriptions); reintento automatico de relogin si la sesion expira."
 }
+

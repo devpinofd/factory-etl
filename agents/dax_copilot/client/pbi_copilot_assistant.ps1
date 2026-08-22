@@ -102,7 +102,7 @@ function Ensure-DaxProxyLogin {
         $tenantId = $Matches[1]
     }
 
-    $loginArgs = @("login", "--scope", "$Audience/$Scope")
+    $loginArgs = @("login", "--scope", "$Audience/$Scope", "--allow-no-subscriptions")
     if ($tenantId) { $loginArgs += @("--tenant", $tenantId) }
 
     & az @loginArgs --output none
