@@ -1,9 +1,9 @@
 {
     "name": "Tinito-DAX-Copilot",
-    "version": "1.4.3",
+    "version": "1.4.4",
     "releaseDate": "2026-08-22",
-    "sha256": "789B46747473E8054AA75D3FE957F1A1DEAEF789A93759D60B6AF61EEEF4E339",
+    "sha256": "4E4C5C86BE9B67FDA9A4E571660EA0A0E90E88CF33C0C4999CEC444E030C69D0",
     "minPowerShellVersion": "5.1",
     "signed": false,
-    "changelog": "Deteccion automatica del catalogo GUID y puerto activo de Power BI Desktop para ADOMD.NET / TOM."
+    "changelog": "Configuracion de Client ID preautorizado para Single Sign-On Microsoft 365 / Entra ID."
 }

@@ -24,7 +24,7 @@ param (
     [string]$TenantId = $(if ($env:DAX_COPILOT_TENANT_ID) { $env:DAX_COPILOT_TENANT_ID } else { "e9545efd-83a8-4b56-a297-1c05c7d1f51b" }),
 
     [Parameter(Mandatory=$false)]
-    [string]$ClientId = $(if ($env:DAX_COPILOT_CLIENT_ID) { $env:DAX_COPILOT_CLIENT_ID } elseif ($env:DAX_COPILOT_AUDIENCE -and $env:DAX_COPILOT_AUDIENCE -match 'api://([^/]+)') { $Matches[1] } else { "e9545efd-83a8-4b56-a297-1c05c7d1f51b" })
+    [string]$ClientId = $(if ($env:DAX_COPILOT_CLIENT_ID) { $env:DAX_COPILOT_CLIENT_ID } else { "04b07795-8ddb-461a-bbee-02f9e1bf7b46" })
 )
 
 # 1. Configuracion de Consola UTF-8 y TLS 1.2

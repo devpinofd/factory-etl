@@ -38,11 +38,14 @@ if ((-not $ScriptUrl -or -not $ManifestUrl) -and (-not $LanScriptPath -or -not $
     throw "Configura ScriptUrl y ManifestUrl, o bien LanScriptPath y LanManifestPath."
 }
 
-if (-not $ClientId -and $Audience -match 'api://([^/]+)') {
-    $ClientId = $Matches[1]
+if (-not $ClientId) {
+    $ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 }
 if (-not $TenantId -and $Audience -match 'api://([0-9a-fA-F\-]{36})') {
     $TenantId = $Matches[1]
+}
+if (-not $TenantId) {
+    $TenantId = "e9545efd-83a8-4b56-a297-1c05c7d1f51b"
 }
 
 $installDir = Join-Path $env:LOCALAPPDATA "Tinito\PbiCopilot\launcher"
