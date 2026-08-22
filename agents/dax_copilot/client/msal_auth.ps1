@@ -73,26 +73,7 @@ function Initialize-MsalAssemblies {
         }
     }
 
-    # 3. Registrar resolvedor dinamico de ensamblados anti-recursion para AppDomain
-    if (-not $script:AssemblyResolverRegistered) {
-        $script:ResolveInProgress = $false
-        [AppDomain]::CurrentDomain.add_AssemblyResolve({
-            param($sender, $resolveArgs)
-            if ($script:ResolveInProgress) { return $null }
-            $script:ResolveInProgress = $true
-            try {
-                $assemblyName = ($resolveArgs.Name -split ',')[0].Trim()
-                $candidate = [System.IO.Path]::Combine($LibsDirectory, "$assemblyName.dll")
-                if ([System.IO.File]::Exists($candidate)) {
-                    return [System.Reflection.Assembly]::LoadFrom($candidate)
-                }
-                return $null
-            } finally {
-                $script:ResolveInProgress = $false
-            }
-        })
-        $script:AssemblyResolverRegistered = $true
-    }
+    # 3. Carga directa de dependencias (sin handlers de ScriptBlock para prevenir StackOverflow)
 
     # 4. Cargar ensamblados en el dominio de la aplicación
     if (Test-Path $absDll) {

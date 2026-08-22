@@ -1,9 +1,9 @@
 {
     "name": "Tinito-DAX-Copilot",
-    "version": "1.4.4",
+    "version": "1.4.5",
     "releaseDate": "2026-08-22",
-    "sha256": "4E4C5C86BE9B67FDA9A4E571660EA0A0E90E88CF33C0C4999CEC444E030C69D0",
+    "sha256": "A98A601B4827BC7B6DDC1594C6395A49C5FE9DAC21F776CDFB6271529B39E2E8",
     "minPowerShellVersion": "5.1",
     "signed": false,
-    "changelog": "Configuracion de Client ID preautorizado para Single Sign-On Microsoft 365 / Entra ID."
+    "changelog": "Eliminacion de handler ScriptBlock AssemblyResolve recursivo y orden optimizado de tokens corporativos."
 }

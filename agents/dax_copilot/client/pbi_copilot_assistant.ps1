@@ -689,7 +689,16 @@ function Invoke-ProxyChatWithRetry {
     }
 
     $accessToken = $null
-    if (Get-Command Get-EntraAccessToken -ErrorAction SilentlyContinue) {
+    # 1. Intentar token activo de la sesión corporativa validada
+    if (Get-Command az -ErrorAction SilentlyContinue) {
+        $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
+        if ($tokenResult.Success) {
+            $accessToken = $tokenResult.Token
+        }
+    }
+
+    # 2. Fallback a MSAL.NET nativo si no hay Azure CLI
+    if (-not $accessToken -and (Get-Command Get-EntraAccessToken -ErrorAction SilentlyContinue)) {
         try {
             $accessToken = Get-EntraAccessToken `
                 -ClientId $ClientId `
@@ -701,13 +710,10 @@ function Invoke-ProxyChatWithRetry {
         }
     }
 
+    # 3. Si expiró, relogin corporativo
     if (-not $accessToken -and (Get-Command az -ErrorAction SilentlyContinue)) {
-        Write-Host "[*] Intentando token fallback vía Azure CLI..." -ForegroundColor Gray
+        Ensure-DaxProxyLogin -Audience $ProxyAudience -Scope $ProxyScope
         $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
-        if (-not $tokenResult.Success) {
-            Ensure-DaxProxyLogin -Audience $ProxyAudience -Scope $ProxyScope
-            $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
-        }
         if ($tokenResult.Success) {
             $accessToken = $tokenResult.Token
         }
