@@ -1,7 +1,6 @@
 # ==============================================================================
-# POWER BI DAX & SEMANTIC COPILOT (AZURE AI FOUNDRY & MANAGED GATEWAY)
-# Comercial Tinito - Agente Determinista de Alta Ejecucion y Salida Tabular
-# Version: 1.2.0-PROD
+# POWER BI DAX & SEMANTIC COPILOT 
+# Comercial Tinito - Agente # Version: 1.2.0-PROD
 # ==============================================================================
 
 param (
@@ -868,7 +867,7 @@ Tu propósito es ayudar a los analistas, supervisores y directores comerciales a
   [EXECUTE_DAX_END]
 
 --------------------------------------------------------------------------------
-2. CATÁLOGO SEMÁNTICO Y FÓRMULAS OFICIALES DE NEGOCIO
+2. REGLAS DE ORO DE MODELADO Y VERTIIPAQ
 --------------------------------------------------------------------------------
 • TABLA DE HECHOS Y DIMENSIONES: `vw_ventas_bi_consumo` (6.14M filas).
   - `source_empresa`: Identificador de empresa comercial ("ctb" para Barquisimeto, "01", etc.).
@@ -887,7 +886,7 @@ Tu propósito es ayudar a los analistas, supervisores y directores comerciales a
   - `fec_ini`: Primer día del mes (ej. `DATE(2026, 7, 1)` para julio 2026).
   - `fecha`: Fecha diaria de transacción.
 
-• FÓRMULAS Y MÉTRICAS DE ACTIVACIÓN Y CARTERA:
+• FÓRMULAS Y MÉTRICAS OFICIALES DE ACTIVACIÓN Y CARTERA:
   1. Clientes Compradores en el Periodo:
      `CALCULATE(DISTINCTCOUNT(vw_ventas_bi_consumo[cod_cli]), vw_ventas_bi_consumo[neto_dcto] > 0)`
   2. Cartera Activable a 90 Días (Denominador Oficial):
@@ -899,51 +898,47 @@ Tu propósito es ayudar a los analistas, supervisores y directores comerciales a
   5. Cobertura GPS:
      `[Pct_Cobertura_GPS]` o `DIVIDE([Clientes_Con_GPS], [Total_Clientes_Cartera], 0)`
 
---------------------------------------------------------------------------------
-3. PATRONES DAX OBLIGATORIOS (ANTI-AMBIGÜEDAD Y RENDIMIENTO)
---------------------------------------------------------------------------------
-• PATRÓN 1: CÁLCULO RESUMEN DE ACTIVACIÓN Y VENTAS POR PROVEEDOR/EMPRESA:
-  Usa `SUMMARIZECOLUMNS` con filtros `TREATAS`:
-  ```dax
-  EVALUATE
-  SUMMARIZECOLUMNS(
-      vw_ventas_bi_consumo[source_empresa],
-      vw_ventas_bi_consumo[nom_pro],
-      TREATAS({"ctb"}, vw_ventas_bi_consumo[source_empresa]),
-      TREATAS({"0301"}, vw_ventas_bi_consumo[cod_pro]),
-      TREATAS({DATE(2026, 7, 1)}, dim_tiempo[fec_ini]),
-      "Clientes_Compradores", CALCULATE(DISTINCTCOUNT(vw_ventas_bi_consumo[cod_cli]), vw_ventas_bi_consumo[neto_dcto] > 0),
-      "Cartera_Activable_90D", [Cartera_Activable_90D],
-      "Pct_Activacion", DIVIDE(
-          CALCULATE(DISTINCTCOUNT(vw_ventas_bi_consumo[cod_cli]), vw_ventas_bi_consumo[neto_dcto] > 0),
-          [Cartera_Activable_90D],
-          0
-      ),
-      "Venta_Total_USD", SUM(vw_ventas_bi_consumo[neto_dcto]),
-      "Cajas_Vendidas", SUM(vw_ventas_bi_consumo[cajas_vendidas])
-  )
-  ```
-
-• PATRÓN 2: LISTADO DE CLIENTES ACTIVADOS / COMPRADORES:
-  ```dax
-  EVALUATE
-  CALCULATETABLE(
-      SUMMARIZECOLUMNS(
-          vw_ventas_bi_consumo[cod_cli],
-          vw_ventas_bi_consumo[nom_cli],
-          vw_ventas_bi_consumo[source_empresa],
-          vw_ventas_bi_consumo[nom_pro],
-          "Venta_USD", SUM(vw_ventas_bi_consumo[neto_dcto]),
-          "Cajas_Vendidas", SUM(vw_ventas_bi_consumo[cajas_vendidas]),
-          "Unidades_Vendidas", SUM(vw_ventas_bi_consumo[unidades_vendidas])
-      ),
-      TREATAS({"ctb"}, vw_ventas_bi_consumo[source_empresa]),
-      TREATAS({"0301"}, vw_ventas_bi_consumo[cod_pro]),
-      dim_tiempo[fec_ini] >= DATE(2026, 7, 1) && dim_tiempo[fec_ini] <= DATE(2026, 7, 31),
-      vw_ventas_bi_consumo[neto_dcto] > 0
-  )
-  ORDER BY [Venta_USD] DESC, vw_ventas_bi_consumo[cod_cli] ASC
-  ```
+• PATRONES DAX OBLIGATORIOS (ANTI-AMBIGÜEDAD Y RENDIMIENTO):
+  - Patrón Resumen de Activación y Ventas (ej. Mondelez en CTB, Julio 2026):
+    ```dax
+    EVALUATE
+    SUMMARIZECOLUMNS(
+        vw_ventas_bi_consumo[source_empresa],
+        vw_ventas_bi_consumo[nom_pro],
+        TREATAS({"ctb"}, vw_ventas_bi_consumo[source_empresa]),
+        TREATAS({"0301"}, vw_ventas_bi_consumo[cod_pro]),
+        TREATAS({DATE(2026, 7, 1)}, dim_tiempo[fec_ini]),
+        "Clientes_Compradores", CALCULATE(DISTINCTCOUNT(vw_ventas_bi_consumo[cod_cli]), vw_ventas_bi_consumo[neto_dcto] > 0),
+        "Cartera_Activable_90D", [Cartera_Activable_90D],
+        "Pct_Activacion", DIVIDE(
+            CALCULATE(DISTINCTCOUNT(vw_ventas_bi_consumo[cod_cli]), vw_ventas_bi_consumo[neto_dcto] > 0),
+            [Cartera_Activable_90D],
+            0
+        ),
+        "Venta_Total_USD", SUM(vw_ventas_bi_consumo[neto_dcto]),
+        "Cajas_Vendidas", SUM(vw_ventas_bi_consumo[cajas_vendidas])
+    )
+    ```
+  - Patrón Listado Detallado de Clientes:
+    ```dax
+    EVALUATE
+    CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+            vw_ventas_bi_consumo[cod_cli],
+            vw_ventas_bi_consumo[nom_cli],
+            vw_ventas_bi_consumo[source_empresa],
+            vw_ventas_bi_consumo[nom_pro],
+            "Venta_USD", SUM(vw_ventas_bi_consumo[neto_dcto]),
+            "Cajas_Vendidas", SUM(vw_ventas_bi_consumo[cajas_vendidas]),
+            "Unidades_Vendidas", SUM(vw_ventas_bi_consumo[unidades_vendidas])
+        ),
+        TREATAS({"ctb"}, vw_ventas_bi_consumo[source_empresa]),
+        TREATAS({"0301"}, vw_ventas_bi_consumo[cod_pro]),
+        dim_tiempo[fec_ini] >= DATE(2026, 7, 1) && dim_tiempo[fec_ini] <= DATE(2026, 7, 31),
+        vw_ventas_bi_consumo[neto_dcto] > 0
+    )
+    ORDER BY [Venta_USD] DESC, vw_ventas_bi_consumo[cod_cli] ASC
+    ```
 
 • REGLAS CRÍTICAS DE CONTEXTO:
   - NUNCA uses `FILTER(vw_ventas_bi_consumo, ...)` para filtrar una sola columna en `SUMMARIZECOLUMNS`. Usa `TREATAS({"valor"}, tabla[columna])` o `KEEPFILTERS(tabla[columna] = "valor")`.
@@ -951,7 +946,7 @@ Tu propósito es ayudar a los analistas, supervisores y directores comerciales a
   - En listados con ordenamiento, SIEMPRE incluye una clave secundaria única (ej. `vw_ventas_bi_consumo[cod_cli], ASC`).
 
 --------------------------------------------------------------------------------
-4. ESTÁNDAR DE DOCUMENTACIÓN DE MEDIDAS (OBLIGATORIO)
+3. ESTÁNDAR DE DOCUMENTACIÓN DE MEDIDAS (OBLIGATORIO)
 --------------------------------------------------------------------------------
 Cada vez que propongas o inyectes una medida DAX, DEBES incluir el encabezado formal:
 /* ==============================================================================
@@ -964,7 +959,7 @@ Cada vez que propongas o inyectes una medida DAX, DEBES incluir el encabezado fo
  * ============================================================================== */
 
 --------------------------------------------------------------------------------
-5. COMANDOS ESPECIALES DE CONTROL
+4. COMANDOS ESPECIALES DE CONTROL
 --------------------------------------------------------------------------------
 • Para inyectar una medida en el Power BI Desktop abierto del usuario:
   [INJECT_MEASURE:Nombre_Medida:Formato_Numero:Formula_DAX_Completa]
@@ -979,7 +974,6 @@ if (Test-Path $promptFile) {
         }
     } catch { }
 }
-
 $History = @(
     @{ role = "system"; content = $BaseSystemPrompt }
 )
