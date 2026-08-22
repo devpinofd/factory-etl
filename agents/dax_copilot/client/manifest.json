@@ -1,9 +1,9 @@
 {
     "name": "Tinito-DAX-Copilot",
-    "version": "1.4.5",
+    "version": "1.5.0",
     "releaseDate": "2026-08-22",
-    "sha256": "A98A601B4827BC7B6DDC1594C6395A49C5FE9DAC21F776CDFB6271529B39E2E8",
+    "sha256": "D15CF569C51EA17B86CD78F49E2C7BAA26A0733D302F5C92D2619E6A2C5A0249",
     "minPowerShellVersion": "5.1",
     "signed": false,
-    "changelog": "Eliminacion de handler ScriptBlock AssemblyResolve recursivo y orden optimizado de tokens corporativos."
+    "changelog": "Motor de exportacion a Excel (.xlsx) OpenXML con autoajuste de columnas, limpieza de cabeceras DAX y codificacion UTF-8 sin BOM."
 }

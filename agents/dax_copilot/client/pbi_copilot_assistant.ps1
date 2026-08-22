@@ -264,13 +264,24 @@ function Save-OutboxTelemetry {
 }
 
 # 6. Motor Nativo de Exportacion a Excel OpenXML (.XLSX)
+function Clean-DaxColumnHeader([string]$rawHeader) {
+    if (-not $rawHeader) { return "Columna" }
+    $clean = $rawHeader.Trim()
+    if ($clean -match '\[([^\]]+)\]$') {
+        $clean = $Matches[1]
+    } elseif ($clean.StartsWith("[") -and $clean.EndsWith("]")) {
+        $clean = $clean.Substring(1, $clean.Length - 2)
+    }
+    return $clean
+}
+
 function Export-NativeExcelXlsx {
     param (
         [Parameter(Mandatory=$true)]
         [object[]]$Data,
         [Parameter(Mandatory=$true)]
         [string]$FilePath,
-        [string]$SheetName = "Reporte DAX"
+        [string]$SheetName = "Datos DAX"
     )
 
     Add-Type -AssemblyName System.IO.Compression -ErrorAction SilentlyContinue
@@ -291,7 +302,21 @@ function Export-NativeExcelXlsx {
 
     $props = @()
     if ($Data -and $Data.Count -gt 0) {
-        $props = $Data[0].PSObject.Properties | Select-Object -ExpandProperty Name
+        $firstItem = $Data[0]
+        if ($firstItem -is [System.Collections.IDictionary]) {
+            $props = @($firstItem.Keys)
+        } else {
+            $props = @($firstItem.PSObject.Properties | Select-Object -ExpandProperty Name)
+        }
+    }
+
+    if ($props.Count -eq 0) {
+        throw "No hay columnas disponibles para exportar en el conjunto de datos."
+    }
+
+    $cleanHeaders = @()
+    foreach ($p in $props) {
+        $cleanHeaders += (Clean-DaxColumnHeader -rawHeader $p)
     }
 
     $sharedStrings = New-Object System.Collections.ArrayList
@@ -307,6 +332,25 @@ function Export-NativeExcelXlsx {
         return $colName
     }
 
+    $colWidths = @{}
+    for ($c = 0; $c -lt $props.Count; $c++) {
+        $colWidths[$c] = [math]::Max(12, $cleanHeaders[$c].Length + 4)
+    }
+
+    # Pre-calcular anchos de columnas
+    foreach ($row in $Data) {
+        for ($c = 0; $c -lt $props.Count; $c++) {
+            $pName = $props[$c]
+            $val = if ($row -is [System.Collections.IDictionary]) { $row[$pName] } else { $row.$pName }
+            if ($val) {
+                $len = "$val".Length + 3
+                if ($len -gt $colWidths[$c]) {
+                    $colWidths[$c] = [math]::Min(50, $len)
+                }
+            }
+        }
+    }
+
     $numRows = $Data.Count + 1
     $numCols = $props.Count
     $lastCol = Get-ColLetter $numCols
@@ -316,14 +360,24 @@ function Export-NativeExcelXlsx {
     [void]$sheetXml.AppendLine('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">')
     [void]$sheetXml.AppendLine("<dimension ref=""A1:${lastCol}${numRows}""/>")
     [void]$sheetXml.AppendLine('<sheetViews><sheetView tabSelected="1" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>')
-    [void]$sheetXml.AppendLine('<sheetFormatPr defaultRowHeight="16"/>')
+    [void]$sheetXml.AppendLine('<sheetFormatPr defaultRowHeight="18"/>')
+
+    # Column Widths
+    [void]$sheetXml.AppendLine('<cols>')
+    for ($c = 0; $c -lt $props.Count; $c++) {
+        $cIdx = $c + 1
+        $w = $colWidths[$c]
+        [void]$sheetXml.AppendLine("<col min=""$cIdx"" max=""$cIdx"" width=""$w"" customWidth=""1""/>")
+    }
+    [void]$sheetXml.AppendLine('</cols>')
+
     [void]$sheetXml.AppendLine('<sheetData>')
 
     # Header Row (Azul Corporativo Tinito #1F4E78 con texto blanco)
-    [void]$sheetXml.AppendLine("<row r=""1"" spans=""1:$numCols"" customHeight=""1"" ht=""24"">")
+    [void]$sheetXml.AppendLine("<row r=""1"" spans=""1:$numCols"" customHeight=""1"" ht=""26"">")
     for ($c = 0; $c -lt $props.Count; $c++) {
         $colLetter = Get-ColLetter ($c + 1)
-        $hText = [System.Security.SecurityElement]::Escape($props[$c])
+        $hText = [System.Security.SecurityElement]::Escape($cleanHeaders[$c])
         if (-not $strDict.ContainsKey($hText)) {
             $idx = $sharedStrings.Add($hText)
             $strDict[$hText] = $idx
@@ -337,32 +391,41 @@ function Export-NativeExcelXlsx {
     # Data Rows
     $r = 2
     foreach ($row in $Data) {
-        [void]$sheetXml.AppendLine("<row r=""$r"" spans=""1:$numCols"">")
+        [void]$sheetXml.AppendLine("<row r=""$r"" spans=""1:$numCols"" customHeight=""1"" ht=""20"">")
         for ($c = 0; $c -lt $props.Count; $c++) {
             $colLetter = Get-ColLetter ($c + 1)
             $pName = $props[$c]
-            $val = $row.$pName
+            $val = if ($row -is [System.Collections.IDictionary]) { $row[$pName] } else { $row.$pName }
             $cellRef = "${colLetter}${r}"
 
-            if ($null -eq $val -or $val -eq "") { continue }
-
-            $numVal = 0.0
-            $isDouble = [double]::TryParse("$val", [System.Globalization.NumberStyles]::Any, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$numVal)
-            if (-not $isDouble) {
-                $isDouble = [double]::TryParse("$val", [System.Globalization.NumberStyles]::Any, (Get-Culture), [ref]$numVal)
+            if ($null -eq $val -or "$val" -eq "") {
+                [void]$sheetXml.AppendLine("<c r=""$cellRef"" s=""0""/>")
+                continue
             }
 
-            if ($isDouble -and ($val -notmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}') -and ($val.ToString().Length -lt 15 -or $val -match '^-?[0-9]+(\.[0-9]+)?$')) {
+            $strRaw = "$val".Trim()
+            $hasLeadingZero = ($strRaw.Length -gt 1 -and $strRaw.StartsWith("0") -and ($strRaw -match '^\d+$'))
+
+            $numVal = 0.0
+            $isDouble = $false
+            if (-not $hasLeadingZero) {
+                $isDouble = [double]::TryParse($strRaw, [System.Globalization.NumberStyles]::Any, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$numVal)
+                if (-not $isDouble) {
+                    $isDouble = [double]::TryParse($strRaw, [System.Globalization.NumberStyles]::Any, (Get-Culture), [ref]$numVal)
+                }
+            }
+
+            if ($isDouble -and ($strRaw -notmatch '^[0-9]{4}-[0-9]{2}-[0-9]{2}') -and ($strRaw.Length -lt 15 -or $strRaw -match '^-?[0-9]+(\.[0-9]+)?$')) {
                 $strVal = $numVal.ToString([System.Globalization.CultureInfo]::InvariantCulture)
                 $styleIdx = if ($val -is [int] -or $val -is [long] -or ($numVal % 1 -eq 0)) { "2" } else { "3" }
                 [void]$sheetXml.AppendLine("<c r=""$cellRef"" s=""$styleIdx""><v>$strVal</v></c>")
-            } elseif ($val -is [datetime] -or ($val -match '^\d{4}-\d{2}-\d{2}')) {
+            } elseif ($val -is [datetime] -or ($strRaw -match '^\d{4}-\d{2}-\d{2}')) {
                 $d = [datetime]::MinValue
-                if ([datetime]::TryParse("$val", [ref]$d)) {
+                if ([datetime]::TryParse($strRaw, [ref]$d)) {
                     $oaDate = $d.ToOADate().ToString([System.Globalization.CultureInfo]::InvariantCulture)
                     [void]$sheetXml.AppendLine("<c r=""$cellRef"" s=""4""><v>$oaDate</v></c>")
                 } else {
-                    $esc = [System.Security.SecurityElement]::Escape("$val")
+                    $esc = [System.Security.SecurityElement]::Escape($strRaw)
                     if (-not $strDict.ContainsKey($esc)) {
                         $idx = $sharedStrings.Add($esc)
                         $strDict[$esc] = $idx
@@ -372,7 +435,7 @@ function Export-NativeExcelXlsx {
                     [void]$sheetXml.AppendLine("<c r=""$cellRef"" s=""0"" t=""s""><v>$idx</v></c>")
                 }
             } else {
-                $esc = [System.Security.SecurityElement]::Escape("$val")
+                $esc = [System.Security.SecurityElement]::Escape($strRaw)
                 if (-not $strDict.ContainsKey($esc)) {
                     $idx = $sharedStrings.Add($esc)
                     $strDict[$esc] = $idx
@@ -389,7 +452,8 @@ function Export-NativeExcelXlsx {
     [void]$sheetXml.AppendLine("<autoFilter ref=""A1:${lastCol}${numRows}""/>")
     [void]$sheetXml.AppendLine('</worksheet>')
 
-    [System.IO.File]::WriteAllText((Join-Path $worksheetsDir "sheet1.xml"), $sheetXml.ToString(), [System.Text.Encoding]::UTF8)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText((Join-Path $worksheetsDir "sheet1.xml"), $sheetXml.ToString(), $utf8NoBom)
 
     # Shared Strings XML
     $ssXml = New-Object System.Text.StringBuilder
@@ -397,7 +461,7 @@ function Export-NativeExcelXlsx {
     [void]$ssXml.AppendLine("<sst xmlns=""http://schemas.openxmlformats.org/spreadsheetml/2006/main"" count=""$($sharedStrings.Count)"" uniqueCount=""$($sharedStrings.Count)"">")
     foreach ($s in $sharedStrings) { [void]$ssXml.AppendLine("<si><t>$s</t></si>") }
     [void]$ssXml.AppendLine('</sst>')
-    [System.IO.File]::WriteAllText((Join-Path $xlDir "sharedStrings.xml"), $ssXml.ToString(), [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText((Join-Path $xlDir "sharedStrings.xml"), $ssXml.ToString(), $utf8NoBom)
 
     # Styles XML
     $stylesXml = @'
@@ -409,8 +473,8 @@ function Export-NativeExcelXlsx {
     <numFmt numFmtId="166" formatCode="yyyy-mm-dd"/>
   </numFmts>
   <fonts count="2">
-    <font><sz val="10"/><name val="Segoe UI"/></font>
-    <font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Segoe UI"/></font>
+    <font><sz val="11"/><name val="Calibri"/></font>
+    <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
   </fonts>
   <fills count="3">
     <fill><patternFill patternType="none"/></fill>
@@ -429,9 +493,12 @@ function Export-NativeExcelXlsx {
     <xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>
     <xf numFmtId="166" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"><alignment horizontal="center"/></xf>
   </cellXfs>
+  <cellStyles count="1">
+    <cellStyle name="Normal" xfId="0" builtinId="0"/>
+  </cellStyles>
 </styleSheet>
 '@
-    [System.IO.File]::WriteAllText((Join-Path $xlDir "styles.xml"), $stylesXml, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText((Join-Path $xlDir "styles.xml"), $stylesXml, $utf8NoBom)
 
     $wbXml = @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -439,7 +506,7 @@ function Export-NativeExcelXlsx {
   <sheets><sheet name="$SheetName" sheetId="1" r:id="rId1"/></sheets>
 </workbook>
 "@
-    [System.IO.File]::WriteAllText((Join-Path $xlDir "workbook.xml"), $wbXml, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText((Join-Path $xlDir "workbook.xml"), $wbXml, $utf8NoBom)
 
     $ctXml = @'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -452,7 +519,7 @@ function Export-NativeExcelXlsx {
   <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
 </Types>
 '@
-    [System.IO.File]::WriteAllText((Join-Path $tempDir "[Content_Types].xml"), $ctXml, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText((Join-Path $tempDir "[Content_Types].xml"), $ctXml, $utf8NoBom)
 
     $rootRels = @'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -460,7 +527,7 @@ function Export-NativeExcelXlsx {
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
 </Relationships>
 '@
-    [System.IO.File]::WriteAllText((Join-Path $relsDir ".rels"), $rootRels, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText((Join-Path $relsDir ".rels"), $rootRels, $utf8NoBom)
 
     $xlRels = @'
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -470,7 +537,7 @@ function Export-NativeExcelXlsx {
   <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
 </Relationships>
 '@
-    [System.IO.File]::WriteAllText((Join-Path $xlRelsDir "workbook.xml.rels"), $xlRels, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText((Join-Path $xlRelsDir "workbook.xml.rels"), $xlRels, $utf8NoBom)
 
     [System.IO.Compression.ZipFile]::CreateFromDirectory($tempDir, $FilePath)
     Remove-Item $tempDir -Recurse -Force
