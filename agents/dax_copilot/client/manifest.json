@@ -1,9 +1,9 @@
 {
     "name": "Tinito-DAX-Copilot",
-    "version": "1.5.4",
+    "version": "1.5.5",
     "releaseDate": "2026-08-22",
-    "sha256": "7D162F25C3D84256CA4559FF7010117D8DD0C105C43E391C36F837A55C343BF8",
+    "sha256": "98FFB133F8DB376526C6E098D1DE6641FB8561BB0918649B63114F19094CB19C",
     "minPowerShellVersion": "5.1",
     "signed": false,
-    "changelog": "Instrucciones de filtrado mensual usando dim_tiempo[anio] y dim_tiempo[mes] para conteo integro de activacion mensual."
+    "changelog": "Terminologia oficial estandarizada a Clientes Activados."
 }
