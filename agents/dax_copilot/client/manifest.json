@@ -1,9 +1,9 @@
 {
     "name": "Tinito-DAX-Copilot",
-    "version": "1.5.6",
+    "version": "1.5.7",
     "releaseDate": "2026-08-22",
-    "sha256": "B7B103E838F385CF58B510BAE7E0D19C02A5152C3864170E95A274F8BD6086DA",
+    "sha256": "D0B8681B94B6D60418EC610F2BC4B4C4EACBA5F9950742C1AFA1AAD2F75766E1",
     "minPowerShellVersion": "5.1",
     "signed": false,
-    "changelog": "Diccionario completo de columnas de vendedores (cod_ven, nom_ven, Vendedor_Descriptivo) y clientes."
+    "changelog": "Definicion oficial y patron DAX para Venta Cero (cartera sin compra en el periodo)."
 }
