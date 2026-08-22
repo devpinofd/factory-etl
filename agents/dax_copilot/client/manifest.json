@@ -1,9 +1,9 @@
 {
     "name": "Tinito-DAX-Copilot",
-    "version": "1.5.3",
+    "version": "1.5.4",
     "releaseDate": "2026-08-22",
-    "sha256": "5868C2801D96FAAAEB1A997696E2B3625225C3EB8E25D198007B68B5F674DF65",
+    "sha256": "7D162F25C3D84256CA4559FF7010117D8DD0C105C43E391C36F837A55C343BF8",
     "minPowerShellVersion": "5.1",
     "signed": false,
-    "changelog": "Alineacion de secciones estandar del system prompt con el validador de CI y formulas de activacion."
+    "changelog": "Instrucciones de filtrado mensual usando dim_tiempo[anio] y dim_tiempo[mes] para conteo integro de activacion mensual."
 }
