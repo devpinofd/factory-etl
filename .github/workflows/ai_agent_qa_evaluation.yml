@@ -5,11 +5,13 @@ on:
   pull_request:
     paths:
       - 'agents/dax_copilot/**'
+      - '.github/workflows/ai_agent_qa_evaluation.yml'
   push:
     branches:
       - main
     paths:
       - 'agents/dax_copilot/**'
+      - '.github/workflows/ai_agent_qa_evaluation.yml'
 
 permissions:
   contents: read
