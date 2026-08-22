@@ -2,7 +2,7 @@
     "name": "Tinito-DAX-Copilot",
     "version": "1.4.2",
     "releaseDate": "2026-08-22",
-    "sha256": "F830F7E29DF94C7AF39EEA669291966F63917F03BA9E55EBBAD0038D9AE8F323",
+    "sha256": "F92EC2384600D6C3C662337304AE7B879726E210EC631DB0FAE492F06AC51FB6",
     "minPowerShellVersion": "5.1",
     "signed": false,
     "changelog": "Autenticacion nativa Microsoft 365 / Entra ID via MSAL.NET con cache DPAPI, login proactivo y fallback a Azure CLI."

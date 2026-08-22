@@ -58,7 +58,7 @@ target-version = "py312"
 line-length = 100
 src = ["src", "tests"]
 # Herramientas operativas y prototipos tienen ciclos de calidad independientes.
-extend-exclude = ["agents", "scratch"]
+extend-exclude = ["agents", "scratch", "scripts", "azure_functions", "azure_foundry"]
 
 [tool.ruff.lint]
 select = [
