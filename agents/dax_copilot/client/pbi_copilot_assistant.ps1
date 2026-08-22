@@ -38,6 +38,92 @@ if (-not $ProxyAudience) {
     throw "Configura DAX_COPILOT_AUDIENCE antes de iniciar el agente."
 }
 
+# 1b. Autenticacion Proactiva Entra ID con SSO de Windows (WAM)
+# Se ejecuta al abrir el agente, ANTES de aceptar cualquier pregunta. Con el
+# broker de cuentas de Windows activo, el login reutiliza la misma sesion de
+# Microsoft 365/Entra ID que ya esta conectada en el equipo (la misma que usa
+# Power BI), en vez de pedir credenciales de nuevo en el navegador.
+function Get-DaxProxyToken {
+    param(
+        [string]$Audience,
+        [string]$Scope
+    )
+    $raw = & az account get-access-token --scope "$Audience/$Scope" --output json 2>&1
+    if ($LASTEXITCODE -ne 0 -or -not $raw) {
+        return [PSCustomObject]@{ Success = $false; Token = $null; ErrorText = ($raw | Out-String).Trim() }
+    }
+    try {
+        $parsed = $raw | ConvertFrom-Json
+    } catch {
+        return [PSCustomObject]@{ Success = $false; Token = $null; ErrorText = "Azure CLI devolvio una respuesta invalida: $raw" }
+    }
+    if (-not $parsed.accessToken) {
+        return [PSCustomObject]@{ Success = $false; Token = $null; ErrorText = "Azure CLI no devolvio un token de acceso." }
+    }
+    return [PSCustomObject]@{ Success = $true; Token = $parsed.accessToken; ErrorText = $null }
+}
+
+function Ensure-DaxProxyLogin {
+    param(
+        [string]$Audience,
+        [string]$Scope
+    )
+
+    if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+        throw "Azure CLI ('az') no esta instalada. Instalala desde https://aka.ms/installazurecliwindows y reinicia el agente."
+    }
+
+    # Evita fallos silenciosos por extensiones de Azure CLI sin permisos de escritura
+    # en el perfil del usuario actual (causa comun de "No se pudo obtener un token").
+    if (-not $env:AZURE_EXTENSION_DIR) {
+        $extDir = Join-Path $env:LOCALAPPDATA "AzureCli\extensions"
+        if (-not (Test-Path $extDir)) { New-Item -ItemType Directory -Path $extDir -Force | Out-Null }
+        $env:AZURE_EXTENSION_DIR = $extDir
+    }
+
+    # Activa el broker de cuentas de Windows (WAM): el inicio de sesion usa el
+    # selector nativo con las cuentas de Microsoft 365/Entra ID ya conectadas al
+    # equipo (misma identidad de Power BI), en vez de pedir credenciales otra vez.
+    & az config set core.enable_broker_on_windows=true --only-show-errors 2>$null | Out-Null
+
+    Write-Host "Verificando sesion corporativa de Azure..." -ForegroundColor Cyan
+    $result = Get-DaxProxyToken -Audience $Audience -Scope $Scope
+    if ($result.Success) {
+        $account = & az account show --output json 2>$null | ConvertFrom-Json
+        $userName = if ($account) { $account.user.name } else { "cuenta corporativa" }
+        Write-Host "[OK] Sesion Azure activa: $userName`n" -ForegroundColor Green
+        return
+    }
+
+    Write-Host "[INFO] Elige tu cuenta corporativa en la ventana de inicio de sesion (usa la misma sesion de Microsoft 365 del equipo)..." -ForegroundColor Yellow
+
+    $tenantId = $null
+    if ($Audience -match '^api://([0-9a-fA-F-]{36})/') {
+        $tenantId = $Matches[1]
+    }
+
+    $loginArgs = @("login", "--scope", "$Audience/$Scope")
+    if ($tenantId) { $loginArgs += @("--tenant", $tenantId) }
+
+    & az @loginArgs --output none
+    if ($LASTEXITCODE -ne 0) {
+        throw "El inicio de sesion en Azure fue cancelado o fallo. Vuelve a abrir el agente para reintentar."
+    }
+
+    $result = Get-DaxProxyToken -Audience $Audience -Scope $Scope
+    if (-not $result.Success) {
+        $adminContact = if ($env:DAX_COPILOT_ADMIN_CONTACT) { $env:DAX_COPILOT_ADMIN_CONTACT } else { "el administrador de BI" }
+        $detail = if ($result.ErrorText) { " Detalle: $($result.ErrorText)" } else { "" }
+        throw "El inicio de sesion se completo pero no se pudo obtener el token del proxy DAX Copilot.$detail Contacta a $adminContact."
+    }
+
+    $account = & az account show --output json 2>$null | ConvertFrom-Json
+    $userName = if ($account) { $account.user.name } else { "cuenta corporativa" }
+    Write-Host "[OK] Sesion Azure iniciada correctamente: $userName`n" -ForegroundColor Green
+}
+
+Ensure-DaxProxyLogin -Audience $ProxyAudience -Scope $ProxyScope
+
 # 2. Configuracion de Directorios y Modulos
 $baseDir  = "$env:LOCALAPPDATA\Tinito\PbiCopilot"
 $logsDir  = Join-Path $baseDir "logs"
@@ -547,17 +633,18 @@ function Invoke-ProxyChatWithRetry {
         [int]$maxRetries = 3
     )
 
-    if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-        throw "Azure CLI es requerida para obtener el token Entra del proxy."
+    $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
+    if (-not $tokenResult.Success) {
+        # La sesion pudo expirar durante una conversacion larga; se reintenta el
+        # login automatico una sola vez antes de fallar.
+        Ensure-DaxProxyLogin -Audience $ProxyAudience -Scope $ProxyScope
+        $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
     }
-    $tokenJson = & az account get-access-token --scope "$ProxyAudience/$ProxyScope" --output json 2>$null
-    if ($LASTEXITCODE -ne 0 -or -not $tokenJson) {
-        throw "No se pudo obtener un token Entra. Ejecuta 'az login' con tu cuenta corporativa."
+    if (-not $tokenResult.Success) {
+        $detail = if ($tokenResult.ErrorText) { " Detalle: $($tokenResult.ErrorText)" } else { "" }
+        throw "No se pudo obtener un token Entra valido.$detail"
     }
-    $accessToken = ($tokenJson | ConvertFrom-Json).accessToken
-    if (-not $accessToken) {
-        throw "Azure CLI no devolvio un token Entra valido."
-    }
+    $accessToken = $tokenResult.Token
 
     $payload = @{ messages = $messages } | ConvertTo-Json -Depth 10
     $bytes   = [System.Text.Encoding]::UTF8.GetBytes($payload)
