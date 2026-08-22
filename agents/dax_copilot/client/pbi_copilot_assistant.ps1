@@ -618,21 +618,24 @@ function Invoke-DaxQueryInternal([string]$query, [string]$serverEndpoint) {
         $cmd.CommandTimeout = $guardrail.TimeoutSeconds
         
         $reader = $cmd.ExecuteReader()
-        $table = New-Object System.Data.DataTable
-        $table.Load($reader)
-        
-        $reader.Close()
-        $conn.Close()
-        $conn.Dispose()
-
         $results = @()
-        foreach ($row in $table.Rows) {
+        $fieldCount = $reader.FieldCount
+        $colNames = @()
+        for ($i = 0; $i -lt $fieldCount; $i++) {
+            $colNames += $reader.GetName($i)
+        }
+        while ($reader.Read()) {
             $obj = [ordered]@{}
-            foreach ($col in $table.Columns) {
-                $obj[$col.ColumnName] = $row[$col.ColumnName]
+            for ($i = 0; $i -lt $fieldCount; $i++) {
+                $val = $reader.GetValue($i)
+                if ($val -is [System.DBNull]) { $val = $null }
+                $obj[$colNames[$i]] = $val
             }
             $results += [PSCustomObject]$obj
         }
+        $reader.Close()
+        $conn.Close()
+        $conn.Dispose()
         return [pscustomobject]@{
             Success = $true
             Rows = @($results)

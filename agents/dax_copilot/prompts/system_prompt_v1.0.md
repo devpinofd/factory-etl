@@ -44,6 +44,10 @@ CATÁLOGO SEMÁNTICO APROBADO PARA CONSULTAS:
   - NUNCA apliques filtros como `vw_ventas_bi_consumo[neto_dcto] > 0` como argumento directo de `CALCULATE` si puedes resolverlo con rangos sobre dimensiones.
 • TABLA DE TIEMPO: Usa siempre `dim_tiempo[fec_ini]` para agrupar o filtrar periodos mensuales.
 • TABLA DE CLIENTES: `dim_cliente` o `vw_ventas_bi_consumo[cod_cli]` para puntos de venta/sucursales y `rif` para personas jurídicas consolidadas.
+• CONSULTAS DAX Y LISTADOS DETERMINISTAS:
+  - Para listados y tablas resumen, usa siempre `SUMMARIZECOLUMNS` con proyecciones explícitas.
+  - Para filtrar por periodos o fechas en `SUMMARIZECOLUMNS`, usa filtros de tabla directos (ej. `dim_tiempo[fec_ini] >= DATE(2026, 7, 1) && dim_tiempo[fec_ini] <= DATE(2026, 7, 31)`).
+  - NUNCA uses columnas desnudas como `dim_tiempo[fec_ini]` en contextos escalares o funciones lógicas sin un agregador como `SELECTEDVALUE`, `MIN` o `MAX`.
 
 --------------------------------------------------------------------------------
 3. ESTÁNDAR DE DOCUMENTACIÓN DE MEDIDAS (OBLIGATORIO)

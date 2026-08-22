@@ -1,9 +1,9 @@
 {
     "name": "Tinito-DAX-Copilot",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "releaseDate": "2026-08-22",
-    "sha256": "D15CF569C51EA17B86CD78F49E2C7BAA26A0733D302F5C92D2619E6A2C5A0249",
+    "sha256": "0E7F7FE8432EA83C79619BBECFC98415D6DB7BC1F6AFAE6E23742102FB38757A",
     "minPowerShellVersion": "5.1",
     "signed": false,
-    "changelog": "Motor de exportacion a Excel (.xlsx) OpenXML con autoajuste de columnas, limpieza de cabeceras DAX y codificacion UTF-8 sin BOM."
+    "changelog": "Lector de flujo IDataReader libre de restricciones DataTable y reglas DAX anti-errores de contexto escalar en prompt."
 }
