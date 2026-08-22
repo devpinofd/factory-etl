@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import importlib.util
 from pathlib import Path
 
@@ -8,10 +9,31 @@ import pytest
 VALIDATION_PATH = (
     Path(__file__).parents[2] / "agents" / "dax_copilot" / "proxy" / "request_validation.py"
 )
+FUNCTION_APP_PATH = VALIDATION_PATH.with_name("function_app.py")
 SPEC = importlib.util.spec_from_file_location("dax_request_validation", VALIDATION_PATH)
 assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+
+
+def test_function_route_delegates_authentication_to_easy_auth() -> None:
+    tree = ast.parse(FUNCTION_APP_PATH.read_text(encoding="utf-8"))
+    function_app_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "FunctionApp"
+    ]
+
+    assert len(function_app_calls) == 1
+    auth_level = next(
+        keyword.value
+        for keyword in function_app_calls[0].keywords
+        if keyword.arg == "http_auth_level"
+    )
+    assert isinstance(auth_level, ast.Attribute)
+    assert auth_level.attr == "ANONYMOUS"
 
 
 def test_accepts_valid_conversation() -> None:

@@ -12,6 +12,10 @@ import subprocess
 import datetime
 from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+try:
+    from .qa_contracts import validate_proposal_schema
+except ImportError:
+    from qa_contracts import validate_proposal_schema
 
 # 1. Configuración de Azure OpenAI
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "")
@@ -48,6 +52,7 @@ def read_telemetry_incidents(logs_dir):
                 except:
                     pass
     return incidents
+
 
 def generate_refinement_proposal(incident, current_prompt):
     client = get_judge_client()
@@ -91,7 +96,9 @@ def generate_refinement_proposal(incident, current_prompt):
         response_format={"type": "json_object"}
     )
     
-    return json.loads(response.choices[0].message.content)
+    return validate_proposal_schema(
+        json.loads(response.choices[0].message.content)
+    )
 
 def create_github_pull_request(proposal, repo_dir):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")

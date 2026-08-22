@@ -11,6 +11,12 @@ param (
     [string]$Scope = "access_as_user",
 
     [Parameter(Mandatory = $false)]
+    [string]$ClientId,
+
+    [Parameter(Mandatory = $false)]
+    [string]$TenantId,
+
+    [Parameter(Mandatory = $false)]
     [ValidatePattern('^https://')]
     [string]$ScriptUrl,
 
@@ -32,14 +38,29 @@ if ((-not $ScriptUrl -or -not $ManifestUrl) -and (-not $LanScriptPath -or -not $
     throw "Configura ScriptUrl y ManifestUrl, o bien LanScriptPath y LanManifestPath."
 }
 
+if (-not $ClientId -and $Audience -match 'api://([^/]+)') {
+    $ClientId = $Matches[1]
+}
+if (-not $TenantId -and $Audience -match 'api://([0-9a-fA-F\-]{36})') {
+    $TenantId = $Matches[1]
+}
+
 $installDir = Join-Path $env:LOCALAPPDATA "Tinito\PbiCopilot\launcher"
 New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 Copy-Item (Join-Path $PSScriptRoot "launch_copilot.ps1") (Join-Path $installDir "launch_copilot.ps1") -Force
 Copy-Item (Join-Path $PSScriptRoot "launch_copilot.bat") (Join-Path $installDir "launch_copilot.bat") -Force
+if (Test-Path (Join-Path $PSScriptRoot "msal_auth.ps1")) {
+    Copy-Item (Join-Path $PSScriptRoot "msal_auth.ps1") (Join-Path $installDir "msal_auth.ps1") -Force
+}
+if (Test-Path (Join-Path $PSScriptRoot "dax_guardrails.ps1")) {
+    Copy-Item (Join-Path $PSScriptRoot "dax_guardrails.ps1") (Join-Path $installDir "dax_guardrails.ps1") -Force
+}
 
 [Environment]::SetEnvironmentVariable("DAX_COPILOT_PROXY_URL", $ProxyUrl, "User")
 [Environment]::SetEnvironmentVariable("DAX_COPILOT_AUDIENCE", $Audience, "User")
 [Environment]::SetEnvironmentVariable("DAX_COPILOT_SCOPE", $Scope, "User")
+if ($ClientId) { [Environment]::SetEnvironmentVariable("DAX_COPILOT_CLIENT_ID", $ClientId, "User") }
+if ($TenantId) { [Environment]::SetEnvironmentVariable("DAX_COPILOT_TENANT_ID", $TenantId, "User") }
 [Environment]::SetEnvironmentVariable("DAX_COPILOT_SCRIPT_URL", $ScriptUrl, "User")
 [Environment]::SetEnvironmentVariable("DAX_COPILOT_MANIFEST_URL", $ManifestUrl, "User")
 if (-not $LanManifestPath -and $LanScriptPath) {
@@ -54,4 +75,4 @@ if (-not $LanManifestPath -and $LanScriptPath) {
 [Environment]::SetEnvironmentVariable("DAX_COPILOT_ADMIN_CONTACT", $AdminContact, "User")
 
 Write-Host "Tinito DAX Copilot instalado para el usuario actual." -ForegroundColor Green
-Write-Host "Ejecuta '$installDir\launch_copilot.bat' despues de iniciar Azure CLI con 'az login'." -ForegroundColor Cyan
+Write-Host "Ejecuta '$installDir\launch_copilot.bat' para iniciar el agente con tu cuenta corporativa de Microsoft 365." -ForegroundColor Cyan

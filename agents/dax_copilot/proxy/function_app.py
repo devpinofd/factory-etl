@@ -10,7 +10,9 @@ from openai import AzureOpenAI
 from request_validation import validate_request_body
 from telemetry import Stopwatch, emit_event
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
+# Easy Auth is the network authentication boundary. Requiring a Function key
+# here would reject valid Entra bearer tokens before this code can run.
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 # 1. Configuración de Azure OpenAI vía Managed Identity
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "")

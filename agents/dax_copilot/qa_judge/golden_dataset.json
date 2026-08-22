@@ -2,132 +2,239 @@
   {
     "id": "TC-001",
     "dominio": "03. Cartera y Cobertura",
-    "pregunta": "¿Cuántos clientes componen la cartera activable a 90 días de Mondelez en julio 2026 para la empresa CTB?",
-    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(vw_ventas_bi_consumo[nom_pro], TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"Cartera_90D\", [Cartera_Activable_90D])",
+    "pregunta": "¿Cuántos clientes componen la cartera activable a 90 días de CTB para el proveedor Mondelez (código 0301) en julio 2026?",
+    "dax_esperado": "EVALUATE CALCULATETABLE(ROW(\"Cartera_90D\", [Cartera_Activable_90D]), TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]))",
     "resultado_esperado": {
       "columna": "Cartera_90D",
       "valor": 2115,
       "tolerancia": 0
+    },
+    "semantic_contract": {
+      "required_measures": ["Cartera_Activable_90D"],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro"
+      ],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "ExactNumeric"
   },
   {
     "id": "TC-002",
     "dominio": "01. Ventas Base",
-    "pregunta": "Dame el total de ventas netas en dólares del mes de julio 2026",
-    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"Ventas_Netas\", [Total_Ventas_Netas])",
+    "pregunta": "Dame el total de ventas netas en dólares de CTB para el proveedor Mondelez (código 0301) en julio 2026",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"Ventas_Netas\", [Total_Ventas_Netas])",
     "resultado_esperado": {
       "columna": "Ventas_Netas",
-      "condicion": "GreaterThanZero"
+      "condicion": "GreaterThanZero",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": ["Total_Ventas_Netas"],
+      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "NonZeroNumeric"
   },
   {
     "id": "TC-003",
     "dominio": "02. Venta Cero y Churn",
-    "pregunta": "¿Cuántos clientes tienen venta cero en el proveedor Mondelez para CTB en julio?",
+    "pregunta": "¿Cuántos clientes tienen venta cero en CTB para el proveedor Mondelez (código 0301) en julio 2026?",
     "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(vw_ventas_bi_consumo[nom_pro], TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"Venta_Cero\", [Venta_Cero_Clientes])",
     "resultado_esperado": {
       "columna": "Venta_Cero",
       "condicion": "GreaterThanZero"
+    },
+    "semantic_contract": {
+      "required_measures": ["Venta_Cero_Clientes"],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "NonZeroNumeric"
   },
   {
     "id": "TC-004",
     "dominio": "05. Eficiencia y Ticket",
-    "pregunta": "Calcula el ticket promedio de venta por factura en mayo 2026",
-    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({DATE(2026,5,1)}, dim_tiempo[fec_ini]), \"Ticket_Promedio\", [Ticket_Promedio_Venta])",
+    "pregunta": "Calcula el ticket promedio de venta por factura de CTB para el proveedor Mondelez (código 0301) en julio 2026",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"Ticket_Promedio\", [Ticket_Promedio_Venta])",
     "resultado_esperado": {
       "columna": "Ticket_Promedio",
-      "condicion": "GreaterThanZero"
+      "condicion": "GreaterThanZero",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": ["Ticket_Promedio_Venta"],
+      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "NonZeroNumeric"
   },
   {
     "id": "TC-005",
     "dominio": "06. Georreferenciación",
-    "pregunta": "¿Cuál es el porcentaje de clientes geolocalizados con GPS activo en la cartera?",
-    "dax_esperado": "EVALUATE ROW(\"Pct_GPS\", [Pct_Cobertura_GPS])",
+    "pregunta": "¿Cuál es el porcentaje de clientes geolocalizados con GPS activo de CTB para el proveedor Mondelez (código 0301) en julio 2026?",
+    "dax_esperado": "EVALUATE CALCULATETABLE(ROW(\"Pct_GPS\", [Pct_Cobertura_GPS]), TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]))",
     "resultado_esperado": {
       "columna": "Pct_GPS",
-      "condicion": "Between0And1"
+      "condicion": "Between0And1",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": ["Pct_Cobertura_GPS"],
+      "required_fragments": ["EVALUATE", "ROW", "source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "PercentageRange"
   },
   {
     "id": "TC-006",
     "dominio": "04. Pareto y Concentración",
-    "pregunta": "Muestra el top 10 de clientes por volumen de ventas netas en 2026",
-    "dax_esperado": "EVALUATE TOPN(10, SUMMARIZECOLUMNS(vw_ventas_bi_consumo[cod_cli], vw_ventas_bi_consumo[nom_cli], \"Total_Ventas\", [Total_Ventas_Netas]), [Total_Ventas], DESC, vw_ventas_bi_consumo[cod_cli], ASC)",
+    "pregunta": "Muestra el top 10 de clientes por ventas netas de CTB para el proveedor Mondelez (código 0301) en julio 2026",
+    "dax_esperado": "EVALUATE TOPN(10, SUMMARIZECOLUMNS(vw_ventas_bi_consumo[cod_cli], vw_ventas_bi_consumo[nom_cli], TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"Total_Ventas\", [Total_Ventas_Netas]), [Total_Ventas], DESC, vw_ventas_bi_consumo[cod_cli], ASC)",
     "resultado_esperado": {
       "min_filas": 10,
       "max_filas": 10
+    },
+    "semantic_contract": {
+      "required_measures": ["Total_Ventas_Netas"],
+      "required_fragments": [
+        "cod_cli",
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "top_n": 10,
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "RowCountExact"
   },
   {
     "id": "TC-007",
     "dominio": "05. Eficiencia y Ticket",
-    "pregunta": "¿Cuál es el promedio de SKUs distintos vendidos por factura en junio 2026?",
-    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({DATE(2026,6,1)}, dim_tiempo[fec_ini]), \"SKUs_Factura\", [SKUs_Promedio_Por_Factura])",
+    "pregunta": "¿Cuál es el promedio de SKUs distintos vendidos por factura de CTB para el proveedor Mondelez (código 0301) en julio 2026?",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"SKUs_Factura\", [SKUs_Promedio_Por_Factura])",
     "resultado_esperado": {
       "columna": "SKUs_Factura",
-      "condicion": "GreaterThanZero"
+      "condicion": "GreaterThanZero",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": ["SKUs_Promedio_Por_Factura"],
+      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "NonZeroNumeric"
   },
   {
     "id": "TC-008",
     "dominio": "03. Cartera y Cobertura",
-    "pregunta": "¿Cuál es el porcentaje de activación de clientes de la cartera en el último mes?",
-    "dax_esperado": "EVALUATE ROW(\"Pct_Activacion\", [Pct_Activacion])",
+    "pregunta": "¿Cuál es el porcentaje de activación de clientes de CTB para el proveedor Mondelez (código 0301) en julio 2026?",
+    "dax_esperado": "EVALUATE CALCULATETABLE(ROW(\"Pct_Activacion\", [Pct_Activacion]), TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]))",
     "resultado_esperado": {
       "columna": "Pct_Activacion",
       "condicion": "Between0And1"
+    },
+    "semantic_contract": {
+      "required_measures": ["Pct_Activacion"],
+      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "PercentageRange"
   },
   {
     "id": "TC-009",
     "dominio": "01. Ventas Base",
-    "pregunta": "Dame las ventas netas por empresa en el año 2026",
-    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(vw_ventas_bi_consumo[source_empresa], TREATAS({DATE(2026,1,1)}, dim_tiempo[fec_ini]), \"Ventas_Netas\", [Total_Ventas_Netas])",
+    "pregunta": "Dame las ventas netas de la empresa CTB para el proveedor Mondelez (código 0301) en julio 2026",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(vw_ventas_bi_consumo[source_empresa], TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"Ventas_Netas\", [Total_Ventas_Netas])",
     "resultado_esperado": {
       "min_filas": 1
+    },
+    "semantic_contract": {
+      "required_measures": ["Total_Ventas_Netas"],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "RowCountMinimum"
   },
   {
     "id": "TC-010",
     "dominio": "04. Pareto y Concentración",
-    "pregunta": "Muestra el top 5 de productos por ventas netas",
-    "dax_esperado": "EVALUATE TOPN(5, SUMMARIZECOLUMNS(vw_ventas_bi_consumo[cod_pro], vw_ventas_bi_consumo[nom_pro], \"Ventas_Netas\", [Total_Ventas_Netas]), [Ventas_Netas], DESC)",
+    "pregunta": "Muestra el top 5 de clientes por ventas netas de CTB para el proveedor Mondelez (código 0301) en julio 2026",
+    "dax_esperado": "EVALUATE TOPN(5, CALCULATETABLE(SUMMARIZECOLUMNS(vw_ventas_bi_consumo[cod_cli], vw_ventas_bi_consumo[nom_cli], \"Ventas_Netas\", [Total_Ventas_Netas]), TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini])), [Ventas_Netas], DESC, vw_ventas_bi_consumo[cod_cli], ASC)",
     "resultado_esperado": {
       "min_filas": 5,
       "max_filas": 5
+    },
+    "semantic_contract": {
+      "required_measures": ["Total_Ventas_Netas"],
+      "required_fragments": ["cod_cli", "source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "top_n": 5,
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "RowCountExact"
   },
   {
     "id": "TC-011",
     "dominio": "02. Venta Cero y Churn",
-    "pregunta": "Calcula cuántos clientes no tuvieron venta en junio 2026",
-    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({DATE(2026,6,1)}, dim_tiempo[fec_ini]), \"Clientes_Venta_Cero\", [Venta_Cero_Clientes])",
+    "pregunta": "Calcula cuántos clientes de CTB no tuvieron venta para el proveedor Mondelez (código 0301) en julio 2026",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"Clientes_Venta_Cero\", [Venta_Cero_Clientes])",
     "resultado_esperado": {
       "columna": "Clientes_Venta_Cero",
       "condicion": "GreaterOrEqualZero"
+    },
+    "semantic_contract": {
+      "required_measures": ["Venta_Cero_Clientes"],
+      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "NonNegativeNumeric"
   },
   {
     "id": "TC-012",
     "dominio": "06. Georreferenciación",
-    "pregunta": "Dame el conteo de clientes con coordenadas GPS disponibles",
-    "dax_esperado": "EVALUATE ROW(\"Clientes_GPS\", [Clientes_Con_GPS])",
+    "pregunta": "Dame el conteo de clientes con coordenadas GPS disponibles de CTB para el proveedor Mondelez (código 0301) en julio 2026",
+    "dax_esperado": "EVALUATE CALCULATETABLE(ROW(\"Clientes_GPS\", [Clientes_Con_GPS]), TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]))",
     "resultado_esperado": {
       "columna": "Clientes_GPS",
-      "condicion": "GreaterOrEqualZero"
+      "condicion": "GreaterOrEqualZero",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": ["Clientes_Con_GPS"],
+      "required_fragments": ["EVALUATE", "ROW", "source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
+      "required_dates": ["2026-07-01"],
+      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
     },
     "criterio": "NonNegativeNumeric"
   }

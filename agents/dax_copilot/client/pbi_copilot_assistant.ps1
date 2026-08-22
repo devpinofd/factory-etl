@@ -15,13 +15,16 @@ param (
     [string]$ProxyUrl = $env:DAX_COPILOT_PROXY_URL,
 
     [Parameter(Mandatory=$false)]
-    [string]$ProxyKey = $env:DAX_COPILOT_FUNCTION_KEY,
-
-    [Parameter(Mandatory=$false)]
     [string]$ProxyAudience = $env:DAX_COPILOT_AUDIENCE,
 
     [Parameter(Mandatory=$false)]
-    [string]$ProxyScope = $(if ($env:DAX_COPILOT_SCOPE) { $env:DAX_COPILOT_SCOPE } else { "access_as_user" })
+    [string]$ProxyScope = $(if ($env:DAX_COPILOT_SCOPE) { $env:DAX_COPILOT_SCOPE } else { "access_as_user" }),
+
+    [Parameter(Mandatory=$false)]
+    [string]$TenantId = $(if ($env:DAX_COPILOT_TENANT_ID) { $env:DAX_COPILOT_TENANT_ID } else { "e9545efd-83a8-4b56-a297-1c05c7d1f51b" }),
+
+    [Parameter(Mandatory=$false)]
+    [string]$ClientId = $(if ($env:DAX_COPILOT_CLIENT_ID) { $env:DAX_COPILOT_CLIENT_ID } elseif ($env:DAX_COPILOT_AUDIENCE -and $env:DAX_COPILOT_AUDIENCE -match 'api://([^/]+)') { $Matches[1] } else { "e9545efd-83a8-4b56-a297-1c05c7d1f51b" })
 )
 
 # 1. Configuracion de Consola UTF-8 y TLS 1.2
@@ -184,6 +187,16 @@ if (-not (Test-Path $guardrailPath)) {
     throw "No se encontro el modulo de guardrails DAX: $guardrailPath"
 }
 . $guardrailPath
+
+# 4.1. Modulo de Autenticacion Microsoft Entra ID / M365 (MSAL.NET)
+$msalAuthPath = Join-Path $PSScriptRoot "msal_auth.ps1"
+if (-not (Test-Path $msalAuthPath)) {
+    $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher" "msal_auth.ps1"
+    if (Test-Path $candidate) { $msalAuthPath = $candidate }
+}
+if (Test-Path $msalAuthPath) {
+    . $msalAuthPath
+}
 
 # 5. Modulo de Telemetria Outbox sin contenido sensible
 function Get-PseudonymizedHash([string]$value) {
@@ -633,18 +646,40 @@ function Invoke-ProxyChatWithRetry {
         [int]$maxRetries = 3
     )
 
-    $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
-    if (-not $tokenResult.Success) {
-        # La sesion pudo expirar durante una conversacion larga; se reintenta el
-        # login automatico una sola vez antes de fallar.
-        Ensure-DaxProxyLogin -Audience $ProxyAudience -Scope $ProxyScope
+    $fullScope = if ($ProxyScope.StartsWith("api://") -or $ProxyScope.StartsWith("https://")) {
+        $ProxyScope
+    } else {
+        "$ProxyAudience/$ProxyScope"
+    }
+
+    $accessToken = $null
+    if (Get-Command Get-EntraAccessToken -ErrorAction SilentlyContinue) {
+        try {
+            $accessToken = Get-EntraAccessToken `
+                -ClientId $ClientId `
+                -TenantId $TenantId `
+                -Scopes @($fullScope) `
+                -Audience $ProxyAudience
+        } catch {
+            Write-Warning "Fallo al obtener token con MSAL: $($_.Exception.Message)"
+        }
+    }
+
+    if (-not $accessToken -and (Get-Command az -ErrorAction SilentlyContinue)) {
+        Write-Host "[*] Intentando token fallback vía Azure CLI..." -ForegroundColor Gray
         $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
+        if (-not $tokenResult.Success) {
+            Ensure-DaxProxyLogin -Audience $ProxyAudience -Scope $ProxyScope
+            $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
+        }
+        if ($tokenResult.Success) {
+            $accessToken = $tokenResult.Token
+        }
     }
-    if (-not $tokenResult.Success) {
-        $detail = if ($tokenResult.ErrorText) { " Detalle: $($tokenResult.ErrorText)" } else { "" }
-        throw "No se pudo obtener un token Entra valido.$detail"
+
+    if (-not $accessToken) {
+        throw "No se pudo obtener un token de autenticación para DAX Copilot. Por favor inicia sesión con tu cuenta corporativa de Microsoft 365."
     }
-    $accessToken = $tokenResult.Token
 
     $payload = @{ messages = $messages } | ConvertTo-Json -Depth 10
     $bytes   = [System.Text.Encoding]::UTF8.GetBytes($payload)

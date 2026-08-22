@@ -9,11 +9,13 @@ Módulo integral del **Agente DAX Copilot** para Power BI, modelado semántico V
 ```
 agents/dax_copilot/
 ├── client/                     # 💻 Aplicación cliente y scripts de terminal
-│   ├── pbi_copilot_assistant.ps1   # Asistente interactivo v1.2.0 (Function Calling + Excel .xlsx)
+│   ├── pbi_copilot_assistant.ps1   # Asistente interactivo v1.4.0 (Function Calling + Excel .xlsx)
+│   ├── msal_auth.ps1               # Autenticación nativa M365 / Entra ID (MSAL.NET + DPAPI)
 │   ├── dax_guardrails.ps1          # Guardrails de seguridad DAX (TOPN 5000 + Timeout 60s)
 │   ├── telemetry_outbox.ps1        # Telemetría Outbox con pseudonimización PII SHA-256
 │   ├── launch_copilot.ps1          # Lanzador Zero-Touch con verificación SHA-256
 │   ├── launch_copilot.bat          # Acceso directo de 1 clic para analistas
+│   ├── install_copilot.ps1         # Instalador de entorno de usuario
 │   └── manifest.json               # Manifiesto de release criptográfico
 │
 ├── proxy/                      # ☁️ Proxy Gateway Backend (Azure Function)
@@ -58,15 +60,16 @@ az functionapp deployment source config-zip \
   --build-remote true
 ```
 
-El endpoint requiere autenticación de Azure Functions (`FUNCTION`). El cliente
-debe recibir la clave mediante la variable de entorno
-`DAX_COPILOT_FUNCTION_KEY`; nunca debe escribirse en el script ni en el
-repositorio. Las herramientas disponibles se fijan en el proxy y no pueden
-sobrescribirse desde el request.
+El endpoint utiliza autenticación perimetral de **Microsoft Entra ID (Easy Auth)**
+combinada con la validación a nivel de aplicación en `entra_auth.py`. El cliente
+adquiere automáticamente tokens Bearer mediante `msal_auth.ps1` (MSAL.NET con
+caché cifrada DPAPI y Single Sign-On con la cuenta corporativa M365/Power BI Pro).
+Las herramientas disponibles se fijan en el proxy y no pueden sobrescribirse desde
+el request.
 
-En Azure, Easy Auth debe inyectar `x-ms-client-principal`. Para exigir Entra ID,
+En Azure, Easy Auth inyecta la cabecera `x-ms-client-principal`. Para exigir Entra ID,
 configura `REQUIRE_ENTRA_AUTH=true`, `AZURE_TENANT_ID` con el tenant corporativo
-y, opcionalmente, `AZURE_REQUIRED_SCOPE`. En desarrollo local la validación se
+y `AZURE_REQUIRED_SCOPE` (`access_as_user`). En desarrollo local la validación se
 mantiene desactivada por defecto.
 
 Para validaciones locales, el MCP se configura por defecto en modo solo lectura
