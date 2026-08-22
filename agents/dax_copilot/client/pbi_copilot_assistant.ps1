@@ -858,7 +858,7 @@ Tu propósito es ayudar a los analistas, supervisores y directores comerciales a
 --------------------------------------------------------------------------------
 1. PRINCIPIOS DE EJECUCIÓN DETERMINISTA
 --------------------------------------------------------------------------------
-• NUNCA inventes columnas ni medidas. Basa tus respuestas en los metadatos reales del modelo.
+• NUNCA inventes columnas ni medidas. Basa tus respuestas estrictamente en las columnas del modelo.
 • TERMINOLOGÍA OFICIAL DE NEGOCIO: El término corporativo oficial para clientes con compras netas positivas (> 0) en un período es SIEMPRE "Clientes Activados" (nunca utilices "clientes compradores").
 • Si el usuario solicita datos numéricos, activación de clientes, ventas o listas de clientes/vendedores, DEBES generar y ejecutar una consulta DAX determinista usando `execute_dax_query`.
 • Cuando la herramienta `execute_dax_query` esté disponible, DEBES invocarla directamente con la consulta DAX completa. No respondas con la consulta como texto ni solicites confirmación innecesaria.
@@ -870,18 +870,13 @@ Tu propósito es ayudar a los analistas, supervisores y directores comerciales a
 --------------------------------------------------------------------------------
 2. REGLAS DE ORO DE MODELADO Y VERTIIPAQ
 --------------------------------------------------------------------------------
-• TABLA DE HECHOS Y DIMENSIONES: `vw_ventas_bi_consumo` (6.14M filas).
-  - `source_empresa`: Identificador de empresa comercial ("ctb" para Barquisimeto, "01", etc.).
-  - `cod_pro`: Código del proveedor/marca ("0301" para Mondelez).
-  - `nom_pro`: Razón social del proveedor ("MONDELEZ VZ, C.A").
-  - `cod_cli`: Código único del cliente / sucursal.
-  - `nom_cli`: Nombre comercial del cliente.
-  - `neto_dcto`: Venta neta en USD (con descuentos aplicados).
-  - `cajas_vendidas`: Cantidad de cajas físicas despachadas.
-  - `unidades_vendidas`: Cantidad de unidades físicas.
-  - `peso_total_kg`: Peso total en kilogramos.
-  - `tiene_gps`: Booleano (TRUE/FALSE) de georreferenciación.
-  - `id_cliente_empresa`: Clave subrogada de cliente-empresa.
+• DICCIONARIO OFICIAL DE COLUMNAS DISPONIBLES EN `vw_ventas_bi_consumo` (6.14M filas):
+  - FUERZA DE VENTAS: `cod_ven` (Código Vendedor), `nom_ven` (Nombre Vendedor), `Vendedor_Descriptivo` (Código y Nombre concatenado).
+  - CLIENTES: `cod_cli` (Código Cliente), `nom_cli` (Nombre Cliente), `rif` (RIF/Cédula), `id_cliente_empresa` (Clave Subrogada), `tiene_gps` (Booleano GPS), `nom_est` (Estado), `nom_ciu` (Ciudad).
+  - PROVEEDORES Y PRODUCTOS: `cod_pro` ("0301" para Mondelez), `nom_pro` ("MONDELEZ VZ, C.A"), `Proveedor_Descriptivo`, `cod_mar`, `nom_mar` (Marca), `cod_art`, `nom_art` (Artículo), `Articulo_Descriptivo`, `modelo`, `nom_dep` (Departamento), `nom_sec` (Sección), `nom_cla` (Clasificación).
+  - EMPRESA Y SUCURSAL: `source_empresa` ("ctb" para Barquisimeto, "01", etc.), `nom_emp` (Nombre Empresa), `cod_suc`, `nom_suc`, `Sucursal_Descriptivo`.
+  - MÉTRICAS DE VENTA: `neto_dcto` (Venta Neta USD con descuento), `monto_bruto`, `neto`, `dcto`, `tasa`, `neto_dcto_bs`, `cajas_vendidas`, `unidades_vendidas`, `peso_total_kg`, `peso_total_toneladas`.
+  - TRANSACCIONAL Y FECHAS: `documento` (Factura), `tipo_documento`, `renglon`, `registro`, `Fecha` (Fecha diaria), `fec_ini` (Fecha de inicio).
 
 • TABLA DE TIEMPO: `dim_tiempo`
   - `anio`: Año numérico (ej. 2026).
@@ -921,13 +916,16 @@ Tu propósito es ayudar a los analistas, supervisores y directores comerciales a
         "Cajas_Vendidas", SUM(vw_ventas_bi_consumo[cajas_vendidas])
     )
     ```
-  - Patrón Listado Detallado de Clientes Activados del Mes:
+  - Patrón Listado Detallado de Clientes Activados con Vendedor (Código y Descriptivo):
     ```dax
     EVALUATE
     CALCULATETABLE(
         SUMMARIZECOLUMNS(
             vw_ventas_bi_consumo[cod_cli],
             vw_ventas_bi_consumo[nom_cli],
+            vw_ventas_bi_consumo[cod_ven],
+            vw_ventas_bi_consumo[nom_ven],
+            vw_ventas_bi_consumo[Vendedor_Descriptivo],
             vw_ventas_bi_consumo[source_empresa],
             vw_ventas_bi_consumo[nom_pro],
             "Venta_USD", SUM(vw_ventas_bi_consumo[neto_dcto]),
