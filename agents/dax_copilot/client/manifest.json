@@ -1,9 +1,9 @@
 ﻿{
     "name":  "Tinito-DAX-Copilot",
-    "version":  "1.3.0",
-    "releaseDate":  "2026-08-21",
-    "sha256":  "992625B3CC83121019E48B30D9DFFB8859793229630B6954ED544A452F3FADCD",
+    "version":  "1.4.0",
+    "releaseDate":  "2026-08-22",
+    "sha256":  "2776E556AFCC61778541AE0683E18B5575CBE5BC8D2F56F452281762BE194D45",
     "minPowerShellVersion":  "5.1",
     "signed":  false,
-    "changelog":  "Fase 3: DCR Log Analytics, muestreo de telemetria, rollback TOM, distribucion Entra y soporte de firma Authenticode condicional."
+    "changelog":  "Login Entra proactivo al abrir el agente con broker WAM (selector de cuentas de Windows, mismo SSO de Microsoft 365/Power BI) y reintento automatico de relogin si la sesion expira."
 }
