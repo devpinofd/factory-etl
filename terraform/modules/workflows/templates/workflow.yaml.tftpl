@@ -8,6 +8,9 @@ main:
           - job_name: "${job_name}"
           - bucket_name: "${bucket_name}"
           - dt_param: $${default(map.get(args, "target_date"), default(map.get(args, "dt"), text.split(time.format(sys.now()), "T")[0]))}
+          - lookback_days: $${default(map.get(args, "lookback_days"), 2)}
+          - fec_des_param: $${default(map.get(args, "fec_des"), default(map.get(args, "target_date"), text.split(time.format(sys.now() - lookback_days * 86400), "T")[0]))}
+          - fec_has_param: $${default(map.get(args, "fec_has"), default(map.get(args, "target_date"), default(map.get(args, "dt"), text.split(time.format(sys.now()), "T")[0])))}
           - target_empresa: $${default(map.get(args, "source_empresa"), "")}
           - empresas: ["tinito", "ctb", "daroan", "roldan", "ctm"]
           - queries_list: ${queries_json}
@@ -58,9 +61,9 @@ main:
                                     - "--dt"
                                     - $${dt_param}
                                     - "-p"
-                                    - $${"fec_des=" + dt_param}
+                                    - $${"fec_des=" + fec_des_param}
                                     - "-p"
-                                    - $${"fec_has=" + dt_param}
+                                    - $${"fec_has=" + fec_has_param}
                       - run_job:
                           call: googleapis.run.v2.projects.locations.jobs.run
                           args:
