@@ -108,7 +108,12 @@ def create_github_pull_request(proposal, repo_dir):
     subprocess.run(["git", "checkout", "-b", branch_name], cwd=repo_dir, check=True)
     
     # 1. Incorporar la regla al System Prompt
-    prompt_file = os.path.join(repo_dir, "prompts", "system_prompt_v1.0.md")
+    candidate_paths = [
+        os.path.join(repo_dir, "agents", "dax_copilot", "prompts", "system_prompt_v1.0.md"),
+        os.path.join(repo_dir, "prompts", "system_prompt_v1.0.md"),
+    ]
+    prompt_file = next((p for p in candidate_paths if os.path.exists(p)), candidate_paths[0])
+    
     if os.path.exists(prompt_file):
         with open(prompt_file, "r", encoding="utf-8") as f:
             content = f.read()
@@ -121,8 +126,9 @@ def create_github_pull_request(proposal, repo_dir):
             f.write(new_content)
     
     # 2. Commit
+    rel_prompt_path = os.path.relpath(prompt_file, repo_dir).replace("\\", "/")
     subprocess.run(
-        ["git", "add", "--", "prompts/system_prompt_v1.0.md"],
+        ["git", "add", "--", rel_prompt_path],
         cwd=repo_dir,
         check=True,
     )
@@ -174,7 +180,8 @@ def create_github_pull_request(proposal, repo_dir):
             check=False,
         )
     finally:
-        os.remove(body_path)
+        if os.path.exists(body_path):
+            os.remove(body_path)
     print("✔ PULL REQUEST CREADO EXITOSAMENTE EN GITHUB:")
     print(res.stdout)
     
@@ -183,21 +190,32 @@ def create_github_pull_request(proposal, repo_dir):
     return res.stdout
 
 if __name__ == "__main__":
-    repo_root = r"c:\Repos\factory-etl"
-    logs_directory = os.path.expandvars(r"%LOCALAPPDATA%\Tinito\PbiCopilot\logs")
+    repo_root = os.getenv("GITHUB_WORKSPACE", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
+    logs_directory = os.getenv("COPILOT_LOGS_DIR", os.path.expandvars(r"%LOCALAPPDATA%\Tinito\PbiCopilot\logs"))
+    auto_pr = os.getenv("AUTO_PR", "false").lower() in ("1", "true", "yes")
+    
     print(f"=== INICIANDO AUDITORÍA DEL AGENTE DE QA ===")
     print(f"Repo: {repo_root}")
     print(f"Logs: {logs_directory}")
+    print(f"Auto PR: {auto_pr}")
     
     incidents = read_telemetry_incidents(logs_directory)
     print(f"Total de incidentes detectados para evaluación: {len(incidents)}")
     
     if incidents:
         inc = incidents[0]
-        prompt_path = os.path.join(repo_root, "prompts", "system_prompt_v1.0.md")
-        curr_p = open(prompt_path, encoding="utf-8").read() if os.path.exists(prompt_path) else ""
+        candidate_paths = [
+            os.path.join(repo_root, "agents", "dax_copilot", "prompts", "system_prompt_v1.0.md"),
+            os.path.join(repo_root, "prompts", "system_prompt_v1.0.md"),
+        ]
+        prompt_path = next((p for p in candidate_paths if os.path.exists(p)), "")
+        curr_p = open(prompt_path, encoding="utf-8").read() if prompt_path and os.path.exists(prompt_path) else ""
         
         print(f"[*] Analizando incidente: {inc.get('question')}...")
         proposal = generate_refinement_proposal(inc, curr_p)
         print(f"✔ Propuesta generada: {proposal.get('titulo_pr')}")
         print(f"  Diagnóstico: {proposal.get('diagnostico')}")
+        
+        if auto_pr:
+            print("[*] Modo automático activo: creando Pull Request en GitHub...")
+            create_github_pull_request(proposal, repo_root)

@@ -2,6 +2,9 @@ name: 🤖 DAX Copilot AI-Agent QA & CI/CD Pipeline
 
 on:
   workflow_dispatch:
+  schedule:
+    # 12:00 AM hora Caracas (04:00 UTC) diariamente
+    - cron: '0 4 * * *'
   pull_request:
     paths:
       - 'agents/dax_copilot/**'
@@ -14,7 +17,8 @@ on:
       - '.github/workflows/ai_agent_qa_evaluation.yml'
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   id-token: write
 
 jobs:
@@ -279,3 +283,43 @@ jobs:
           echo "$deployment_json"
           test "$(echo "$deployment_json" | jq -r '.active')" = "true"
           test "$(echo "$deployment_json" | jq -r '.status')" = "4"
+
+  nightly-qa-judge-auto-refine:
+    name: 🧑‍⚖️ QA Judge Nightly Auto-Refinement (LLM-as-a-Judge)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Clonar Repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Instalar Dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install openai azure-identity pydantic
+
+      - name: 🔑 Iniciar Sesión en Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
+
+      - name: 🧑‍⚖️ Ejecutar Agente Juez y Crear Pull Request
+        env:
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT || 'gpt-5-mini' }}
+          AZURE_OPENAI_API_VERSION: "2024-08-01-preview"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AUTO_PR: "true"
+        run: |
+          python agents/dax_copilot/qa_judge/qa_judge_agent.py
