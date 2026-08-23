@@ -224,7 +224,7 @@ variable "daily_queries" {
   }))
   default = [
     { id = "renglones_almacenes_v1", has_param = false },
-    { id = "ventas_diarias_v2", has_param = true },
+    { id = "ventas_diarias_v3", has_param = true },
     { id = "renglones_monedas_v1", has_param = true },
     { id = "renglones_aprecios_v1", has_param = true },
   ]
@@ -238,7 +238,7 @@ variable "daily_queries_full" {
   }))
   default = [
     { id = "renglones_almacenes_v1", has_param = false },
-    { id = "ventas_diarias_v2", has_param = true },
+    { id = "ventas_diarias_v3", has_param = true },
     { id = "renglones_monedas_v1", has_param = true },
     { id = "renglones_aprecios_v1", has_param = true },
     { id = "articulos_v1", has_param = false },
