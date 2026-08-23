@@ -18,6 +18,7 @@ resource "google_workflows_workflow" "workflow" {
     project_id                     = var.project_id
     region                         = var.region
     job_name                       = var.job_name
+    default_lookback_days          = var.default_lookback_days
     consolidation_workflow_name    = var.consolidation_workflow_name
     enable_scd2                    = var.enable_scd2
     service_account_email          = var.service_account_email

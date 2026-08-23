@@ -364,6 +364,7 @@ module "workflows" {
   workflow_name               = local.daily_workflow_name
   consolidation_workflow_name = local.consolidation_workflow_name
   enable_scd2                 = local.enable_scd2
+  default_lookback_days       = 0
   job_name                    = module.cloud_run_job.job_name
   bucket_name                 = module.storage.bronze_bucket_name
   control_dataset_id          = local.workflow_control_dataset_id
@@ -382,6 +383,7 @@ module "workflows_full" {
   workflow_name               = local.full_workflow_name
   consolidation_workflow_name = local.consolidation_workflow_name
   enable_scd2                 = local.enable_scd2
+  default_lookback_days       = 2
   job_name                    = module.cloud_run_job.job_name
   bucket_name                 = module.storage.bronze_bucket_name
   control_dataset_id          = local.workflow_control_dataset_id

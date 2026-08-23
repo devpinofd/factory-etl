@@ -59,6 +59,12 @@ variable "enable_scd2" {
   default     = true
 }
 
+variable "default_lookback_days" {
+  description = "Cantidad de días hacia atrás para la ventana deslizante (0 = solo el día en curso, 2 = T-2 a T)."
+  type        = number
+  default     = 0
+}
+
 # --- Consolidacion Medallion automatizada (opcional por instancia del modulo) --
 
 variable "enable_medallion_consolidation" {
