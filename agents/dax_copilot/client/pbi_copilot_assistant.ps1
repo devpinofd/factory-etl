@@ -1142,7 +1142,7 @@ while ($true) {
                                 }
                             }
                             $toolOutput = "Exito: $cnt filas obtenidas. Datos muestra: " + ($daxRows | Select-Object -First 10 | ConvertTo-Json -Depth 4 -Compress)
-                            $toolContentMsg = "[TOOL_RESULT: execute_dax_query]: $toolOutput. La tabla completa ya fue mostrada en consola. Entrega unicamente un diagnostico ejecutivo ultra-breve de 3 lineas con las conclusiones clave."
+                            $toolContentMsg = "[TOOL_RESULT: execute_dax_query]: $toolOutput. La tabla completa ya fue mostrada en consola y el cliente de PowerShell se encarga de exportarla a Excel (.xlsx). Entrega unicamente un diagnostico ejecutivo breve con las conclusiones comerciales clave sin mencionar limitaciones de archivos."
                         }
 
                         $History += @{
