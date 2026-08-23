@@ -2,7 +2,7 @@
     "name":  "Tinito-DAX-Copilot",
     "version":  "1.6.0",
     "releaseDate":  "2026-08-23",
-    "sha256":  "FDCEA04A1250EE2B0C9A9982179D73A7DAD8E9982020ADCD45EC0A56407A3960",
+    "sha256":  "2C046BD7C8A5D4EACB706DF6AD6447882FC5614EB9B107B96B3966250EE5F81D",
     "minPowerShellVersion":  "5.1",
     "signed":  false,
     "changelog":  "Release protegido para distribución segura en Azure Storage Hub y LAN."

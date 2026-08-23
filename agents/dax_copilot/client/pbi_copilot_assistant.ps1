@@ -1165,20 +1165,22 @@ while ($true) {
                             $lastDaxDataset = $daxRows
                             $displayRows = Format-DaxRowsForDisplay -rows $daxRows
 
-                            # Mostrar tabla en consola
+                            # Mostrar tabla en consola (máximo primeros 10 registros para optimización y legibilidad)
                             if ($cnt -gt 0) {
                                 Write-Host "`n========================================================" -ForegroundColor Cyan
-                                Write-Host "TABLA DE DATOS OBTENIDOS ($cnt registros):" -ForegroundColor Yellow
+                                Write-Host "TABLA DE DATOS OBTENIDOS (Total: $cnt registros):" -ForegroundColor Yellow
                                 Write-Host "========================================================" -ForegroundColor Cyan
-                                if ($cnt -le 35) {
+                                if ($cnt -le 10) {
                                     $displayRows | Format-Table -AutoSize | Out-String | Write-Host
                                 } else {
-                                    $displayRows | Select-Object -First 25 | Format-Table -AutoSize | Out-String | Write-Host
-                                    Write-Host "... y $($cnt - 25) filas adicionales." -ForegroundColor Gray
+                                    $displayRows | Select-Object -First 10 | Format-Table -AutoSize | Out-String | Write-Host
+                                    Write-Host "... y $($cnt - 10) registros adicionales listos para exportar a Excel." -ForegroundColor Gray
                                 }
                             }
-                            $toolOutput = "Exito: $cnt filas obtenidas. Datos muestra: " + ($displayRows | Select-Object -First 10 | ConvertTo-Json -Depth 4 -Compress)
-                            $toolContentMsg = "[TOOL_RESULT: execute_dax_query]: $toolOutput. La tabla completa ya fue mostrada en consola y el cliente de PowerShell se encarga de exportarla a Excel (.xlsx). Entrega unicamente un diagnostico ejecutivo breve con las conclusiones comerciales clave sin mencionar limitaciones de archivos."
+                            # Token-saving: Enviar muestra compacta de 5 filas para diagnóstico del LLM
+                            $sampleRows = if ($cnt -gt 5) { $displayRows | Select-Object -First 5 } else { $displayRows }
+                            $toolOutput = "Exito: $cnt filas obtenidas. Muestra (top 5): " + ($sampleRows | ConvertTo-Json -Depth 2 -Compress)
+                            $toolContentMsg = "[TOOL_RESULT: execute_dax_query]: $toolOutput. La tabla fue procesada en consola y el cliente local genera el archivo Excel (.xlsx). Entrega unicamente un diagnostico ejecutivo ultra-breve de 3 a 5 lineas con los hallazgos y metricas principales."
                         }
 
                         $History += @{
