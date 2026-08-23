@@ -248,6 +248,34 @@ function Clean-DaxColumnHeader([string]$rawHeader) {
     return $clean
 }
 
+function Format-DaxRowsForDisplay([object[]]$rows) {
+    if (-not $rows -or $rows.Count -eq 0) { return $rows }
+    $formattedList = @()
+    foreach ($r in $rows) {
+        $newObj = [ordered]@{}
+        foreach ($prop in $r.PSObject.Properties) {
+            $name = $prop.Name
+            $val = $prop.Value
+            if ($null -eq $val) {
+                $newObj[$name] = "-"
+            } elseif ($val -is [double] -or $val -is [float] -or $val -is [decimal]) {
+                $num = [double]$val
+                if ($name -match '(?i)pct|porcentaje|tasa|activacion|cobertura|margen') {
+                    $newObj[$name] = ("{0:N2}%" -f ($num * 100))
+                } elseif ($name -match '(?i)usd|venta|monto|ticket|costo|precio' -and $name -notmatch '(?i)cajas|unidades|peso|ton|kg|anio|mes|cod|id|cant|cliente|cartera') {
+                    $newObj[$name] = ("{0:N2}" -f $num)
+                } else {
+                    $newObj[$name] = $val
+                }
+            } else {
+                $newObj[$name] = $val
+            }
+        }
+        $formattedList += [PSCustomObject]$newObj
+    }
+    return $formattedList
+}
+
 function Export-NativeExcelXlsx {
     param (
         [Parameter(Mandatory=$true)]
@@ -1128,6 +1156,7 @@ while ($true) {
                             if ($daxRows) { $cnt = $daxRows.Count }
                             Write-Host "[OK] Calculo completado ($cnt filas obtenidas en $($daxSw.ElapsedMilliseconds) ms)." -ForegroundColor Green
                             $lastDaxDataset = $daxRows
+                            $displayRows = Format-DaxRowsForDisplay -rows $daxRows
 
                             # Mostrar tabla en consola
                             if ($cnt -gt 0) {
@@ -1135,13 +1164,13 @@ while ($true) {
                                 Write-Host "TABLA DE DATOS OBTENIDOS ($cnt registros):" -ForegroundColor Yellow
                                 Write-Host "========================================================" -ForegroundColor Cyan
                                 if ($cnt -le 35) {
-                                    $daxRows | Format-Table -AutoSize | Out-String | Write-Host
+                                    $displayRows | Format-Table -AutoSize | Out-String | Write-Host
                                 } else {
-                                    $daxRows | Select-Object -First 25 | Format-Table -AutoSize | Out-String | Write-Host
+                                    $displayRows | Select-Object -First 25 | Format-Table -AutoSize | Out-String | Write-Host
                                     Write-Host "... y $($cnt - 25) filas adicionales." -ForegroundColor Gray
                                 }
                             }
-                            $toolOutput = "Exito: $cnt filas obtenidas. Datos muestra: " + ($daxRows | Select-Object -First 10 | ConvertTo-Json -Depth 4 -Compress)
+                            $toolOutput = "Exito: $cnt filas obtenidas. Datos muestra: " + ($displayRows | Select-Object -First 10 | ConvertTo-Json -Depth 4 -Compress)
                             $toolContentMsg = "[TOOL_RESULT: execute_dax_query]: $toolOutput. La tabla completa ya fue mostrada en consola y el cliente de PowerShell se encarga de exportarla a Excel (.xlsx). Entrega unicamente un diagnostico ejecutivo breve con las conclusiones comerciales clave sin mencionar limitaciones de archivos."
                         }
 
