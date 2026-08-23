@@ -218,20 +218,24 @@ namespace Tinito.Copilot
             {
                 FileName = "powershell.exe",
                 Arguments = "-NoProfile -ExecutionPolicy Bypass -File \"" + targetScript + "\"",
-                UseShellExecute = false
+                UseShellExecute = false,
+                CreateNoWindow = false
             };
 
             try
             {
-                Process proc = Process.Start(psi);
-                proc.WaitForExit();
-                return proc.ExitCode;
+                using (Process proc = Process.Start(psi))
+                {
+                    proc.WaitForExit();
+                    return proc.ExitCode;
+                }
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Error al iniciar DAX Copilot: " + ex.Message);
                 Console.ResetColor();
+                Console.WriteLine("\nPresione cualquier tecla para salir...");
                 Console.ReadKey();
                 return 1;
             }
