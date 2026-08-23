@@ -73,7 +73,7 @@ def read_telemetry_incidents(logs_dir):
     return incidents
 
 
-def generate_refinement_proposal(incident, current_prompt):
+def generate_refinement_proposal(incident, current_prompt, rules_catalog=None):
     client = get_judge_client()
     
     system_evaluator_prompt = """
@@ -95,8 +95,10 @@ def generate_refinement_proposal(incident, current_prompt):
     }
     """
     
-    # Extraer secciones estructuradas del prompt base sin truncamiento ciego
-    prompt_context = current_prompt[:4000] if len(current_prompt) > 4000 else current_prompt
+    # Inyección íntegra del prompt base y del catálogo de reglas aprendidas sin truncamiento
+    rules_block = ""
+    if rules_catalog and "rules" in rules_catalog:
+        rules_block = f"\n\nCATÁLOGO DE REGLAS APRENDIDAS EXISTENTES:\n{json.dumps(rules_catalog['rules'], indent=2, ensure_ascii=False)}"
 
     user_payload = f"""
     INCIDENTE REGISTRADO EN TELEMETRÍA:
@@ -105,8 +107,9 @@ def generate_refinement_proposal(incident, current_prompt):
     - Error / Estado: {incident.get('error_message') or incident.get('status')}
     - Duración: {incident.get('duration_ms')} ms
     
-    SYSTEM PROMPT ACTUAL (Contexto Base):
-    {prompt_context}
+    SYSTEM PROMPT ACTUAL (Contexto Base Completo):
+    {current_prompt}
+    {rules_block}
     """
     
     response = client.chat.completions.create(
@@ -244,10 +247,21 @@ if __name__ == "__main__":
         prompt_path = next((p for p in candidate_paths if os.path.exists(p)), "")
         curr_p = open(prompt_path, encoding="utf-8").read() if prompt_path and os.path.exists(prompt_path) else ""
         
+        # Cargar catálogo de reglas aprendidas
+        candidate_rules = [
+            os.path.join(repo_root, "agents", "dax_copilot", "prompts", "learned_rules.json"),
+            os.path.join(repo_root, "prompts", "learned_rules.json"),
+        ]
+        rules_path = next((p for p in candidate_rules if os.path.exists(p)), "")
+        rules_cat = None
+        if rules_path and os.path.exists(rules_path):
+            with open(rules_path, "r", encoding="utf-8") as rf:
+                rules_cat = json.load(rf)
+        
         # Procesar hasta 3 incidentes por ciclo
         for inc in incidents[:3]:
             print(f"[*] Analizando incidente: {inc.get('question')}...")
-            proposal = generate_refinement_proposal(inc, curr_p)
+            proposal = generate_refinement_proposal(inc, curr_p, rules_cat)
             print(f"✔ Propuesta generada: {proposal.get('titulo_pr')}")
             print(f"  Diagnóstico: {proposal.get('diagnostico')}")
             

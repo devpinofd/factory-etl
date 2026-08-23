@@ -1232,7 +1232,7 @@ while ($true) {
             break
         } catch {
             Write-Host "Error al consultar Azure Gateway: $_" -ForegroundColor Red
-            Save-OutboxTelemetry -Question $Pregunta -DaxQuery $lastDaxQuery -Status "GATEWAY_ERROR" -ErrorMessage $_.Exception.Message
+            Save-OutboxTelemetryWrapper -Question $Pregunta -DaxQuery $lastDaxQuery -Status "GATEWAY_ERROR" -ErrorMessage $_.Exception.Message
             break
         }
     }
