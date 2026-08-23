@@ -134,7 +134,7 @@ if (-not $scriptToRun) {
 
 # 4. Ejecución Segura
 if ($scriptToRun -and (Test-Path $scriptToRun)) {
-    . $scriptToRun
+    & $scriptToRun
 } else {
     Write-Host "❌ Error crítico: No se encontró ninguna versión válida del agente DAX Copilot." -ForegroundColor Red
     Write-Host "Verifica tu conexión o contacta a $adminContact." -ForegroundColor White

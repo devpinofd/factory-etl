@@ -181,38 +181,43 @@ if ($tomDll -and (Test-Path $tomDll)) {
 }
 
 # 4. Modulo unico de Guardrails de Seguridad DAX
-$guardrailPath = Join-Path $PSScriptRoot "dax_guardrails.ps1"
-if (-not (Test-Path $guardrailPath)) {
-    $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher" "dax_guardrails.ps1"
-    if (Test-Path $candidate) { $guardrailPath = $candidate }
+if (-not (Get-Command Test-DaxQuerySafe -ErrorAction SilentlyContinue)) {
+    $guardrailPath = if ($PSScriptRoot) { Join-Path $PSScriptRoot "dax_guardrails.ps1" } else { "" }
+    if (-not $guardrailPath -or -not (Test-Path $guardrailPath)) {
+        $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher" "dax_guardrails.ps1"
+        if (Test-Path $candidate) { $guardrailPath = $candidate }
+    }
+    if (-not $guardrailPath -or -not (Test-Path $guardrailPath)) {
+        $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\cache" "dax_guardrails.ps1"
+        if (Test-Path $candidate) { $guardrailPath = $candidate }
+    }
+    if ($guardrailPath -and (Test-Path $guardrailPath)) {
+        . $guardrailPath
+    }
 }
-if (-not (Test-Path $guardrailPath)) {
-    $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\cache" "dax_guardrails.ps1"
-    if (Test-Path $candidate) { $guardrailPath = $candidate }
-}
-if (-not (Test-Path $guardrailPath)) {
-    throw "No se encontro el modulo de guardrails DAX: $guardrailPath"
-}
-. $guardrailPath
 
 # 4.1. Modulo de Autenticacion Microsoft Entra ID / M365 (MSAL.NET)
-$msalAuthPath = Join-Path $PSScriptRoot "msal_auth.ps1"
-if (-not (Test-Path $msalAuthPath)) {
-    $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher" "msal_auth.ps1"
-    if (Test-Path $candidate) { $msalAuthPath = $candidate }
-}
-if (Test-Path $msalAuthPath) {
-    . $msalAuthPath
+if (-not (Get-Command Initialize-MsalAssemblies -ErrorAction SilentlyContinue)) {
+    $msalAuthPath = if ($PSScriptRoot) { Join-Path $PSScriptRoot "msal_auth.ps1" } else { "" }
+    if (-not $msalAuthPath -or -not (Test-Path $msalAuthPath)) {
+        $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher" "msal_auth.ps1"
+        if (Test-Path $candidate) { $msalAuthPath = $candidate }
+    }
+    if ($msalAuthPath -and (Test-Path $msalAuthPath)) {
+        . $msalAuthPath
+    }
 }
 
 # 5. Modulo de Telemetria Outbox canonico
-$telemetryOutboxPath = Join-Path $PSScriptRoot "telemetry_outbox.ps1"
-if (-not (Test-Path $telemetryOutboxPath)) {
-    $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher" "telemetry_outbox.ps1"
-    if (Test-Path $candidate) { $telemetryOutboxPath = $candidate }
-}
-if (Test-Path $telemetryOutboxPath) {
-    . $telemetryOutboxPath
+if (-not (Get-Command Save-OutboxTelemetry -ErrorAction SilentlyContinue)) {
+    $telemetryOutboxPath = if ($PSScriptRoot) { Join-Path $PSScriptRoot "telemetry_outbox.ps1" } else { "" }
+    if (-not $telemetryOutboxPath -or -not (Test-Path $telemetryOutboxPath)) {
+        $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher" "telemetry_outbox.ps1"
+        if (Test-Path $candidate) { $telemetryOutboxPath = $candidate }
+    }
+    if ($telemetryOutboxPath -and (Test-Path $telemetryOutboxPath)) {
+        . $telemetryOutboxPath
+    }
 }
 
 function Save-OutboxTelemetryWrapper {
@@ -1032,32 +1037,34 @@ Cada vez que propongas o inyectes una medida DAX, DEBES incluir el encabezado fo
   [INJECT_MEASURE:Nombre_Medida:Formato_Numero:Formula_DAX_Completa]
 '@
 
-$promptFile = Join-Path (Split-Path $PSScriptRoot) "prompts\system_prompt_v1.0.md"
-if (Test-Path $promptFile) {
-    try {
-        $filePrompt = [System.IO.File]::ReadAllText($promptFile, [System.Text.Encoding]::UTF8)
-        if ($filePrompt -and $filePrompt.Trim().Length -gt 100) {
-            $BaseSystemPrompt = $filePrompt
-        }
-    } catch { }
-}
-
-# Carga dinamica de reglas aprendidas y aprobadas (Modular Dynamic Prompting)
-$rulesFile = Join-Path (Split-Path $PSScriptRoot) "prompts\learned_rules.json"
-if (Test-Path $rulesFile) {
-    try {
-        $rulesJson = [System.IO.File]::ReadAllText($rulesFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-        $approvedRules = $rulesJson.rules | Where-Object { $_.estado -eq "aprobado" }
-        if ($approvedRules -and $approvedRules.Count -gt 0) {
-            $rulesBlock = "`r`n`r`n--------------------------------------------------------------------------------`r`n"
-            $rulesBlock += "5. REGLAS DE OPTIMIZACION APRENDIDAS (APROBADAS POR EL ARQUITECTO)`r`n"
-            $rulesBlock += "--------------------------------------------------------------------------------`r`n"
-            foreach ($r in $approvedRules) {
-                $rulesBlock += "• [$($r.categoria)] $($r.regla)`r`n"
+if ($PSScriptRoot) {
+    $promptFile = Join-Path (Split-Path $PSScriptRoot) "prompts\system_prompt_v1.0.md"
+    if (Test-Path $promptFile) {
+        try {
+            $filePrompt = [System.IO.File]::ReadAllText($promptFile, [System.Text.Encoding]::UTF8)
+            if ($filePrompt -and $filePrompt.Trim().Length -gt 100) {
+                $BaseSystemPrompt = $filePrompt
             }
-            $BaseSystemPrompt += $rulesBlock
-        }
-    } catch { }
+        } catch { }
+    }
+
+    # Carga dinamica de reglas aprendidas y aprobadas (Modular Dynamic Prompting)
+    $rulesFile = Join-Path (Split-Path $PSScriptRoot) "prompts\learned_rules.json"
+    if (Test-Path $rulesFile) {
+        try {
+            $rulesJson = [System.IO.File]::ReadAllText($rulesFile, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+            $approvedRules = $rulesJson.rules | Where-Object { $_.estado -eq "aprobado" }
+            if ($approvedRules -and $approvedRules.Count -gt 0) {
+                $rulesBlock = "`r`n`r`n--------------------------------------------------------------------------------`r`n"
+                $rulesBlock += "5. REGLAS DE OPTIMIZACION APRENDIDAS (APROBADAS POR EL ARQUITECTO)`r`n"
+                $rulesBlock += "--------------------------------------------------------------------------------`r`n"
+                foreach ($r in $approvedRules) {
+                    $rulesBlock += "• [$($r.categoria)] $($r.regla)`r`n"
+                }
+                $BaseSystemPrompt += $rulesBlock
+            }
+        } catch { }
+    }
 }
 
 $History = @(
