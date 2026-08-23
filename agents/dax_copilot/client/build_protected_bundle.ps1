@@ -107,9 +107,9 @@ $protectedLoader = @"
 
 `$b64 = "$compressedBase64"
 `$b = [System.Convert]::FromBase64String(`$b64)
-`$ms = New-Object System.IO.MemoryStream(,@`$b)
-`$ds = New-Object System.IO.Compression.DeflateStream(`$ms, [System.IO.Compression.CompressionMode]::Decompress)
-`$sr = New-Object System.IO.StreamReader(`$ds, [System.Text.Encoding]::UTF8)
+`$ms = [System.IO.MemoryStream]::new(`$b)
+`$ds = [System.IO.Compression.DeflateStream]::new(`$ms, [System.IO.Compression.CompressionMode]::Decompress)
+`$sr = [System.IO.StreamReader]::new(`$ds, [System.Text.Encoding]::UTF8)
 `$code = `$sr.ReadToEnd()
 `$sr.Close(); `$ds.Close(); `$ms.Close()
 
@@ -144,8 +144,8 @@ if (Test-Path $launcherFile) {
     $launcherRaw = [System.IO.File]::ReadAllText($launcherFile, [System.Text.Encoding]::UTF8)
     $launcherBytes = [System.Text.Encoding]::UTF8.GetBytes($launcherRaw)
     
-    $lMemStream = New-Object System.IO.MemoryStream
-    $lDeflateStream = New-Object System.IO.Compression.DeflateStream($lMemStream, [System.IO.Compression.CompressionMode]::Compress, $true)
+    $lMemStream = [System.IO.MemoryStream]::new()
+    $lDeflateStream = [System.IO.Compression.DeflateStream]::new($lMemStream, [System.IO.Compression.CompressionMode]::Compress, $true)
     $lDeflateStream.Write($launcherBytes, 0, $launcherBytes.Length)
     $lDeflateStream.Close()
     $lCompBytes = $lMemStream.ToArray()
@@ -161,9 +161,9 @@ if (Test-Path $launcherFile) {
 `$OutputEncoding = [System.Text.Encoding]::UTF8
 `$b64 = "$lB64"
 `$b = [System.Convert]::FromBase64String(`$b64)
-`$ms = New-Object System.IO.MemoryStream(,@`$b)
-`$ds = New-Object System.IO.Compression.DeflateStream(`$ms, [System.IO.Compression.CompressionMode]::Decompress)
-`$sr = New-Object System.IO.StreamReader(`$ds, [System.Text.Encoding]::UTF8)
+`$ms = [System.IO.MemoryStream]::new(`$b)
+`$ds = [System.IO.Compression.DeflateStream]::new(`$ms, [System.IO.Compression.CompressionMode]::Decompress)
+`$sr = [System.IO.StreamReader]::new(`$ds, [System.Text.Encoding]::UTF8)
 `$code = `$sr.ReadToEnd()
 `$sr.Close(); `$ds.Close(); `$ms.Close()
 `$sb = [ScriptBlock]::Create(`$code)
