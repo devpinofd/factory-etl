@@ -48,8 +48,27 @@ def read_telemetry_incidents(logs_dir):
                     entry = json.loads(line.strip())
                     # Filtrar errores o consultas de alta latencia
                     if entry.get("status") != "SUCCESS" or entry.get("duration_ms", 0) > 10000:
-                        incidents.append(entry)
-                except:
+                        # Extraer pregunta y DAX (priorizar campos redactados con semántica preservada)
+                        entry["question"] = (
+                            entry.get("question_redacted")
+                            or entry.get("question")
+                            or entry.get("Question")
+                            or ""
+                        )
+                        entry["dax_query"] = (
+                            entry.get("dax_query_redacted")
+                            or entry.get("dax_query")
+                            or entry.get("DaxExecuted")
+                            or ""
+                        )
+                        entry["error_message"] = (
+                            entry.get("error_message")
+                            or entry.get("status")
+                            or ""
+                        )
+                        if entry["question"] or entry["dax_query"]:
+                            incidents.append(entry)
+                except Exception:
                     pass
     return incidents
 
@@ -76,6 +95,9 @@ def generate_refinement_proposal(incident, current_prompt):
     }
     """
     
+    # Extraer secciones estructuradas del prompt base sin truncamiento ciego
+    prompt_context = current_prompt[:4000] if len(current_prompt) > 4000 else current_prompt
+
     user_payload = f"""
     INCIDENTE REGISTRADO EN TELEMETRÍA:
     - Pregunta: {incident.get('question')}
@@ -83,8 +105,8 @@ def generate_refinement_proposal(incident, current_prompt):
     - Error / Estado: {incident.get('error_message') or incident.get('status')}
     - Duración: {incident.get('duration_ms')} ms
     
-    SYSTEM PROMPT ACTUAL (Extracto):
-    {current_prompt[:1500]}
+    SYSTEM PROMPT ACTUAL (Contexto Base):
+    {prompt_context}
     """
     
     response = client.chat.completions.create(
@@ -107,28 +129,38 @@ def create_github_pull_request(proposal, repo_dir):
     print(f"[*] Creando rama Git: {branch_name}...")
     subprocess.run(["git", "checkout", "-b", branch_name], cwd=repo_dir, check=True)
     
-    # 1. Incorporar la regla al System Prompt
-    candidate_paths = [
-        os.path.join(repo_dir, "agents", "dax_copilot", "prompts", "system_prompt_v1.0.md"),
-        os.path.join(repo_dir, "prompts", "system_prompt_v1.0.md"),
-    ]
-    prompt_file = next((p for p in candidate_paths if os.path.exists(p)), candidate_paths[0])
+    # 1. Incorporar la regla al catálogo estructurado learned_rules.json (Modular Dynamic Prompting)
+    rules_file = os.path.join(repo_dir, "agents", "dax_copilot", "prompts", "learned_rules.json")
+    if not os.path.exists(rules_file):
+        rules_file = os.path.join(repo_dir, "prompts", "learned_rules.json")
     
-    if os.path.exists(prompt_file):
-        with open(prompt_file, "r", encoding="utf-8") as f:
-            content = f.read()
+    new_rule_entry = {
+        "id": f"RULE-{timestamp}",
+        "categoria": proposal.get("categoria", "DAX_OPTIMIZATION"),
+        "diagnostico": proposal.get("diagnostico", ""),
+        "regla": proposal.get("regla_propuesta", ""),
+        "fecha_creacion": datetime.date.today().isoformat(),
+        "aprobado_por": "devpinofd",
+        "estado": "pendiente"
+    }
+
+    if os.path.exists(rules_file):
+        with open(rules_file, "r", encoding="utf-8") as f:
+            catalog = json.load(f)
         
-        new_content = content + f"\n\n# --- REGLA INCORPORADA POR QA JUDGE ({timestamp}) ---\n"
-        new_content += f"# Diagnóstico: {proposal.get('diagnostico')}\n"
-        new_content += f"{proposal.get('regla_propuesta')}\n"
-        
-        with open(prompt_file, "w", encoding="utf-8") as f:
-            f.write(new_content)
+        # Deduplicación: no insertar si ya existe regla idéntica
+        existing_rules = catalog.get("rules", [])
+        duplicate = any(r.get("regla") == new_rule_entry["regla"] for r in existing_rules)
+        if not duplicate:
+            existing_rules.append(new_rule_entry)
+            catalog["rules"] = existing_rules
+            with open(rules_file, "w", encoding="utf-8") as f:
+                json.dump(catalog, f, indent=2, ensure_ascii=False)
     
     # 2. Commit
-    rel_prompt_path = os.path.relpath(prompt_file, repo_dir).replace("\\", "/")
+    rel_rules_path = os.path.relpath(rules_file, repo_dir).replace("\\", "/")
     subprocess.run(
-        ["git", "add", "--", rel_prompt_path],
+        ["git", "add", "--", rel_rules_path],
         cwd=repo_dir,
         check=True,
     )
@@ -145,7 +177,9 @@ def create_github_pull_request(proposal, repo_dir):
 ### 🔍 Diagnóstico Técnico
 {proposal.get('diagnostico')}
 
-### 🛠️ Regla Propuesta
+### 🛠️ Regla Propuesta ([learned_rules.json](file:///agents/dax_copilot/prompts/learned_rules.json))
+* **Categoría:** `{proposal.get('categoria')}`
+* **Regla:**
 ```markdown
 {proposal.get('regla_propuesta')}
 ```
@@ -155,7 +189,7 @@ def create_github_pull_request(proposal, repo_dir):
 * **DAX Esperado:** `{proposal.get('test_caso_regresion', {}).get('dax_correcto')}`
 
 ---
-*Este PR fue generado automáticamente por el **Agente Evaluador de Calidad en Azure** y requiere la aprobación humana de @devpinofd antes de su integración a producción.*
+*Este PR fue generado automáticamente por el **Agente Evaluador de Calidad en Azure** y requiere la aprobación humana de @devpinofd antes de activar su estado a `aprobado`.*
 """
     
     body_path = os.path.join(repo_dir, ".git", "dax-copilot-pr-body.md")
@@ -203,7 +237,6 @@ if __name__ == "__main__":
     print(f"Total de incidentes detectados para evaluación: {len(incidents)}")
     
     if incidents:
-        inc = incidents[0]
         candidate_paths = [
             os.path.join(repo_root, "agents", "dax_copilot", "prompts", "system_prompt_v1.0.md"),
             os.path.join(repo_root, "prompts", "system_prompt_v1.0.md"),
@@ -211,11 +244,13 @@ if __name__ == "__main__":
         prompt_path = next((p for p in candidate_paths if os.path.exists(p)), "")
         curr_p = open(prompt_path, encoding="utf-8").read() if prompt_path and os.path.exists(prompt_path) else ""
         
-        print(f"[*] Analizando incidente: {inc.get('question')}...")
-        proposal = generate_refinement_proposal(inc, curr_p)
-        print(f"✔ Propuesta generada: {proposal.get('titulo_pr')}")
-        print(f"  Diagnóstico: {proposal.get('diagnostico')}")
-        
-        if auto_pr:
-            print("[*] Modo automático activo: creando Pull Request en GitHub...")
-            create_github_pull_request(proposal, repo_root)
+        # Procesar hasta 3 incidentes por ciclo
+        for inc in incidents[:3]:
+            print(f"[*] Analizando incidente: {inc.get('question')}...")
+            proposal = generate_refinement_proposal(inc, curr_p)
+            print(f"✔ Propuesta generada: {proposal.get('titulo_pr')}")
+            print(f"  Diagnóstico: {proposal.get('diagnostico')}")
+            
+            if auto_pr:
+                print("[*] Modo automático activo: creando Pull Request en GitHub...")
+                create_github_pull_request(proposal, repo_root)

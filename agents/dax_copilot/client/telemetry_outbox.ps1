@@ -16,6 +16,16 @@ function Get-PseudonymizedHash([string]$value) {
     return "usr_" + $sb.ToString().Substring(0, 16)
 }
 
+function Get-RedactedText([string]$text) {
+    if (-not $text) { return "" }
+    # Redact customer identifiers (RIFs: J-12345678-9, numeric 10+ digits, cod_cli ET/DP prefixes)
+    $redacted = $text -replace '\b[JjVvGgEe]-\d{8,9}-\d\b', '[RIF]' `
+                      -replace '\b\d{10,}\b', '[RIF_OR_NUM]' `
+                      -replace '\b(ET|DP)?0000\d{3,6}\b', '[COD_CLI]'
+    return $redacted
+}
+
+# Alias para hash de contenido (módulo autocontenible)
 function Get-TelemetryContentHash([string]$value) {
     if (-not $value) { return $null }
     return Get-PseudonymizedHash -value $value
@@ -24,7 +34,7 @@ function Get-TelemetryContentHash([string]$value) {
 function New-TelemetryEvent {
     param (
         [string]$User = $env:USERNAME,
-        [string]$Question,
+        [string]$Question = "",
         [string]$DaxQuery = "",
         [int]$RowCount = 0,
         [long]$DurationMs = 0,
@@ -36,18 +46,21 @@ function New-TelemetryEvent {
     $userHash = Get-PseudonymizedHash -value $User
     
     return @{
-        event_id          = [Guid]::NewGuid().ToString()
-        timestamp_utc     = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-        user_hash         = $userHash
-        question_hash     = Get-TelemetryContentHash -value $Question
-        dax_query_hash    = Get-TelemetryContentHash -value $DaxQuery
-        row_count         = $RowCount
-        duration_ms       = $DurationMs
-        status            = $Status
-        has_error_detail  = [bool]$ErrorMessage
+        event_id              = [Guid]::NewGuid().ToString()
+        timestamp_utc         = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+        user_hash             = $userHash
+        question_hash         = Get-TelemetryContentHash -value $Question
+        question_redacted     = Get-RedactedText -text $Question
+        dax_query_hash        = Get-TelemetryContentHash -value $DaxQuery
+        dax_query_redacted    = Get-RedactedText -text $DaxQuery
+        row_count             = $RowCount
+        duration_ms           = $DurationMs
+        status                = $Status
+        error_message         = if ($ErrorMessage) { Get-RedactedText -text $ErrorMessage } else { "" }
+        has_error_detail      = [bool]$ErrorMessage
         has_assistant_summary = [bool]$AssistantSummary
-        environment       = "PROD"
-        model_version     = "1.1.0"
+        environment           = "PROD"
+        model_version         = "1.6.0"
     }
 }
 

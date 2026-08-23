@@ -10,14 +10,25 @@
       "tolerancia": 0
     },
     "semantic_contract": {
-      "required_measures": ["Cartera_Activable_90D"],
+      "required_measures": [
+        "Cartera_Activable_90D"
+      ],
       "required_fragments": [
         "source_empresa",
         "cod_pro"
       ],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "ExactNumeric"
   },
@@ -32,11 +43,26 @@
       "allow_single_numeric_fallback": true
     },
     "semantic_contract": {
-      "required_measures": ["Total_Ventas_Netas"],
-      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_measures": [
+        "Total_Ventas_Netas"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "NonZeroNumeric"
   },
@@ -50,15 +76,26 @@
       "condicion": "GreaterThanZero"
     },
     "semantic_contract": {
-      "required_measures": ["Venta_Cero_Clientes"],
+      "required_measures": [
+        "Venta_Cero_Clientes"
+      ],
       "required_fragments": [
         "source_empresa",
         "cod_pro",
         "dim_tiempo[fec_ini]"
       ],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "NonZeroNumeric"
   },
@@ -73,11 +110,26 @@
       "allow_single_numeric_fallback": true
     },
     "semantic_contract": {
-      "required_measures": ["Ticket_Promedio_Venta"],
-      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_measures": [
+        "Ticket_Promedio_Venta"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "NonZeroNumeric"
   },
@@ -92,11 +144,28 @@
       "allow_single_numeric_fallback": true
     },
     "semantic_contract": {
-      "required_measures": ["Pct_Cobertura_GPS"],
-      "required_fragments": ["EVALUATE", "ROW", "source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_measures": [
+        "Pct_Cobertura_GPS"
+      ],
+      "required_fragments": [
+        "EVALUATE",
+        "ROW",
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "PercentageRange"
   },
@@ -110,17 +179,28 @@
       "max_filas": 10
     },
     "semantic_contract": {
-      "required_measures": ["Total_Ventas_Netas"],
+      "required_measures": [
+        "Total_Ventas_Netas"
+      ],
       "required_fragments": [
         "cod_cli",
         "source_empresa",
         "cod_pro",
         "dim_tiempo[fec_ini]"
       ],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
       "top_n": 10,
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "RowCountExact"
   },
@@ -135,11 +215,26 @@
       "allow_single_numeric_fallback": true
     },
     "semantic_contract": {
-      "required_measures": ["SKUs_Promedio_Por_Factura"],
-      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_measures": [
+        "SKUs_Promedio_Por_Factura"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "NonZeroNumeric"
   },
@@ -153,11 +248,26 @@
       "condicion": "Between0And1"
     },
     "semantic_contract": {
-      "required_measures": ["Pct_Activacion"],
-      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_measures": [
+        "Pct_Activacion"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "PercentageRange"
   },
@@ -170,15 +280,26 @@
       "min_filas": 1
     },
     "semantic_contract": {
-      "required_measures": ["Total_Ventas_Netas"],
+      "required_measures": [
+        "Total_Ventas_Netas"
+      ],
       "required_fragments": [
         "source_empresa",
         "cod_pro",
         "dim_tiempo[fec_ini]"
       ],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "RowCountMinimum"
   },
@@ -192,12 +313,28 @@
       "max_filas": 5
     },
     "semantic_contract": {
-      "required_measures": ["Total_Ventas_Netas"],
-      "required_fragments": ["cod_cli", "source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
+      "required_measures": [
+        "Total_Ventas_Netas"
+      ],
+      "required_fragments": [
+        "cod_cli",
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
       "top_n": 5,
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "RowCountExact"
   },
@@ -211,11 +348,26 @@
       "condicion": "GreaterOrEqualZero"
     },
     "semantic_contract": {
-      "required_measures": ["Venta_Cero_Clientes"],
-      "required_fragments": ["source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_measures": [
+        "Venta_Cero_Clientes"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "NonNegativeNumeric"
   },
@@ -230,11 +382,435 @@
       "allow_single_numeric_fallback": true
     },
     "semantic_contract": {
-      "required_measures": ["Clientes_Con_GPS"],
-      "required_fragments": ["EVALUATE", "ROW", "source_empresa", "cod_pro", "dim_tiempo[fec_ini]"],
-      "required_dates": ["2026-07-01"],
-      "required_scope": {"source_empresa": "ctb", "cod_pro": "0301"},
-      "forbidden_fragments": ["REMOVEFILTERS", "DELETE", "UPDATE"]
+      "required_measures": [
+        "Clientes_Con_GPS"
+      ],
+      "required_fragments": [
+        "EVALUATE",
+        "ROW",
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "NonNegativeNumeric"
+  },
+  {
+    "id": "TC-013",
+    "dominio": "03. Cartera y Cobertura",
+    "pregunta": "¿Cuántos clientes componen la cartera activable a 90 días de Tinito para el proveedor 0343 en mayo 2026?",
+    "dax_esperado": "EVALUATE CALCULATETABLE(ROW(\"Cartera_90D\", [Cartera_Activable_90D]), TREATAS({\"tinito\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0343\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,5,1)}, dim_tiempo[fec_ini]))",
+    "resultado_esperado": {
+      "columna": "Cartera_90D",
+      "condicion": "GreaterThanZero",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Cartera_Activable_90D"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-05-01"
+      ],
+      "required_scope": {
+        "source_empresa": "tinito",
+        "cod_pro": "0343"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "NonZeroNumeric"
+  },
+  {
+    "id": "TC-014",
+    "dominio": "01. Ventas Base",
+    "pregunta": "Dame el total de ventas netas en dólares de Tinito para el proveedor 0343 en junio 2026",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({\"tinito\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0343\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,6,1)}, dim_tiempo[fec_ini]), \"Ventas_Netas\", [Total_Ventas_Netas])",
+    "resultado_esperado": {
+      "columna": "Ventas_Netas",
+      "condicion": "GreaterThanZero",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Total_Ventas_Netas"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-06-01"
+      ],
+      "required_scope": {
+        "source_empresa": "tinito",
+        "cod_pro": "0343"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "NonZeroNumeric"
+  },
+  {
+    "id": "TC-015",
+    "dominio": "02. Venta Cero y Churn",
+    "pregunta": "¿Cuántos clientes tienen venta cero en Daroan para el proveedor 0319 en mayo 2026?",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(vw_ventas_bi_consumo[nom_pro], TREATAS({\"daroan\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0319\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,5,1)}, dim_tiempo[fec_ini]), \"Venta_Cero\", [Venta_Cero_Clientes])",
+    "resultado_esperado": {
+      "columna": "Venta_Cero",
+      "condicion": "GreaterOrEqualZero"
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Venta_Cero_Clientes"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-05-01"
+      ],
+      "required_scope": {
+        "source_empresa": "daroan",
+        "cod_pro": "0319"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "NonNegativeNumeric"
+  },
+  {
+    "id": "TC-016",
+    "dominio": "05. Eficiencia y Ticket",
+    "pregunta": "Calcula el ticket promedio de venta por factura de Daroan para el proveedor 0319 en julio 2026",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({\"daroan\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0319\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]), \"Ticket_Promedio\", [Ticket_Promedio_Venta])",
+    "resultado_esperado": {
+      "columna": "Ticket_Promedio",
+      "condicion": "GreaterThanZero",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Ticket_Promedio_Venta"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "daroan",
+        "cod_pro": "0319"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "NonZeroNumeric"
+  },
+  {
+    "id": "TC-017",
+    "dominio": "06. Georreferenciación",
+    "pregunta": "¿Cuál es el porcentaje de clientes geolocalizados con GPS activo de CTM para el proveedor 0301 en junio 2026?",
+    "dax_esperado": "EVALUATE CALCULATETABLE(ROW(\"Pct_GPS\", [Pct_Cobertura_GPS]), TREATAS({\"ctm\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,6,1)}, dim_tiempo[fec_ini]))",
+    "resultado_esperado": {
+      "columna": "Pct_GPS",
+      "condicion": "Between0And1",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Pct_Cobertura_GPS"
+      ],
+      "required_fragments": [
+        "EVALUATE",
+        "ROW",
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-06-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctm",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "PercentageRange"
+  },
+  {
+    "id": "TC-018",
+    "dominio": "04. Pareto y Concentración",
+    "pregunta": "Muestra el top 10 de clientes por ventas netas de CTM para el proveedor 0301 en mayo 2026",
+    "dax_esperado": "EVALUATE TOPN(10, SUMMARIZECOLUMNS(vw_ventas_bi_consumo[cod_cli], vw_ventas_bi_consumo[nom_cli], TREATAS({\"ctm\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,5,1)}, dim_tiempo[fec_ini]), \"Total_Ventas\", [Total_Ventas_Netas]), [Total_Ventas], DESC, vw_ventas_bi_consumo[cod_cli], ASC)",
+    "resultado_esperado": {
+      "min_filas": 1
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Total_Ventas_Netas"
+      ],
+      "required_fragments": [
+        "cod_cli",
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-05-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctm",
+        "cod_pro": "0301"
+      },
+      "top_n": 10,
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "RowCountMinimum"
+  },
+  {
+    "id": "TC-019",
+    "dominio": "05. Eficiencia y Ticket",
+    "pregunta": "¿Cuál es el promedio de SKUs distintos vendidos por factura de Tinito para el proveedor 0343 en junio 2026?",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(TREATAS({\"tinito\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0343\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,6,1)}, dim_tiempo[fec_ini]), \"SKUs_Factura\", [SKUs_Promedio_Por_Factura])",
+    "resultado_esperado": {
+      "columna": "SKUs_Factura",
+      "condicion": "GreaterThanZero",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "SKUs_Promedio_Por_Factura"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-06-01"
+      ],
+      "required_scope": {
+        "source_empresa": "tinito",
+        "cod_pro": "0343"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "NonZeroNumeric"
+  },
+  {
+    "id": "TC-020",
+    "dominio": "03. Cartera y Cobertura",
+    "pregunta": "¿Cuál es el porcentaje de activación de clientes de CTB para el proveedor 0301 en junio 2026?",
+    "dax_esperado": "EVALUATE CALCULATETABLE(ROW(\"Pct_Activacion\", [Pct_Activacion]), TREATAS({\"ctb\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,6,1)}, dim_tiempo[fec_ini]))",
+    "resultado_esperado": {
+      "columna": "Pct_Activacion",
+      "condicion": "Between0And1"
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Pct_Activacion"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-06-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctb",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "PercentageRange"
+  },
+  {
+    "id": "TC-021",
+    "dominio": "01. Ventas Base",
+    "pregunta": "Dame las ventas netas de la empresa Tinito para el proveedor 0319 en junio 2026",
+    "dax_esperado": "EVALUATE SUMMARIZECOLUMNS(vw_ventas_bi_consumo[source_empresa], TREATAS({\"tinito\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0319\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,6,1)}, dim_tiempo[fec_ini]), \"Ventas_Netas\", [Total_Ventas_Netas])",
+    "resultado_esperado": {
+      "min_filas": 1
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Total_Ventas_Netas"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-06-01"
+      ],
+      "required_scope": {
+        "source_empresa": "tinito",
+        "cod_pro": "0319"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "RowCountMinimum"
+  },
+  {
+    "id": "TC-022",
+    "dominio": "04. Pareto y Concentración",
+    "pregunta": "Muestra el top 5 de clientes por ventas netas de Daroan para el proveedor 0319 en junio 2026",
+    "dax_esperado": "EVALUATE TOPN(5, SUMMARIZECOLUMNS(vw_ventas_bi_consumo[cod_cli], vw_ventas_bi_consumo[nom_cli], TREATAS({\"daroan\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0319\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,6,1)}, dim_tiempo[fec_ini]), \"Ventas_Netas\", [Total_Ventas_Netas]), [Ventas_Netas], DESC, vw_ventas_bi_consumo[cod_cli], ASC)",
+    "resultado_esperado": {
+      "min_filas": 1
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Total_Ventas_Netas"
+      ],
+      "required_fragments": [
+        "cod_cli",
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-06-01"
+      ],
+      "required_scope": {
+        "source_empresa": "daroan",
+        "cod_pro": "0319"
+      },
+      "top_n": 5,
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "RowCountMinimum"
+  },
+  {
+    "id": "TC-023",
+    "dominio": "02. Venta Cero y Churn",
+    "pregunta": "Calcula cuántos clientes de CTM no tuvieron venta para el proveedor 0319 en julio 2026",
+    "dax_esperado": "EVALUATE CALCULATETABLE(ROW(\"Clientes_Venta_Cero\", COALESCE([Venta_Cero_Clientes], 0)), TREATAS({\"ctm\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0319\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,7,1)}, dim_tiempo[fec_ini]))",
+    "resultado_esperado": {
+      "columna": "Clientes_Venta_Cero",
+      "condicion": "GreaterOrEqualZero"
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Venta_Cero_Clientes"
+      ],
+      "required_fragments": [
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-07-01"
+      ],
+      "required_scope": {
+        "source_empresa": "ctm",
+        "cod_pro": "0319"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    "criterio": "NonNegativeNumeric"
+  },
+  {
+    "id": "TC-024",
+    "dominio": "06. Georreferenciación",
+    "pregunta": "Dame el conteo de clientes con coordenadas GPS disponibles de Tinito para el proveedor 0301 en mayo 2026",
+    "dax_esperado": "EVALUATE CALCULATETABLE(ROW(\"Clientes_GPS\", COALESCE([Clientes_Con_GPS], 0)), TREATAS({\"tinito\"}, vw_ventas_bi_consumo[source_empresa]), TREATAS({\"0301\"}, vw_ventas_bi_consumo[cod_pro]), TREATAS({DATE(2026,5,1)}, dim_tiempo[fec_ini]))",
+    "resultado_esperado": {
+      "columna": "Clientes_GPS",
+      "condicion": "GreaterOrEqualZero",
+      "allow_single_numeric_fallback": true
+    },
+    "semantic_contract": {
+      "required_measures": [
+        "Clientes_Con_GPS"
+      ],
+      "required_fragments": [
+        "EVALUATE",
+        "ROW",
+        "source_empresa",
+        "cod_pro",
+        "dim_tiempo[fec_ini]"
+      ],
+      "required_dates": [
+        "2026-05-01"
+      ],
+      "required_scope": {
+        "source_empresa": "tinito",
+        "cod_pro": "0301"
+      },
+      "forbidden_fragments": [
+        "REMOVEFILTERS",
+        "DELETE",
+        "UPDATE"
+      ]
     },
     "criterio": "NonNegativeNumeric"
   }

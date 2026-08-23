@@ -1,0 +1,32 @@
+﻿{
+  "schema_version": "1.0",
+  "rules": [
+    {
+      "id": "RULE-20260822-001",
+      "categoria": "DAX_OPTIMIZATION",
+      "diagnostico": "Uso ineficiente de FILTER sobre tablas completas en lugar de TREATAS para filtros de dimensionalidad",
+      "regla": "Usa siempre TREATAS({\"valor\"}, tabla[columna]) para inyectar filtros sobre dimensiones y columnas de atributos en lugar de FILTER(ALL(tabla[columna]), tabla[columna] = \"valor\").",
+      "fecha_creacion": "2026-08-22",
+      "aprobado_por": "devpinofd",
+      "estado": "aprobado"
+    },
+    {
+      "id": "RULE-20260822-002",
+      "categoria": "SEMANTIC_MAPPING",
+      "diagnostico": "Discrepancia de columna de proveedor entre tablas físicas y vistas agregadas",
+      "regla": "Al consultar la cartera activable en Cartera_Activable_90D_Detalle, el filtro de proveedor debe aplicarse contra vw_ventas_bi_consumo[cod_pro] mediante TREATAS({\"cod_pro\"}, vw_ventas_bi_consumo[cod_pro]) si no existe la columna física en la tabla secundaria.",
+      "fecha_creacion": "2026-08-22",
+      "aprobado_por": "devpinofd",
+      "estado": "aprobado"
+    },
+    {
+      "id": "RULE-20260822-003",
+      "categoria": "GUARDRAIL",
+      "diagnostico": "Consultas no acotadas sobre la tabla de hechos con 6.14M de registros",
+      "regla": "Toda consulta tabular sobre vw_ventas_bi_consumo debe incluir un TOPN explícito (ej. TOPN 25 o TOPN 50) o un agrupador temporal/dimensional para prevenir saturación de memoria en VertiPaq.",
+      "fecha_creacion": "2026-08-22",
+      "aprobado_por": "devpinofd",
+      "estado": "aprobado"
+    }
+  ]
+}
