@@ -50,7 +50,7 @@ def test_accepts_valid_conversation() -> None:
     [
         ({}, 100, "messages"),
         ({"messages": [{"role": "developer", "content": "x"}]}, 100, "role"),
-        ({"messages": [{"role": "user", "content": "x" * 12_001}]}, 100, "contenido"),
+        ({"messages": [{"role": "user", "content": "x" * 32_001}]}, 100, "contenido"),
         ({"messages": [{"role": "user", "content": "x"}] * 21}, 100, "20"),
         ({"messages": [{"role": "user", "content": "x"}]}, 256 * 1024 + 1, "256"),
     ],

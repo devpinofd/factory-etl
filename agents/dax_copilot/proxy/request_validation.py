@@ -4,7 +4,7 @@ from typing import Any
 
 MAX_BODY_BYTES = 256 * 1024
 MAX_MESSAGES = 20
-MAX_MESSAGE_CONTENT_CHARS = 12_000
+MAX_MESSAGE_CONTENT_CHARS = 32_000
 ALLOWED_MESSAGE_ROLES = frozenset({"system", "user", "assistant", "tool"})
 
 

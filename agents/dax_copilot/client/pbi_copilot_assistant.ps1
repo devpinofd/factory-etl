@@ -798,13 +798,28 @@ function Invoke-ProxyChatWithRetry {
         } catch [System.Net.WebException] {
             $webEx = $_.Exception
             $statusCode = 0
-            if ($webEx.Response) { $statusCode = [int]($webEx.Response.StatusCode) }
+            $errorDetails = ""
+            if ($webEx.Response) {
+                try {
+                    $statusCode = [int]($webEx.Response.StatusCode)
+                    $errStream = $webEx.Response.GetResponseStream()
+                    $errReader = New-Object System.IO.StreamReader($errStream, [System.Text.Encoding]::UTF8)
+                    $errorDetails = $errReader.ReadToEnd()
+                    $errReader.Close()
+                } catch { }
+            }
             if (($statusCode -eq 429 -or $statusCode -eq 503) -and $attempt -lt $maxRetries) {
                 Write-Host "[WARN] Gateway ocupado (HTTP $statusCode). Reintentando en $delaySec s..." -ForegroundColor Yellow
                 Start-Sleep -Seconds $delaySec
                 $delaySec = $delaySec * 2
                 continue
-            } else { throw $_ }
+            } else {
+                if ($errorDetails) {
+                    throw "Error de Azure Gateway (HTTP $statusCode): $errorDetails"
+                } else {
+                    throw $_
+                }
+            }
         } catch { throw $_ }
     }
 }
