@@ -1,8 +1,8 @@
 {
     "name": "Tinito-DAX-Copilot",
     "version": "1.6.0",
-    "releaseDate": "2026-08-22",
-    "sha256": "A6A4DB67C89050822C09AFCCBD262DAB6BDA0EA320F278DDBDF963624F198BB0",
+    "releaseDate": "2026-08-23",
+    "sha256": "B0C76C76CC043FAB12BB59012151293CA9C6222D4FA97CABCD08CDCF3B43069E",
     "minPowerShellVersion": "5.1",
     "signed": false,
     "changelog": "Marco consultivo senior de Business Intelligence, Sales Intelligence y Trade Marketing."

@@ -183,6 +183,14 @@ if ($tomDll -and (Test-Path $tomDll)) {
 # 4. Modulo unico de Guardrails de Seguridad DAX
 $guardrailPath = Join-Path $PSScriptRoot "dax_guardrails.ps1"
 if (-not (Test-Path $guardrailPath)) {
+    $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher" "dax_guardrails.ps1"
+    if (Test-Path $candidate) { $guardrailPath = $candidate }
+}
+if (-not (Test-Path $guardrailPath)) {
+    $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\cache" "dax_guardrails.ps1"
+    if (Test-Path $candidate) { $guardrailPath = $candidate }
+}
+if (-not (Test-Path $guardrailPath)) {
     throw "No se encontro el modulo de guardrails DAX: $guardrailPath"
 }
 . $guardrailPath

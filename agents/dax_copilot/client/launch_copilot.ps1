@@ -79,6 +79,16 @@ if ($lanScriptPath -and (Test-Path $lanScriptPath)) {
             Write-Host "✔ Repositorio LAN detectado e integridad verificada." -ForegroundColor Green
             $scriptToRun = $lanScriptPath
             Copy-Item $lanScriptPath $localCachedScript -Force -ErrorAction SilentlyContinue
+
+            # Sincronizar módulos hermanos en la caché para resiliencia offline completa
+            $sourceDir = Split-Path $lanScriptPath -Parent
+            $siblingFiles = @("dax_guardrails.ps1", "telemetry_outbox.ps1", "msal_auth.ps1", "manifest.json")
+            foreach ($sf in $siblingFiles) {
+                $srcFile = Join-Path $sourceDir $sf
+                if (Test-Path $srcFile) {
+                    Copy-Item $srcFile (Join-Path $cacheDir $sf) -Force -ErrorAction SilentlyContinue
+                }
+            }
             $isOnline = $true
         } else {
             Write-Host "⚠ Discrepancia de checksum o firma en la ruta LAN. Se descarta la versión." -ForegroundColor Yellow
