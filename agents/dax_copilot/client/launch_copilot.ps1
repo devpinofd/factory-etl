@@ -19,9 +19,11 @@ $manifestUrl = if ($env:DAX_COPILOT_MANIFEST_URL) { $env:DAX_COPILOT_MANIFEST_UR
 $lanScriptPath = $env:DAX_COPILOT_LAN_SCRIPT_PATH
 $lanManifestPath = $env:DAX_COPILOT_LAN_MANIFEST_PATH
 if (-not $lanScriptPath) {
-    $bundledScript = Join-Path $PSScriptRoot "pbi_copilot_assistant.ps1"
+    $protectedCandidate = Join-Path $PSScriptRoot "pbi_copilot_assistant.protected.ps1"
+    $regularCandidate   = Join-Path $PSScriptRoot "pbi_copilot_assistant.ps1"
+    $bundledScript = if (Test-Path $protectedCandidate) { $protectedCandidate } elseif (Test-Path $regularCandidate) { $regularCandidate } else { $null }
     $bundledManifest = Join-Path $PSScriptRoot "manifest.json"
-    if ((Test-Path $bundledScript) -and (Test-Path $bundledManifest)) {
+    if ($bundledScript -and (Test-Path $bundledManifest)) {
         $lanScriptPath = $bundledScript
         $lanManifestPath = $bundledManifest
     }
@@ -68,21 +70,24 @@ if ($lanScriptPath -and (Test-Path $lanScriptPath)) {
     } else {
         $lanManifest = Get-Content $lanManifestPath -Raw | ConvertFrom-Json
         $lanHash = (Get-FileHash -Path $lanScriptPath -Algorithm SHA256).Hash
-        if ($lanManifest.sha256 -and $lanHash.ToUpper() -eq $lanManifest.sha256.ToUpper() `
-                -and (Test-ScriptSignature -Path $lanScriptPath -Manifest $lanManifest)) {
-            Write-Host "✔ Repositorio LAN detectado e integridad verificada." -ForegroundColor Green
-            $scriptToRun = $lanScriptPath
-            Copy-Item $lanScriptPath $localCachedScript -Force -ErrorAction SilentlyContinue
-
-            # Sincronizar módulos hermanos en la caché para resiliencia offline completa
-            $sourceDir = Split-Path $lanScriptPath -Parent
-            $siblingFiles = @("dax_guardrails.ps1", "telemetry_outbox.ps1", "msal_auth.ps1", "manifest.json")
-            foreach ($sf in $siblingFiles) {
-                $srcFile = Join-Path $sourceDir $sf
-                if (Test-Path $srcFile) {
-                    Copy-Item $srcFile (Join-Path $cacheDir $sf) -Force -ErrorAction SilentlyContinue
+        
+        # Si el hash no coincide con el archivo apuntado, probar si existe pbi_copilot_assistant.protected.ps1 hermano
+        if ($lanManifest.sha256 -and ($lanHash.ToUpper() -ne $lanManifest.sha256.ToUpper())) {
+            $siblingProtected = Join-Path (Split-Path $lanScriptPath -Parent) "pbi_copilot_assistant.protected.ps1"
+            if (Test-Path $siblingProtected) {
+                $pHash = (Get-FileHash -Path $siblingProtected -Algorithm SHA256).Hash
+                if ($pHash.ToUpper() -eq $lanManifest.sha256.ToUpper()) {
+                    $lanScriptPath = $siblingProtected
+                    $lanHash = $pHash
                 }
             }
+        }
+
+        if ($lanManifest.sha256 -and ($lanHash.ToUpper() -eq $lanManifest.sha256.ToUpper()) `
+                -and (Test-ScriptSignature -Path $lanScriptPath -Manifest $lanManifest)) {
+            Write-Host "✔ Repositorio detectado e integridad SHA-256 verificada." -ForegroundColor Green
+            $scriptToRun = $lanScriptPath
+            Copy-Item $lanScriptPath $localCachedScript -Force -ErrorAction SilentlyContinue
             $isOnline = $true
         } else {
             Write-Host "⚠ Discrepancia de checksum o firma en la ruta LAN. Se descarta la versión." -ForegroundColor Yellow
