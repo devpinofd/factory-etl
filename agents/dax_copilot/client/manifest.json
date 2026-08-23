@@ -1,9 +1,9 @@
-{
-    "name": "Tinito-DAX-Copilot",
-    "version": "1.6.0",
-    "releaseDate": "2026-08-23",
-    "sha256": "D1A11523DEC9B0B47105F9D8498F3513E760544FD6D57B1EDAD9AF0122B46125",
-    "minPowerShellVersion": "5.1",
-    "signed": false,
-    "changelog": "Marco consultivo senior de Business Intelligence, Sales Intelligence y Trade Marketing."
+﻿{
+    "name":  "Tinito-DAX-Copilot",
+    "version":  "1.6.0",
+    "releaseDate":  "2026-08-23",
+    "sha256":  "ACC72CFE4CC04FB1B9EE03E72BEA9F43D216D68D7522EC0CB158E102BD4292F3",
+    "minPowerShellVersion":  "5.1",
+    "signed":  false,
+    "changelog":  "Release protegido para distribución segura en Azure Storage Hub y LAN."
 }

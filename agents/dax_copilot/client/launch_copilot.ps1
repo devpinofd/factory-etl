@@ -12,13 +12,13 @@ $cacheDir = "$env:LOCALAPPDATA\Tinito\PbiCopilot\cache"
 if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
 
 $localCachedScript = Join-Path $cacheDir "pbi_copilot_assistant.ps1"
-$scriptUrl   = $env:DAX_COPILOT_SCRIPT_URL
-$manifestUrl = $env:DAX_COPILOT_MANIFEST_URL
+$scriptUrl   = if ($env:DAX_COPILOT_SCRIPT_URL) { $env:DAX_COPILOT_SCRIPT_URL } else { "https://stpbicopilotprod.blob.core.windows.net/agent/pbi_copilot_assistant.ps1" }
+$manifestUrl = if ($env:DAX_COPILOT_MANIFEST_URL) { $env:DAX_COPILOT_MANIFEST_URL } else { "https://stpbicopilotprod.blob.core.windows.net/agent/manifest.json" }
 
-# LAN Fallback Path
+# LAN Fallback Path (opcional si se define explícitamente)
 $lanScriptPath = $env:DAX_COPILOT_LAN_SCRIPT_PATH
 $lanManifestPath = $env:DAX_COPILOT_LAN_MANIFEST_PATH
-if (-not $lanScriptPath -and -not $scriptUrl -and -not $manifestUrl) {
+if (-not $lanScriptPath) {
     $bundledScript = Join-Path $PSScriptRoot "pbi_copilot_assistant.ps1"
     $bundledManifest = Join-Path $PSScriptRoot "manifest.json"
     if ((Test-Path $bundledScript) -and (Test-Path $bundledManifest)) {
@@ -35,13 +35,7 @@ if ($lanScriptPath -and -not $lanManifestPath) {
 $adminContact = if ($env:DAX_COPILOT_ADMIN_CONTACT) {
     $env:DAX_COPILOT_ADMIN_CONTACT
 } else {
-    "el administrador de BI"
-}
-
-if ((-not $lanScriptPath) -and (-not $scriptUrl -or -not $manifestUrl)) {
-    Write-Host "Error: configura DAX_COPILOT_SCRIPT_URL y DAX_COPILOT_MANIFEST_URL," -ForegroundColor Red
-    Write-Host "o DAX_COPILOT_LAN_SCRIPT_PATH y DAX_COPILOT_LAN_MANIFEST_PATH." -ForegroundColor Red
-    exit 1
+    "el administrador de BI (francisco.pino@tinitot.com)"
 }
 
 Write-Host "Iniciando Tinito DAX Copilot..." -ForegroundColor Cyan

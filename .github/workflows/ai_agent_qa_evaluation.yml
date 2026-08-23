@@ -217,11 +217,13 @@ jobs:
             agents/dax_copilot/proxy/host.json \
             agents/dax_copilot/proxy/requirements.txt
 
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File agents/dax_copilot/client/build_protected_bundle.ps1 -DeployToCache:$false
+
           az storage blob upload \
             --account-name "$AZURE_STORAGE_ACCOUNT" \
             --container-name "$AZURE_STORAGE_CONTAINER" \
             --name pbi_copilot_assistant.ps1 \
-            --file agents/dax_copilot/client/pbi_copilot_assistant.ps1 \
+            --file agents/dax_copilot/client/pbi_copilot_assistant.protected.ps1 \
             --auth-mode login \
             --overwrite true \
             --content-type text/plain
@@ -239,7 +241,7 @@ jobs:
             --account-name "$AZURE_STORAGE_ACCOUNT" \
             --container-name "$AZURE_STORAGE_CONTAINER" \
             --name launch_copilot.ps1 \
-            --file agents/dax_copilot/client/launch_copilot.ps1 \
+            --file agents/dax_copilot/client/launch_copilot.protected.ps1 \
             --auth-mode login \
             --overwrite true \
             --content-type text/plain
