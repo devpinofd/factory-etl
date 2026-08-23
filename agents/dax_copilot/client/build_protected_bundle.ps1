@@ -172,9 +172,79 @@ if (Test-Path $launcherFile) {
     $distLauncher = Join-Path $ClientDir "launch_copilot.protected.ps1"
     [System.IO.File]::WriteAllText($distLauncher, $protectedLauncher, [System.Text.Encoding]::UTF8)
     Write-Host "✔ Lanzador protegido generado: $distLauncher" -ForegroundColor Green
+
+    # 9. Compilación a Binario Ejecutable Nativo (TinitoDaxCopilot.exe)
+    Write-Host "[*] Compilando binario ejecutable nativo de Windows (TinitoDaxCopilot.exe)..." -ForegroundColor Cyan
+    $b64Payload = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($protectedLauncher))
+
+    $csharpCode = @"
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Text;
+
+[assembly: AssemblyTitle("Tinito DAX Copilot")]
+[assembly: AssemblyDescription("Asistente de Inteligencia de Ventas y Modelado DAX - Comercial Tinito")]
+[assembly: AssemblyCompany("Comercial Tinito C.A.")]
+[assembly: AssemblyProduct("Tinito DAX Copilot")]
+[assembly: AssemblyCopyright("Copyright © 2026 Comercial Tinito C.A.")]
+[assembly: AssemblyVersion("1.6.0.0")]
+[assembly: AssemblyFileVersion("1.6.0.0")]
+
+namespace Tinito.Copilot
+{
+    class Program
+    {
+        private const string EmbeddedPayload = "$b64Payload";
+
+        static int Main(string[] args)
+        {
+            Console.Title = "Comercial Tinito - DAX Copilot";
+            Console.OutputEncoding = Encoding.UTF8;
+
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string launcherDir = Path.Combine(appData, "Tinito", "PbiCopilot", "launcher");
+            if (!Directory.Exists(launcherDir))
+            {
+                Directory.CreateDirectory(launcherDir);
+            }
+
+            string targetScript = Path.Combine(launcherDir, "launch_copilot.protected.ps1");
+            byte[] rawBytes = Convert.FromBase64String(EmbeddedPayload);
+            File.WriteAllBytes(targetScript, rawBytes);
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = "-NoProfile -ExecutionPolicy Bypass -File \"" + targetScript + "\"",
+                UseShellExecute = false
+            };
+
+            try
+            {
+                Process proc = Process.Start(psi);
+                proc.WaitForExit();
+                return proc.ExitCode;
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Error al iniciar DAX Copilot: " + ex.Message);
+                Console.ResetColor();
+                Console.ReadKey();
+                return 1;
+            }
+        }
+    }
+}
+"@
+    $distExe = Join-Path $ClientDir "TinitoDaxCopilot.exe"
+    Add-Type -TypeDefinition $csharpCode -OutputAssembly $distExe -OutputType ConsoleApplication
+    Write-Host "✔ Binario ejecutable nativo generado: $distExe" -ForegroundColor Green
 }
 
-# 9. Sincronizar en caché local y launcher si se solicita
+# 10. Sincronizar en caché local y launcher si se solicita
 if ($DeployToCache) {
     $cacheDir = "$env:LOCALAPPDATA\Tinito\PbiCopilot\cache"
     $launchDir = "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher"
@@ -189,8 +259,11 @@ if ($DeployToCache) {
         if (Test-Path $distLauncher) {
             Copy-Item $distLauncher (Join-Path $launchDir "launch_copilot.ps1") -Force
         }
+        if (Test-Path $distExe) {
+            Copy-Item $distExe (Join-Path $launchDir "TinitoDaxCopilot.exe") -Force
+        }
     }
-    Write-Host "✔ Entorno local (%LOCALAPPDATA%) sincronizado con las versiones protegidas." -ForegroundColor Green
+    Write-Host "✔ Entorno local (%LOCALAPPDATA%) sincronizado con las versiones protegidas y ejecutable .EXE." -ForegroundColor Green
 }
 
-Write-Host "`n[COMPLETADO] Doble capa de protección (Lanzador + Artefacto Azure) generada exitosamente.`n" -ForegroundColor Green
+Write-Host "`n[COMPLETADO] Paquetes protegidos y Binario .EXE generados exitosamente.`n" -ForegroundColor Green
