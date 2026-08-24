@@ -1,0 +1,25 @@
+﻿config {
+  type: "view",
+  schema: "factory_etl_gold",
+  name: "vw_sec_vendedores_activo",
+  description: "Vista de consumo de gobernanza RLS para fuerza de ventas: expone registros activos y vigentes para Power BI y Looker Studio"
+}
+
+SELECT
+  access_id,
+  access_hash,
+  user_email,
+  source_empresa,
+  cod_suc,
+  cod_ven,
+  nom_ven,
+  role_type,
+  access_level,
+  platform_scope,
+  effective_from,
+  granted_by
+FROM ${ref("sec_vendedores_auth")}
+WHERE is_current = TRUE
+  AND access_status = 'ACTIVE'
+  AND effective_from <= CURRENT_TIMESTAMP()
+  AND effective_to > CURRENT_TIMESTAMP()

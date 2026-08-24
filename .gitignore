@@ -62,3 +62,12 @@ dataform/.df-credentials.json
 logs/
 tmp/
 data/
+scratch/
+err*.txt
+*.txt
+dataform/node_modules/
+test_*.ps1
+extract_schema_runner.ps1
+invocation_result.json
+rendered_*.yaml
+

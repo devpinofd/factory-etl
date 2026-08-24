@@ -2,7 +2,7 @@ config {
   type: "table",
   schema: "factory_etl_gold",
   name: "dim_cliente",
-  description: "Dimensión de cliente en Gold con latitud, longitud y RIF",
+  description: "Dimensión de cliente en Gold con latitud, longitud, RIF y nombre de clase de cliente (nom_cla)",
   bigquery: {
     clusterBy: ["source_empresa", "cod_cli"]
   },
@@ -12,5 +12,12 @@ config {
   }
 }
 
-SELECT * REPLACE (CAST(gps AS STRING) AS gps)
-FROM ${ref("sil_clientes")}
+SELECT
+  c.* REPLACE (CAST(c.gps AS STRING) AS gps),
+  c.segmentacion1 AS cod_cla,
+  COALESCE(cla.nom_cla, 'SIN CLASIFICAR') AS nom_cla
+FROM ${ref("sil_clientes")} c
+LEFT JOIN ${ref("sil_clases_clientes")} cla
+  ON c.source_empresa = cla.source_empresa
+ AND c.segmentacion1 = cla.cod_cla
+
