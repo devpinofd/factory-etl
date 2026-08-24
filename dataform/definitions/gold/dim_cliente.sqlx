@@ -13,11 +13,15 @@ config {
 }
 
 SELECT
-  c.* REPLACE (CAST(c.gps AS STRING) AS gps),
+  c.* REPLACE (
+    CAST(c.gps AS STRING) AS gps,
+    COALESCE(NULLIF(TRIM(c.segmentacion2), ''), 'SIN CLASIFICAR') AS segmentacion2
+  ),
   c.segmentacion1 AS cod_cla,
   COALESCE(cla.nom_cla, 'SIN CLASIFICAR') AS nom_cla
 FROM ${ref("sil_clientes")} c
 LEFT JOIN ${ref("sil_clases_clientes")} cla
   ON c.source_empresa = cla.source_empresa
  AND c.segmentacion1 = cla.cod_cla
+
 
