@@ -1,4 +1,4 @@
-﻿config {
+config {
   type: "declaration",
   schema: "factory_etl_security",
   name: "sec_acceso_proveedores",

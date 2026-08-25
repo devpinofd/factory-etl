@@ -1,4 +1,4 @@
-﻿config {
+config {
   type: "view",
   schema: "factory_etl_gold",
   name: "vw_sec_vendedores_activo",
