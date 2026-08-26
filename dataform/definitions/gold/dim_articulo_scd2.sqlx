@@ -24,6 +24,7 @@ SELECT
   s.run_id,
   s.record_hash,
   JSON_VALUE(s.record_json, "$.nom_art") AS nom_art,
+  JSON_VALUE(s.record_json, "$.tipo") AS tipo,
   JSON_VALUE(s.record_json, "$.modelo") AS modelo,
   JSON_VALUE(s.record_json, "$.cod_mar") AS cod_mar,
   JSON_VALUE(s.record_json, "$.cod_dep") AS cod_dep,

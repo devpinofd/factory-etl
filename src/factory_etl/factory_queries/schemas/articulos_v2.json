@@ -1,6 +1,6 @@
 {
   "entity": "articulos",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "natural_key": [
     "source_empresa",
     "cod_art"

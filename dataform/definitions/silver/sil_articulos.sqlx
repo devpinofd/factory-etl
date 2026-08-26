@@ -18,6 +18,7 @@ SELECT
   ${helpers.trimStr("modelo")} AS modelo,
   ${helpers.trimStr("codigo_barras")} AS codigo_barras,
   ${helpers.trimStr("nom_art")} AS nom_art,
+  ${helpers.trimStr("tipo")} AS tipo,
   ${helpers.trimStr("cod_dep")} AS cod_dep,
   ${helpers.trimStr("cod_sec")} AS cod_sec,
   ${helpers.trimStr("cod_mar")} AS cod_mar,

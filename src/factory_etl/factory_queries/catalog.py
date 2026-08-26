@@ -46,6 +46,21 @@ ARTICULOS_V1 = QueryDefinition(
     reject_empty=True,
 )
 
+ARTICULOS_V2 = QueryDefinition(
+    query_id="articulos_v2",
+    version="2.0.0",
+    category=Category.MASTER,
+    transport=Transport.GENERIC_SQL_API,
+    load_strategy=LoadStrategy.FULL_SNAPSHOT,
+    natural_key=("source_empresa", "cod_art"),
+    required_columns=("cod_art", "nom_art", "cod_uni1", "status"),
+    sql_path=_PACKAGE_ROOT / "masters" / "articulos_v2.sql",
+    schema_path=_PACKAGE_ROOT / "schemas" / "articulos_v2.json",
+    allowed_companies=_ALLOWED_COMPANIES,
+    parameters=(),
+    reject_empty=True,
+)
+
 IMPUESTOS_V1 = QueryDefinition(
     query_id="impuestos_v1",
     version="1.0.0",
@@ -365,6 +380,7 @@ RENGLONES_APRECIOS_V1 = QueryDefinition(
 
 _REGISTRY: dict[str, QueryDefinition] = {
     ARTICULOS_V1.query_id: ARTICULOS_V1,
+    ARTICULOS_V2.query_id: ARTICULOS_V2,
     IMPUESTOS_V1.query_id: IMPUESTOS_V1,
     DEPARTAMENTOS_V1.query_id: DEPARTAMENTOS_V1,
     MARCAS_V1.query_id: MARCAS_V1,
