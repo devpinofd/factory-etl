@@ -4,8 +4,9 @@ ausencia de UTF-8 BOM y consistencia de archivos en todo el repositorio.
 """
 
 import os
-from pathlib import Path
 import re
+from pathlib import Path
+
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -41,9 +42,9 @@ CHECKED_EXTENSIONS = {
 }
 
 
-def get_all_repository_files():
+def get_all_repository_files() -> list[Path]:
     """Obtiene todos los archivos del repositorio sujetos a auditoria de encoding."""
-    files_to_check = []
+    files_to_check: list[Path] = []
     for root, dirs, files in os.walk(REPO_ROOT):
         dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         for f in files:
@@ -53,26 +54,34 @@ def get_all_repository_files():
     return files_to_check
 
 
-@pytest.mark.parametrize("file_path", get_all_repository_files(), ids=lambda p: str(p.relative_to(REPO_ROOT)))
+@pytest.mark.parametrize(
+    "file_path", get_all_repository_files(), ids=lambda p: str(p.relative_to(REPO_ROOT))
+)
 def test_no_utf8_bom_and_valid_encoding(file_path: Path):
     """
     Verifica que ningun archivo contenga el caracter BOM (\xef\xbb\xbf)
     ni caracteres zero-width no-break space (\ufeff) y que sea UTF-8 estricto.
     """
     raw = file_path.read_bytes()
-    
+
     # 1. No debe iniciar con UTF-8 BOM
-    assert not raw.startswith(b"\xef\xbb\xbf"), f"El archivo {file_path.relative_to(REPO_ROOT)} contiene UTF-8 BOM (\xef\xbb\xbf). Guardar como UTF-8 sin BOM."
-    
+    assert not raw.startswith(
+        b"\xef\xbb\xbf"
+    ), f"El archivo {file_path.relative_to(REPO_ROOT)} contiene UTF-8 BOM (\xef\xbb\xbf). Guardar como UTF-8 sin BOM."
+
     # 2. Debe ser decodificable como UTF-8 estricto
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as ex:
-        pytest.fail(f"El archivo {file_path.relative_to(REPO_ROOT)} contiene bytes no validos en UTF-8: {ex}")
+        pytest.fail(
+            f"El archivo {file_path.relative_to(REPO_ROOT)} contiene bytes no validos en UTF-8: {ex}"
+        )
         return
 
     # 3. No debe contener caracteres de espacio de no-separacion de ancho cero (BOM embebido)
-    assert "\ufeff" not in text, f"El archivo {file_path.relative_to(REPO_ROOT)} contiene caracter invisible \ufeff (zero-width no-break space)."
+    assert (
+        "\ufeff" not in text
+    ), f"El archivo {file_path.relative_to(REPO_ROOT)} contiene caracter invisible \ufeff (zero-width no-break space)."
 
 
 def test_dataform_declarations_and_refs_integrity():
@@ -92,7 +101,7 @@ def test_dataform_declarations_and_refs_integrity():
             if f.endswith(".sqlx"):
                 p = Path(root) / f
                 text = p.read_text(encoding="utf-8")
-                
+
                 # Buscar name en bloque config
                 name_match = re.search(r'name:\s*["\']([^"\']+)["\']', text)
                 if name_match:
@@ -110,6 +119,10 @@ def test_dataform_declarations_and_refs_integrity():
     missing_refs = []
     for source_file, ref_target in ref_usages:
         if ref_target not in declared_names:
-            missing_refs.append(f"{source_file} -> ref('{ref_target}') no existe en dataform/definitions")
+            missing_refs.append(
+                f"{source_file} -> ref('{ref_target}') no existe en dataform/definitions"
+            )
 
-    assert not missing_refs, f"Se encontraron referencias rotas en Dataform:\n" + "\n".join(missing_refs)
+    assert not missing_refs, "Se encontraron referencias rotas en Dataform:\n" + "\n".join(
+        missing_refs
+    )

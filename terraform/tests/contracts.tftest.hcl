@@ -1,5 +1,8 @@
 # Suite de pruebas nativas de Terraform para validación de contratos de infraestructura
 
+mock_provider "google" {}
+mock_provider "google-beta" {}
+
 run "validate_production_contracts" {
   command = plan
 
