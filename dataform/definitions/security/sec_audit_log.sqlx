@@ -1,6 +1,0 @@
-config {
-  type: "declaration",
-  schema: "factory_etl_security",
-  name: "sec_audit_log",
-  description: "Log inmutable de auditoria: historial de operaciones GRANT, REVOKE, SUSPEND, MODIFY"
-}

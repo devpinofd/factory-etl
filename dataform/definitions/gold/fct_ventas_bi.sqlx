@@ -32,7 +32,7 @@ SELECT
   v.cod_cli,
   cli.nom_cli,
   cli.rif,
-  COALESCE(cli.nom_cla, 'SIN CLASIFICAR') AS nom_cla,
+  CAST(NULL AS STRING) AS nom_cla,
   COALESCE(est.nom_est, 'SIN ESPECIFICAR') AS nom_est,
   COALESCE(ciu.nom_ciu, 'SIN ESPECIFICAR') AS nom_ciu,
   v.cod_art,

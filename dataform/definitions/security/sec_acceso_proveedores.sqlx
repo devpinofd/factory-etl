@@ -1,6 +1,0 @@
-config {
-  type: "declaration",
-  schema: "factory_etl_security",
-  name: "sec_acceso_proveedores",
-  description: "Tabla de gobernanza RLS (SCD Type 2): matriz centralizada de acceso de proveedores externos"
-}
