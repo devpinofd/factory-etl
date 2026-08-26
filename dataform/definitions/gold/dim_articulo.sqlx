@@ -2,14 +2,23 @@ config {
   type: "table",
   schema: "factory_etl_gold",
   name: "dim_articulo",
-  description: "Dimensión Gold de articulos (pass-through de sil_articulos)",
+  description: "Dimensión Gold de articulos con surrogate keys y modelo_descripcion para cruce de fabricantes",
   bigquery: {
     clusterBy: ["source_empresa", "cod_art"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "cod_art"],
-    nonNull: ["source_empresa", "cod_art"]
+    nonNull: ["source_empresa", "cod_art", "id_articulo_empresa"]
   }
 }
 
-SELECT * FROM ${ref("sil_articulos")}
+SELECT
+  *,
+  CONCAT(source_empresa, '-', cod_art) AS id_articulo_empresa,
+  CASE
+    WHEN modelo IS NOT NULL AND TRIM(modelo) != '' 
+      THEN CONCAT(TRIM(modelo), ' - ', TRIM(nom_art))
+    ELSE CONCAT(TRIM(cod_art), ' - ', TRIM(nom_art))
+  END AS modelo_descripcion
+FROM ${ref("sil_articulos")}
+
