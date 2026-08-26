@@ -73,9 +73,7 @@ function Initialize-MsalAssemblies {
         }
     }
 
-    # 3. Carga directa de dependencias (sin handlers de ScriptBlock para prevenir StackOverflow)
-
-    # 4. Cargar ensamblados en el dominio de la aplicación
+    # 3. Cargar ensamblados en el dominio de la aplicación
     if (Test-Path $absDll) {
         Unblock-File -Path $absDll -ErrorAction SilentlyContinue
         [System.Reflection.Assembly]::LoadFrom($absDll) | Out-Null
@@ -83,6 +81,153 @@ function Initialize-MsalAssemblies {
     if (Test-Path $msalDll) {
         Unblock-File -Path $msalDll -ErrorAction SilentlyContinue
         [System.Reflection.Assembly]::LoadFrom($msalDll) | Out-Null
+    }
+
+    # 4. Compilar Helper C# Nativo para ejecución async thread-safe (sin ScriptBlock Runspace issues)
+    if (-not ([System.Management.Automation.PSTypeName]'Tinito.Auth.MsalNativeHelper').Type) {
+        $csharpCode = @"
+using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using Microsoft.Identity.Client;
+
+namespace Tinito.Auth
+{
+    public static class MsalNativeHelper
+    {
+        public static void ConfigureTokenCache(IPublicClientApplication app, string cacheFilePath)
+        {
+            app.UserTokenCache.SetBeforeAccess(args =>
+            {
+                if (File.Exists(cacheFilePath))
+                {
+                    try
+                    {
+                        byte[] encrypted = File.ReadAllBytes(cacheFilePath);
+                        if (encrypted != null && encrypted.Length > 0)
+                        {
+                            byte[] decrypted = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+                            args.TokenCache.DeserializeMsalV3(decrypted);
+                        }
+                    }
+                    catch { }
+                }
+            });
+
+            app.UserTokenCache.SetAfterAccess(args =>
+            {
+                if (args.HasStateChanged)
+                {
+                    try
+                    {
+                        byte[] bytes = args.TokenCache.SerializeMsalV3();
+                        byte[] encrypted = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
+                        string dir = Path.GetDirectoryName(cacheFilePath);
+                        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                        {
+                            Directory.CreateDirectory(dir);
+                        }
+                        File.WriteAllBytes(cacheFilePath, encrypted);
+                    }
+                    catch { }
+                }
+            });
+        }
+
+        public static string AcquireToken(IPublicClientApplication app, IEnumerable<string> scopes)
+        {
+            // 1. Silent Acquisition from DPAPI cache
+            try
+            {
+                var accounts = app.GetAccountsAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                var first = System.Linq.Enumerable.FirstOrDefault(accounts);
+                if (first != null)
+                {
+                    var silent = app.AcquireTokenSilent(scopes, first).ExecuteAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                    if (silent != null && !string.IsNullOrEmpty(silent.AccessToken))
+                    {
+                        return silent.AccessToken;
+                    }
+                }
+            }
+            catch { }
+
+            // 2. Interactive Browser Acquisition
+            try
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("\n[*] Autenticando con cuenta corporativa Microsoft 365 (Power BI Pro)...");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.WriteLine("    Selecciona tu cuenta corporativa en la ventana emergente.");
+                Console.ResetColor();
+
+                var interactive = app.AcquireTokenInteractive(scopes)
+                    .WithPrompt(Prompt.SelectAccount)
+                    .ExecuteAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+
+                if (interactive != null && !string.IsNullOrEmpty(interactive.AccessToken))
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("[OK] Autenticado exitosamente como: " + interactive.Account.Username);
+                    Console.ResetColor();
+                    return interactive.AccessToken;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine("Fallo inicio de sesion interactivo por navegador: " + ex.Message);
+                Console.ResetColor();
+            }
+
+            // 3. Fallback to Device Code Flow
+            try
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("\n[*] Iniciando flujo de autenticación por código de dispositivo (Device Code)...");
+                Console.ResetColor();
+
+                var deviceResult = app.AcquireTokenWithDeviceCode(scopes, dcr =>
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("\n========================================================");
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine(" INICIO DE SESIÓN REQUERIDO: ");
+                    Console.ResetColor();
+                    Console.Write(" 1. Abre tu navegador en: ");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine(dcr.VerificationUrl);
+                    Console.ResetColor();
+                    Console.Write(" 2. Ingresa el código:    ");
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine(dcr.UserCode);
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("========================================================\n");
+                    Console.ResetColor();
+                    return Task.FromResult<object>(null);
+                }).ExecuteAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+
+                if (deviceResult != null && !string.IsNullOrEmpty(deviceResult.AccessToken))
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("[OK] Autenticado exitosamente como: " + deviceResult.Account.Username);
+                    Console.ResetColor();
+                    return deviceResult.AccessToken;
+                }
+            }
+            catch (Exception devEx)
+            {
+                throw new InvalidOperationException("No se pudo completar la autenticacion Entra ID: " + devEx.Message, devEx);
+            }
+
+            throw new InvalidOperationException("No se pudo obtener un token de acceso valido de Microsoft Entra ID.");
+        }
+    }
+}
+"@
+        Add-Type -TypeDefinition $csharpCode -ReferencedAssemblies @("System.Security", "System.Core", $msalDll, $absDll) -ErrorAction SilentlyContinue
     }
 
     $script:MsalInitialized = ([Microsoft.Identity.Client.PublicClientApplicationBuilder] -ne $null)
@@ -115,48 +260,8 @@ function Get-MsalPublicClient {
     $app = $builder.Build()
 
     # Configuración de Token Cache persistente con cifrado DPAPI (CurrentUser)
-    $script:MsalTokenCacheFile = if ($CacheFilePath) { $CacheFilePath } else { "$env:LOCALAPPDATA\Tinito\PbiCopilot\cache\msal_token_cache.bin" }
-
-    [Microsoft.Identity.Client.TokenCacheCallback]$beforeAccess = {
-        param($args)
-        $cacheFile = $script:MsalTokenCacheFile
-        if ([System.IO.File]::Exists($cacheFile)) {
-            try {
-                $encrypted = [System.IO.File]::ReadAllBytes($cacheFile)
-                if ($encrypted -and $encrypted.Length -gt 0) {
-                    $decrypted = [System.Security.Cryptography.ProtectedData]::Unprotect(
-                        $encrypted,
-                        $null,
-                        [System.Security.Cryptography.DataProtectionScope]::CurrentUser
-                    )
-                    $args.TokenCache.DeserializeMsalV3($decrypted)
-                }
-            } catch { }
-        }
-    }
-
-    [Microsoft.Identity.Client.TokenCacheCallback]$afterAccess = {
-        param($args)
-        if ($args.HasStateChanged) {
-            try {
-                $cacheFile = $script:MsalTokenCacheFile
-                $bytes = $args.TokenCache.SerializeMsalV3()
-                $encrypted = [System.Security.Cryptography.ProtectedData]::Protect(
-                    $bytes,
-                    $null,
-                    [System.Security.Cryptography.DataProtectionScope]::CurrentUser
-                )
-                $dir = [System.IO.Path]::GetDirectoryName($cacheFile)
-                if (-not [System.IO.Directory]::Exists($dir)) {
-                    [System.IO.Directory]::CreateDirectory($dir) | Out-Null
-                }
-                [System.IO.File]::WriteAllBytes($cacheFile, $encrypted)
-            } catch { }
-        }
-    }
-
-    $app.UserTokenCache.SetBeforeAccess($beforeAccess)
-    $app.UserTokenCache.SetAfterAccess($afterAccess)
+    $cacheFile = if ($CacheFilePath) { $CacheFilePath } else { "$env:LOCALAPPDATA\Tinito\PbiCopilot\cache\msal_token_cache.bin" }
+    [Tinito.Auth.MsalNativeHelper]::ConfigureTokenCache($app, $cacheFile)
 
     $script:GlobalMsalClient = $app
     return $app
@@ -179,61 +284,5 @@ function Get-EntraAccessToken {
     )
 
     $app = Get-MsalPublicClient -ClientId $ClientId -TenantId $TenantId
-
-    # Paso 1: Intentar adquisición silenciosa (Cache DPAPI / SSO)
-    try {
-        $accounts = $app.GetAccountsAsync().GetAwaiter().GetResult()
-        if ($accounts -and ($accounts | Measure-Object).Count -gt 0) {
-            $account = $accounts | Select-Object -First 1
-            $silentResult = $app.AcquireTokenSilent($Scopes, $account).ExecuteAsync().GetAwaiter().GetResult()
-            if ($silentResult -and $silentResult.AccessToken) {
-                return $silentResult.AccessToken
-            }
-        }
-    } catch [Microsoft.Identity.Client.MsalUiRequiredException] {
-        # Se requiere interacción de usuario
-    } catch {
-        # Otro error en silent acquire, proceder a interactivo
-    }
-
-    # Paso 2: Adquisición interactiva (Navegador del sistema / SSO de Microsoft 365)
-    Write-Host "`n[*] Autenticando con cuenta corporativa Microsoft 365 (Power BI Pro)..." -ForegroundColor Yellow
-    Write-Host "    Selecciona tu cuenta corporativa en la ventana emergente." -ForegroundColor Gray
-
-    try {
-        $interactiveBuilder = $app.AcquireTokenInteractive($Scopes)
-        $interactiveBuilder = $interactiveBuilder.WithPrompt([Microsoft.Identity.Client.Prompt]::SelectAccount)
-        
-        $authResult = $interactiveBuilder.ExecuteAsync().GetAwaiter().GetResult()
-        if ($authResult -and $authResult.AccessToken) {
-            Write-Host "[OK] Autenticado exitosamente como: $($authResult.Account.Username)" -ForegroundColor Green
-            return $authResult.AccessToken
-        }
-    } catch {
-        Write-Warning "Fallo el inicio de sesión interactivo por navegador: $($_.Exception.Message)"
-        
-        # Paso 3: Fallback a Device Code Flow (para entornos con consola restringida o sin GUI)
-        try {
-            Write-Host "`n[*] Iniciando flujo de autenticación por código de dispositivo (Device Code)..." -ForegroundColor Cyan
-            
-            $deviceCodeTask = $app.AcquireTokenWithDeviceCode($Scopes, [System.Func[Microsoft.Identity.Client.DeviceCodeResult, System.Threading.Tasks.Task]]{
-                param($deviceCode)
-                Write-Host "`n========================================================" -ForegroundColor Yellow
-                Write-Host " INICIO DE SESION REQUERIDO: " -ForegroundColor Cyan
-                Write-Host " 1. Abre tu navegador en: " -NoNewline; Write-Host $deviceCode.VerificationUrl -ForegroundColor Green
-                Write-Host " 2. Ingresa el código:    " -NoNewline; Write-Host $deviceCode.UserCode -ForegroundColor Yellow
-                Write-Host "========================================================`n" -ForegroundColor Yellow
-                return [System.Threading.Tasks.Task]::FromResult($null)
-            }).ExecuteAsync().GetAwaiter().GetResult()
-
-            if ($deviceCodeTask -and $deviceCodeTask.AccessToken) {
-                Write-Host "[OK] Autenticado exitosamente como: $($deviceCodeTask.Account.Username)" -ForegroundColor Green
-                return $deviceCodeTask.AccessToken
-            }
-        } catch {
-            throw "No se pudo completar la autenticación con Microsoft Entra ID: $($_.Exception.Message)"
-        }
-    }
-
-    throw "No se pudo obtener un token de acceso válido de Microsoft Entra ID."
+    return [Tinito.Auth.MsalNativeHelper]::AcquireToken($app, [string[]]$Scopes)
 }

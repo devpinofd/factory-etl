@@ -8,11 +8,22 @@ variable "security_dataset_id" {
   default     = "factory_etl_security"
 }
 
+# --- Dataset factory_etl_security ---------------------------------------------
+
+resource "google_bigquery_dataset" "security" {
+  project       = var.project_id
+  dataset_id    = var.security_dataset_id
+  location      = var.dataset_location
+  friendly_name = "FactoryETL Security & Governance"
+  description   = "Dataset para tablas de seguridad, matriz de acceso de proveedores externos (RLS) y logs de auditoria."
+  labels        = var.labels
+}
+
 # --- Tabla sec_acceso_proveedores (SCD Type 2) --------------------------------
 
 resource "google_bigquery_table" "sec_acceso_proveedores" {
   project             = var.project_id
-  dataset_id          = var.security_dataset_id
+  dataset_id          = google_bigquery_dataset.security.dataset_id
   table_id            = "sec_acceso_proveedores"
   description         = "Matriz centralizada de acceso de proveedores externos al ecosistema de datos. Patron SCD Type 2 con audit trail."
   deletion_protection = false
@@ -57,7 +68,7 @@ EOF
 
 resource "google_bigquery_table" "sec_audit_log" {
   project             = var.project_id
-  dataset_id          = var.security_dataset_id
+  dataset_id          = google_bigquery_dataset.security.dataset_id
   table_id            = "sec_audit_log"
   description         = "Log inmutable de auditoria de accesos."
   deletion_protection = false
@@ -93,7 +104,7 @@ EOF
 
 resource "google_bigquery_table" "sec_vendedores_auth" {
   project             = var.project_id
-  dataset_id          = var.security_dataset_id
+  dataset_id          = google_bigquery_dataset.security.dataset_id
   table_id            = "sec_vendedores_auth"
   description         = "Matriz de acceso y asignaciones RLS de la fuerza de ventas y supervisores. Sincronizada desde Firebase Auth y Firestore."
   deletion_protection = false

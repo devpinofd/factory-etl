@@ -71,57 +71,75 @@ function Ensure-DaxProxyLogin {
         [string]$Scope
     )
 
-    if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-        throw "Azure CLI ('az') no esta instalada. Instalala desde https://aka.ms/installazurecliwindows y reinicia el agente."
+    # 1. Autenticacion Primaria: Modulo Nativo Microsoft Entra ID / M365 (MSAL.NET)
+    if (-not (Get-Command Get-EntraAccessToken -ErrorAction SilentlyContinue)) {
+        $msalAuthCandidate = if (![string]::IsNullOrEmpty($PSScriptRoot)) { Join-Path $PSScriptRoot "msal_auth.ps1" } else { "" }
+        if (-not $msalAuthCandidate -or -not (Test-Path $msalAuthCandidate)) {
+            $candidate = Join-Path "$env:LOCALAPPDATA\Tinito\PbiCopilot\launcher" "msal_auth.ps1"
+            if (Test-Path $candidate) { $msalAuthCandidate = $candidate }
+        }
+        if ($msalAuthCandidate -and (Test-Path $msalAuthCandidate)) {
+            . $msalAuthCandidate
+        }
     }
 
-    # Evita fallos silenciosos por extensiones de Azure CLI sin permisos de escritura
-    # en el perfil del usuario actual (causa comun de "No se pudo obtener un token").
-    if (-not $env:AZURE_EXTENSION_DIR) {
-        $extDir = Join-Path $env:LOCALAPPDATA "AzureCli\extensions"
-        if (-not (Test-Path $extDir)) { New-Item -ItemType Directory -Path $extDir -Force | Out-Null }
-        $env:AZURE_EXTENSION_DIR = $extDir
+    if (Get-Command Get-EntraAccessToken -ErrorAction SilentlyContinue) {
+        Write-Host "Verificando autenticacion Entra ID / M365 (MSAL.NET nativo)..." -ForegroundColor Cyan
+        $fullScope = if ($Audience.EndsWith("/")) { "$Audience$Scope" } else { "$Audience/$Scope" }
+        try {
+            $token = Get-EntraAccessToken -ClientId $ClientId -TenantId $TenantId -Scopes @($fullScope) -Audience $Audience
+            if ($token) {
+                Write-Host "[OK] Autenticacion Entra ID / MSAL.NET completada exitosamente.`n" -ForegroundColor Green
+                return
+            }
+        } catch {
+            Write-Warning "Fallo la adquisicion con MSAL.NET: $($_.Exception.Message)"
+        }
     }
 
-    # Activa el broker de cuentas de Windows (WAM): el inicio de sesion usa el
-    # selector nativo con las cuentas de Microsoft 365/Entra ID ya conectadas al
-    # equipo (misma identidad de Power BI), en vez de pedir credenciales otra vez.
-    & az config set core.enable_broker_on_windows=true --only-show-errors 2>$null | Out-Null
+    # 2. Fallback secundario a Azure CLI (az) solo si MSAL.NET no estuviera disponible
+    if (Get-Command az -ErrorAction SilentlyContinue) {
+        if (-not $env:AZURE_EXTENSION_DIR) {
+            $extDir = Join-Path $env:LOCALAPPDATA "AzureCli\extensions"
+            if (-not (Test-Path $extDir)) { New-Item -ItemType Directory -Path $extDir -Force | Out-Null }
+            $env:AZURE_EXTENSION_DIR = $extDir
+        }
 
-    Write-Host "Verificando sesion corporativa de Azure..." -ForegroundColor Cyan
-    $result = Get-DaxProxyToken -Audience $Audience -Scope $Scope
-    if ($result.Success) {
-        $account = & az account show --output json 2>$null | ConvertFrom-Json
-        $userName = if ($account) { $account.user.name } else { "cuenta corporativa" }
-        Write-Host "[OK] Sesion Azure activa: $userName`n" -ForegroundColor Green
-        return
+        & az config set core.enable_broker_on_windows=true --only-show-errors 2>$null | Out-Null
+
+        Write-Host "Verificando sesion corporativa de Azure CLI..." -ForegroundColor Cyan
+        $result = Get-DaxProxyToken -Audience $Audience -Scope $Scope
+        if ($result.Success) {
+            $account = & az account show --output json 2>$null | ConvertFrom-Json
+            $userName = if ($account) { $account.user.name } else { "cuenta corporativa" }
+            Write-Host "[OK] Sesion Azure activa: $userName`n" -ForegroundColor Green
+            return
+        }
+
+        Write-Host "[INFO] Elige tu cuenta corporativa en la ventana de inicio de sesion..." -ForegroundColor Yellow
+
+        $tenantIdMatch = $null
+        if ($Audience -match '^api://([0-9a-fA-F-]{36})/') {
+            $tenantIdMatch = $Matches[1]
+        }
+
+        $loginArgs = @("login", "--scope", "$Audience/$Scope", "--allow-no-subscriptions")
+        if ($tenantIdMatch) { $loginArgs += @("--tenant", $tenantIdMatch) }
+
+        & az @loginArgs --output none
+        if ($LASTEXITCODE -eq 0) {
+            $result = Get-DaxProxyToken -Audience $Audience -Scope $Scope
+            if ($result.Success) {
+                $account = & az account show --output json 2>$null | ConvertFrom-Json
+                $userName = if ($account) { $account.user.name } else { "cuenta corporativa" }
+                Write-Host "[OK] Sesion Azure iniciada correctamente: $userName`n" -ForegroundColor Green
+                return
+            }
+        }
     }
 
-    Write-Host "[INFO] Elige tu cuenta corporativa en la ventana de inicio de sesion (usa la misma sesion de Microsoft 365 del equipo)..." -ForegroundColor Yellow
-
-    $tenantId = $null
-    if ($Audience -match '^api://([0-9a-fA-F-]{36})/') {
-        $tenantId = $Matches[1]
-    }
-
-    $loginArgs = @("login", "--scope", "$Audience/$Scope", "--allow-no-subscriptions")
-    if ($tenantId) { $loginArgs += @("--tenant", $tenantId) }
-
-    & az @loginArgs --output none
-    if ($LASTEXITCODE -ne 0) {
-        throw "El inicio de sesion en Azure fue cancelado o fallo. Vuelve a abrir el agente para reintentar."
-    }
-
-    $result = Get-DaxProxyToken -Audience $Audience -Scope $Scope
-    if (-not $result.Success) {
-        $adminContact = if ($env:DAX_COPILOT_ADMIN_CONTACT) { $env:DAX_COPILOT_ADMIN_CONTACT } else { "el administrador de BI" }
-        $detail = if ($result.ErrorText) { " Detalle: $($result.ErrorText)" } else { "" }
-        throw "El inicio de sesion se completo pero no se pudo obtener el token del proxy DAX Copilot.$detail Contacta a $adminContact."
-    }
-
-    $account = & az account show --output json 2>$null | ConvertFrom-Json
-    $userName = if ($account) { $account.user.name } else { "cuenta corporativa" }
-    Write-Host "[OK] Sesion Azure iniciada correctamente: $userName`n" -ForegroundColor Green
+    $adminContact = if ($env:DAX_COPILOT_ADMIN_CONTACT) { $env:DAX_COPILOT_ADMIN_CONTACT } else { "el administrador de BI" }
+    throw "No se pudo obtener un token de acceso para DAX Copilot. Contacta a $adminContact."
 }
 
 Ensure-DaxProxyLogin -Audience $ProxyAudience -Scope $ProxyScope
@@ -765,16 +783,8 @@ function Invoke-ProxyChatWithRetry {
     }
 
     $accessToken = $null
-    # 1. Intentar token activo de la sesión corporativa validada
-    if (Get-Command az -ErrorAction SilentlyContinue) {
-        $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
-        if ($tokenResult.Success) {
-            $accessToken = $tokenResult.Token
-        }
-    }
-
-    # 2. Fallback a MSAL.NET nativo si no hay Azure CLI
-    if (-not $accessToken -and (Get-Command Get-EntraAccessToken -ErrorAction SilentlyContinue)) {
+    # 1. Autenticacion Primaria: MSAL.NET nativo (DPAPI cache / SSO)
+    if (Get-Command Get-EntraAccessToken -ErrorAction SilentlyContinue) {
         try {
             $accessToken = Get-EntraAccessToken `
                 -ClientId $ClientId `
@@ -786,12 +796,17 @@ function Invoke-ProxyChatWithRetry {
         }
     }
 
-    # 3. Si expiró, relogin corporativo
+    # 2. Fallback secundario: Azure CLI si estuviera disponible
     if (-not $accessToken -and (Get-Command az -ErrorAction SilentlyContinue)) {
-        Ensure-DaxProxyLogin -Audience $ProxyAudience -Scope $ProxyScope
         $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
         if ($tokenResult.Success) {
             $accessToken = $tokenResult.Token
+        } else {
+            Ensure-DaxProxyLogin -Audience $ProxyAudience -Scope $ProxyScope
+            $tokenResult = Get-DaxProxyToken -Audience $ProxyAudience -Scope $ProxyScope
+            if ($tokenResult.Success) {
+                $accessToken = $tokenResult.Token
+            }
         }
     }
 

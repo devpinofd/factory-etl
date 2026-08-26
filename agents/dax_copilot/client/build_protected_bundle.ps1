@@ -58,7 +58,7 @@ $paramInitBlock = @'
 if (-not $Server) { $Server = if ($env:DAX_COPILOT_SERVER) { $env:DAX_COPILOT_SERVER } else { "%server%" } }
 if (-not $Database) { $Database = if ($env:DAX_COPILOT_DATABASE) { $env:DAX_COPILOT_DATABASE } else { "%database%" } }
 if (-not $ProxyUrl) { $ProxyUrl = if ($env:DAX_COPILOT_PROXY_URL) { $env:DAX_COPILOT_PROXY_URL } else { "https://func-dax-copilot-proxy.azurewebsites.net/api/chat-stream" } }
-if (-not $ProxyAudience) { $ProxyAudience = if ($env:DAX_COPILOT_AUDIENCE) { $env:DAX_COPILOT_AUDIENCE } else { "api://func-dax-copilot-proxy" } }
+if (-not $ProxyAudience) { $ProxyAudience = if ($env:DAX_COPILOT_AUDIENCE) { $env:DAX_COPILOT_AUDIENCE } else { "api://e9545efd-83a8-4b56-a297-1c05c7d1f51b/func-dax-copilot-proxy-auth" } }
 if (-not $ProxyScope) { $ProxyScope = if ($env:DAX_COPILOT_SCOPE) { $env:DAX_COPILOT_SCOPE } else { "access_as_user" } }
 if (-not $TenantId) { $TenantId = if ($env:DAX_COPILOT_TENANT_ID) { $env:DAX_COPILOT_TENANT_ID } else { "e9545efd-83a8-4b56-a297-1c05c7d1f51b" } }
 if (-not $ClientId) { $ClientId = if ($env:DAX_COPILOT_CLIENT_ID) { $env:DAX_COPILOT_CLIENT_ID } else { "04b07795-8ddb-461a-bbee-02f9e1bf7b46" } }
@@ -244,6 +244,14 @@ namespace Tinito.Copilot
                 using (Process proc = Process.Start(psi))
                 {
                     proc.WaitForExit();
+                    if (proc.ExitCode != 0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine("\nEl agente finalizó con código: " + proc.ExitCode);
+                        Console.ResetColor();
+                        Console.WriteLine("Presione cualquier tecla para salir...");
+                        Console.ReadKey();
+                    }
                     return proc.ExitCode;
                 }
             }

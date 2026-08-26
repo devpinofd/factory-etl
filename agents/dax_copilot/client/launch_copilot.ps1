@@ -18,11 +18,20 @@ $manifestUrl = if ($env:DAX_COPILOT_MANIFEST_URL) { $env:DAX_COPILOT_MANIFEST_UR
 # LAN Fallback Path (opcional si se define explícitamente)
 $lanScriptPath = $env:DAX_COPILOT_LAN_SCRIPT_PATH
 $lanManifestPath = $env:DAX_COPILOT_LAN_MANIFEST_PATH
-if (-not $lanScriptPath) {
-    $protectedCandidate = Join-Path $PSScriptRoot "pbi_copilot_assistant.protected.ps1"
-    $regularCandidate   = Join-Path $PSScriptRoot "pbi_copilot_assistant.ps1"
+
+$currentScriptDir = if (![string]::IsNullOrEmpty($PSScriptRoot)) { 
+    $PSScriptRoot 
+} elseif ($MyInvocation.MyCommand.Path) { 
+    Split-Path -Parent $MyInvocation.MyCommand.Path 
+} else { 
+    (Get-Location).Path 
+}
+
+if (-not $lanScriptPath -and $currentScriptDir) {
+    $protectedCandidate = Join-Path $currentScriptDir "pbi_copilot_assistant.protected.ps1"
+    $regularCandidate   = Join-Path $currentScriptDir "pbi_copilot_assistant.ps1"
     $bundledScript = if (Test-Path $protectedCandidate) { $protectedCandidate } elseif (Test-Path $regularCandidate) { $regularCandidate } else { $null }
-    $bundledManifest = Join-Path $PSScriptRoot "manifest.json"
+    $bundledManifest = Join-Path $currentScriptDir "manifest.json"
     if ($bundledScript -and (Test-Path $bundledManifest)) {
         $lanScriptPath = $bundledScript
         $lanManifestPath = $bundledManifest
@@ -134,7 +143,13 @@ if (-not $scriptToRun) {
 
 # 4. Ejecución Segura
 if ($scriptToRun -and (Test-Path $scriptToRun)) {
-    & $scriptToRun
+    try {
+        & $scriptToRun
+    } catch {
+        Write-Host "`n❌ Error en tiempo de ejecución: $_" -ForegroundColor Red
+        Write-Host "Detalle: $($_.ScriptStackTrace)" -ForegroundColor DarkGray
+        Read-Host "`nPresiona Enter para salir..."
+    }
 } else {
     Write-Host "❌ Error crítico: No se encontró ninguna versión válida del agente DAX Copilot." -ForegroundColor Red
     Write-Host "Verifica tu conexión o contacta a $adminContact." -ForegroundColor White

@@ -1,4 +1,4 @@
-﻿# Suite de pruebas nativas de Terraform para validación de contratos de infraestructura
+# Suite de pruebas nativas de Terraform para validación de contratos de infraestructura
 
 run "validate_production_contracts" {
   command = plan
@@ -42,4 +42,11 @@ run "validate_production_contracts" {
     condition     = var.container_image_tag == "v1.1.0"
     error_message = "ERROR DE CONTRATO: container_image_tag en producción debe ser v1.1.0 para incluir los queries v3."
   }
+
+  # Aserción: El inventario de producción debe incluir el dataset de seguridad
+  assert {
+    condition     = contains(local.environment_inventory.datasets, "factory_etl_security")
+    error_message = "ERROR DE CONTRATO: El dataset factory_etl_security debe estar declarado en el inventario de producción."
+  }
 }
+

@@ -45,6 +45,9 @@ jobs:
       - name: ruff format --check
         run: uv run ruff format --check .
 
+      - name: Check UTF-8 BOM & Encoding Integrity (strict)
+        run: uv run pytest tests/unit/test_repository_encoding_integrity.py -v --no-cov
+
       - name: pyright (strict)
         run: uv run pyright
 
@@ -119,4 +122,4 @@ jobs:
 
       - name: Compile Dataform Definitions & Assertions
         working-directory: dataform
-        run: npx @dataform/cli compile
+        run: npx --yes @dataform/cli compile
