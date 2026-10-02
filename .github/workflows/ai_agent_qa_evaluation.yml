@@ -79,7 +79,7 @@ jobs:
           content = prompt_path.read_text(encoding="utf-8")
           required = [
               "PRINCIPIOS DE EJECUCIÓN DETERMINISTA",
-              "REGLAS DE ORO DE MODELADO Y VERTIIPAQ",
+              "REGLAS DE ORO DE MODELADO Y VERTIPAQ",
               "ESTÁNDAR DE DOCUMENTACIÓN DE MEDIDAS",
               "COMANDOS ESPECIALES DE CONTROL",
           ]
