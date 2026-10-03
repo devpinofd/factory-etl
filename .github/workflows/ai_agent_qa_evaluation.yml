@@ -166,7 +166,7 @@ jobs:
     needs: validate-agent-integrity
     if: github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: 📥 Clonar Repositorio
@@ -179,11 +179,9 @@ jobs:
           path: .release
 
       - name: 📦 Aplicar artefactos del cliente
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
-          unzip -o .release/client-artifacts.zip \
-            -d agents/dax_copilot/client
+          Expand-Archive -Force -Path .release/client-artifacts.zip -DestinationPath agents/dax_copilot/client
 
       - name: 🔑 Iniciar Sesión en Azure
         uses: azure/login@v2
@@ -194,97 +192,93 @@ jobs:
           allow-no-subscriptions: true
 
       - name: 🔎 Verificar contexto Azure CLI
-        shell: bash
+        shell: pwsh
         run: |
-          az account show \
-            --query "{subscription:id,tenant:tenantId,user:user.name}" \
+          az account show `
+            --query "{subscription:id,tenant:tenantId,user:user.name}" `
             --output json
 
       - name: 🚀 Publicar en Azure Storage Hub
+        shell: pwsh
         env:
           AZURE_RESOURCE_GROUP: rg-powerbi-ai-prod
           AZURE_FUNCTION_APP: func-dax-copilot-proxy
           AZURE_STORAGE_ACCOUNT: stpbicopilotprod
           AZURE_STORAGE_CONTAINER: agent
         run: |
-          set -euo pipefail
-          mkdir -p .release/proxy
-          zip -j .release/proxy/proxy_package.zip \
-            agents/dax_copilot/proxy/function_app.py \
-            agents/dax_copilot/proxy/entra_auth.py \
-            agents/dax_copilot/proxy/request_validation.py \
-            agents/dax_copilot/proxy/telemetry.py \
-            agents/dax_copilot/proxy/host.json \
-            agents/dax_copilot/proxy/requirements.txt
+          New-Item -ItemType Directory -Path .release/proxy -Force | Out-Null
+          $proxyFiles = @('function_app.py', 'entra_auth.py', 'request_validation.py', 'telemetry.py', 'host.json', 'requirements.txt') | ForEach-Object { "agents/dax_copilot/proxy/$_" }
+          Compress-Archive -Path $proxyFiles -DestinationPath .release/proxy/proxy_package.zip -Force
 
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -File agents/dax_copilot/client/build_protected_bundle.ps1 -DeployToCache:$false
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& agents/dax_copilot/client/build_protected_bundle.ps1 -DeployToCache:`$false"
 
-          az storage blob upload \
-            --account-name "$AZURE_STORAGE_ACCOUNT" \
-            --container-name "$AZURE_STORAGE_CONTAINER" \
-            --name pbi_copilot_assistant.ps1 \
-            --file agents/dax_copilot/client/pbi_copilot_assistant.protected.ps1 \
-            --auth-mode login \
-            --overwrite true \
+          az storage blob upload `
+            --account-name $env:AZURE_STORAGE_ACCOUNT `
+            --container-name $env:AZURE_STORAGE_CONTAINER `
+            --name pbi_copilot_assistant.ps1 `
+            --file agents/dax_copilot/client/pbi_copilot_assistant.protected.ps1 `
+            --auth-mode login `
+            --overwrite true `
             --content-type text/plain
 
-          az storage blob upload \
-            --account-name "$AZURE_STORAGE_ACCOUNT" \
-            --container-name "$AZURE_STORAGE_CONTAINER" \
-            --name manifest.json \
-            --file agents/dax_copilot/client/manifest.json \
-            --auth-mode login \
-            --overwrite true \
+          az storage blob upload `
+            --account-name $env:AZURE_STORAGE_ACCOUNT `
+            --container-name $env:AZURE_STORAGE_CONTAINER `
+            --name manifest.json `
+            --file agents/dax_copilot/client/manifest.json `
+            --auth-mode login `
+            --overwrite true `
             --content-type application/json
 
-          az storage blob upload \
-            --account-name "$AZURE_STORAGE_ACCOUNT" \
-            --container-name "$AZURE_STORAGE_CONTAINER" \
-            --name launch_copilot.ps1 \
-            --file agents/dax_copilot/client/launch_copilot.protected.ps1 \
-            --auth-mode login \
-            --overwrite true \
+          az storage blob upload `
+            --account-name $env:AZURE_STORAGE_ACCOUNT `
+            --container-name $env:AZURE_STORAGE_CONTAINER `
+            --name launch_copilot.ps1 `
+            --file agents/dax_copilot/client/launch_copilot.protected.ps1 `
+            --auth-mode login `
+            --overwrite true `
             --content-type text/plain
 
-          az storage blob upload \
-            --account-name "$AZURE_STORAGE_ACCOUNT" \
-            --container-name "$AZURE_STORAGE_CONTAINER" \
-            --name install_copilot.ps1 \
-            --file agents/dax_copilot/client/install_copilot.ps1 \
-            --auth-mode login \
-            --overwrite true \
+          az storage blob upload `
+            --account-name $env:AZURE_STORAGE_ACCOUNT `
+            --container-name $env:AZURE_STORAGE_CONTAINER `
+            --name install_copilot.ps1 `
+            --file agents/dax_copilot/client/install_copilot.ps1 `
+            --auth-mode login `
+            --overwrite true `
             --content-type text/plain
 
-          for attempt in 1 2 3; do
-            if az functionapp deployment source config-zip \
-              --resource-group "$AZURE_RESOURCE_GROUP" \
-              --name "$AZURE_FUNCTION_APP" \
-              --src .release/proxy/proxy_package.zip \
-              --build-remote true; then
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            az functionapp deployment source config-zip `
+              --resource-group $env:AZURE_RESOURCE_GROUP `
+              --name $env:AZURE_FUNCTION_APP `
+              --src .release/proxy/proxy_package.zip `
+              --build-remote true
+            if ($LASTEXITCODE -eq 0) {
               break
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "Azure Function ZIP deployment failed after $attempt attempts." >&2
+            }
+            if ($attempt -eq 3) {
+              Write-Error "Azure Function ZIP deployment failed after $attempt attempts."
               exit 1
-            fi
-            sleep_seconds=$((attempt * 60))
-            echo "Azure deployment is busy; retrying in ${sleep_seconds}s." >&2
-            sleep "$sleep_seconds"
-          done
+            }
+            $sleepSeconds = $attempt * 60
+            Write-Warning "Azure deployment is busy; retrying in ${sleepSeconds}s."
+            Start-Sleep -Seconds $sleepSeconds
+          }
 
       - name: ✅ Verificar despliegue activo
+        shell: pwsh
         env:
           AZURE_RESOURCE_GROUP: rg-powerbi-ai-prod
           AZURE_FUNCTION_APP: func-dax-copilot-proxy
         run: |
-          set -euo pipefail
-          deployment_json="$(az rest --method get \
-            --url "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.Web/sites/$AZURE_FUNCTION_APP/deployments?api-version=2022-03-01" \
-            --query 'value[0].{active:properties.active,status:properties.status}' \
-            --output json)"
-          echo "$deployment_json"
-          test "$(echo "$deployment_json" | jq -r '.active')" = "true"
-          test "$(echo "$deployment_json" | jq -r '.status')" = "4"
+          $deploymentJson = az rest --method get `
+            --url "https://management.azure.com/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$env:AZURE_RESOURCE_GROUP/providers/Microsoft.Web/sites/$env:AZURE_FUNCTION_APP/deployments?api-version=2022-03-01" `
+            --query "value[0].{active:properties.active,status:properties.status}" `
+            --output json | ConvertFrom-Json
+          Write-Host ($deploymentJson | ConvertTo-Json)
+          if ($deploymentJson.active -ne $true) { throw "Deployment is not active" }
+          if ($deploymentJson.status -ne 4) { throw "Deployment status is not 4" }
 
   nightly-qa-judge-auto-refine:
     name: 🧑‍⚖️ QA Judge Nightly Auto-Refinement (LLM-as-a-Judge)
