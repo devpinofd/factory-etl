@@ -377,6 +377,7 @@ module "workflows" {
   service_account_email       = module.service_account.email
   labels                      = local.common_labels
   queries                     = local.effective_daily_queries
+  max_parallel_tasks          = var.extractor_parallelism
 
   depends_on = [google_project_service.required, module.cloud_run_job]
 }
@@ -396,6 +397,7 @@ module "workflows_full" {
   service_account_email       = module.service_account.email
   labels                      = local.common_labels
   queries                     = local.effective_full_queries
+  max_parallel_tasks          = var.extractor_parallelism
 
   depends_on = [google_project_service.required, module.cloud_run_job, module.dataform]
 }

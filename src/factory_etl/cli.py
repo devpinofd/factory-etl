@@ -53,7 +53,7 @@ def version() -> None:
 
 @dataclasses.dataclass(frozen=True)
 class TaskSpec:
-    """Especificacion de una tarea individual dentro de un manifest de fan-out."""
+    """Especificacion de una entrada (empresa x consulta) dentro de un manifest de fan-out."""
 
     query_id: str
     source_empresa: str
@@ -61,14 +61,60 @@ class TaskSpec:
     parameter_values: dict[str, object] = dataclasses.field(default_factory=dict)
 
 
-def _select_task(
+def _parse_manifest_entry(
+    entry: object,
+    position: int,
+    fec_des: str | None,
+    fec_has: str | None,
+) -> TaskSpec:
+    """Valida una entrada del manifest y la convierte en ``TaskSpec``."""
+    if not isinstance(entry, dict):
+        raise typer.BadParameter(f"Entrada en posicion {position} debe ser un objeto JSON.")
+
+    query_id = entry.get("query_id")
+    source_empresa = entry.get("source_empresa")
+    has_param = entry.get("has_param")
+
+    if not isinstance(query_id, str) or not query_id.strip():
+        raise typer.BadParameter(f"query_id invalido o ausente en entrada {position}.")
+    if not isinstance(source_empresa, str) or not source_empresa.strip():
+        raise typer.BadParameter(f"source_empresa invalido o ausente en entrada {position}.")
+    if not isinstance(has_param, bool):
+        raise typer.BadParameter(f"has_param debe ser booleano en entrada {position}.")
+
+    parameter_values: dict[str, object] = {}
+    if has_param:
+        if not fec_des or not fec_has:
+            raise typer.BadParameter(
+                "La entrada requiere parametros (has_param=True), pero faltan fec_des y/o fec_has."
+            )
+        parameter_values = {"fec_des": fec_des, "fec_has": fec_has}
+
+    return TaskSpec(
+        query_id=query_id,
+        source_empresa=source_empresa,
+        has_param=has_param,
+        parameter_values=parameter_values,
+    )
+
+
+def _select_tasks(
     manifest_json: str,
     task_index: int = 0,
     task_count: int | None = None,
     fec_des: str | None = None,
     fec_has: str | None = None,
-) -> TaskSpec:
-    """Valida el manifest y extrae la especificacion de la tarea para el indice dado.
+) -> list[TaskSpec]:
+    """Valida el manifest completo y devuelve las entradas asignadas a esta tarea.
+
+    Reparto *strided*: la tarea ``i`` de ``T`` procesa las entradas
+    ``i, i+T, i+2T, ...``. Asi una ejecucion de Cloud Run con
+    ``taskCount = min(len(manifest), parallelism)`` corre en una sola ola
+    (un solo arranque en frio por tarea) y nunca supera ``T`` llamadas
+    concurrentes a la API de FactorySoft.
+
+    Todo el manifest se valida (no solo el slice propio) para que un manifest
+    defectuoso falle igual en todas las tareas y no de forma parcial.
 
     Es una funcion pura (sin efectos colaterales ni acceso a variables de entorno)
     para permitir pruebas unitarias exhaustivas.
@@ -79,51 +125,23 @@ def _select_task(
         raise typer.BadParameter("Manifest no es un JSON valido.") from None
 
     if not isinstance(items, list):
-        raise typer.BadParameter("Manifest debe ser una lista de tareas.")
-
-    total_tasks = len(items)
-    if total_tasks == 0:
+        raise typer.BadParameter("Manifest debe ser una lista de entradas.")
+    if not items:
         raise typer.BadParameter("Manifest no puede estar vacio.")
 
-    if task_count is not None and task_count != total_tasks:
+    effective_count = 1 if task_count is None else task_count
+    if effective_count < 1:
+        raise typer.BadParameter(f"task_count invalido: {effective_count}.")
+    if not (0 <= task_index < effective_count):
         raise typer.BadParameter(
-            f"CLOUD_RUN_TASK_COUNT ({task_count}) no coincide con el tamano del manifest ({total_tasks})."
+            f"task_index {task_index} fuera de rango para task_count {effective_count}."
         )
 
-    if not (0 <= task_index < total_tasks):
-        raise typer.BadParameter(
-            f"task_index {task_index} fuera de rango: manifest contiene {total_tasks} tarea(s)."
-        )
-
-    task = items[task_index]
-    if not isinstance(task, dict):
-        raise typer.BadParameter(f"Tarea en indice {task_index} debe ser un objeto JSON.")
-
-    query_id = task.get("query_id")
-    source_empresa = task.get("source_empresa")
-    has_param = task.get("has_param")
-
-    if not isinstance(query_id, str) or not query_id.strip():
-        raise typer.BadParameter(f"query_id invalido o ausente en tarea {task_index}.")
-    if not isinstance(source_empresa, str) or not source_empresa.strip():
-        raise typer.BadParameter(f"source_empresa invalido o ausente en tarea {task_index}.")
-    if not isinstance(has_param, bool):
-        raise typer.BadParameter(f"has_param debe ser booleano en tarea {task_index}.")
-
-    parameter_values: dict[str, object] = {}
-    if has_param:
-        if not fec_des or not fec_has:
-            raise typer.BadParameter(
-                "La tarea requiere parametros (has_param=True), pero faltan fec_des y/o fec_has."
-            )
-        parameter_values = {"fec_des": fec_des, "fec_has": fec_has}
-
-    return TaskSpec(
-        query_id=query_id,
-        source_empresa=source_empresa,
-        has_param=has_param,
-        parameter_values=parameter_values,
-    )
+    specs = [
+        _parse_manifest_entry(entry, position, fec_des, fec_has)
+        for position, entry in enumerate(items)
+    ]
+    return specs[task_index::effective_count]
 
 
 def _execute_batch(
@@ -268,7 +286,7 @@ def run_batch(
 
 @app.command("run-task")
 def run_task(
-    manifest: Annotated[str, typer.Option(help="Manifest JSON con lista de tareas.")],
+    manifest: Annotated[str, typer.Option(help="Manifest JSON con lista de entradas.")],
     dt: Annotated[str, typer.Option(help="Fecha logica YYYY-MM-DD.")],
     fec_des: Annotated[
         str | None,
@@ -285,51 +303,79 @@ def run_task(
             help="Indice de tarea (default: env CLOUD_RUN_TASK_INDEX o 0).",
         ),
     ] = None,
+    task_count: Annotated[
+        int | None,
+        typer.Option(
+            "--task-count",
+            help="Total de tareas de la ejecucion (default: env CLOUD_RUN_TASK_COUNT o 1).",
+        ),
+    ] = None,
 ) -> None:
-    """Ejecuta una tarea individual de un manifest en Cloud Run Jobs.
+    """Ejecuta el lote de entradas del manifest asignado a esta tarea de Cloud Run.
 
-    Selecciona la consulta y empresa segun el indice de la tarea
-    (provisto por la opcion o por la variable de entorno CLOUD_RUN_TASK_INDEX).
+    La tarea ``i`` de ``T`` procesa las entradas ``i, i+T, i+2T, ...`` en serie.
+    Un fallo en una entrada no impide procesar las siguientes; el exit code es
+    1 si alguna entrada fallo (Cloud Run reintenta la tarea segun maxRetries;
+    los batches ya exitosos se deduplican por ``payload_hash``).
     """
-    if task_index is None:
-        raw_env_index = os.environ.get("CLOUD_RUN_TASK_INDEX")
-        if raw_env_index is not None:
-            try:
-                effective_task_index = int(raw_env_index)
-            except ValueError:
-                raise typer.BadParameter(
-                    f"CLOUD_RUN_TASK_INDEX invalido: {raw_env_index!r}"
-                ) from None
-        else:
-            effective_task_index = 0
-    else:
-        effective_task_index = task_index
+    effective_task_index = (
+        task_index if task_index is not None else _int_from_env("CLOUD_RUN_TASK_INDEX", 0)
+    )
+    effective_task_count = (
+        task_count if task_count is not None else _int_from_env("CLOUD_RUN_TASK_COUNT", 1)
+    )
 
-    raw_env_count = os.environ.get("CLOUD_RUN_TASK_COUNT")
-    task_count: int | None = None
-    if raw_env_count is not None:
-        try:
-            task_count = int(raw_env_count)
-        except ValueError:
-            raise typer.BadParameter(f"CLOUD_RUN_TASK_COUNT invalido: {raw_env_count!r}") from None
-
-    spec = _select_task(
+    specs = _select_tasks(
         manifest_json=manifest,
         task_index=effective_task_index,
-        task_count=task_count,
+        task_count=effective_task_count,
         fec_des=fec_des,
         fec_has=fec_has,
     )
 
-    exit_code = _execute_batch(
-        query_id=spec.query_id,
-        source_empresa=spec.source_empresa,
-        dt=dt,
-        run_id=None,
-        parameter_values=spec.parameter_values,
+    failures = 0
+    for spec in specs:
+        try:
+            exit_code = _execute_batch(
+                query_id=spec.query_id,
+                source_empresa=spec.source_empresa,
+                dt=dt,
+                run_id=None,
+                parameter_values=spec.parameter_values,
+            )
+        except Exception as exc:  # noqa: BLE001
+            # Fallo fuera del manejo interno de _execute_batch (p.ej. start_run
+            # contra BigQuery). Se registra solo el tipo, nunca el mensaje.
+            log.error(
+                "run_task_entry_failed",
+                query_id=spec.query_id,
+                source_empresa=spec.source_empresa,
+                error_type=type(exc).__name__,
+            )
+            exit_code = 1
+        if exit_code != 0:
+            failures += 1
+
+    log.info(
+        "run_task_finished",
+        task_index=effective_task_index,
+        task_count=effective_task_count,
+        entries=len(specs),
+        failures=failures,
     )
-    if exit_code != 0:
-        raise typer.Exit(code=exit_code)
+    if failures:
+        raise typer.Exit(code=1)
+
+
+def _int_from_env(name: str, default: int) -> int:
+    """Lee un entero de una variable de entorno; ``default`` si no existe."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        raise typer.BadParameter(f"{name} invalido: {raw!r}") from None
 
 
 @app.command("list-queries")

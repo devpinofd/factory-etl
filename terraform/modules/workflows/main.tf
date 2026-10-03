@@ -35,5 +35,6 @@ resource "google_workflows_workflow" "workflow" {
     silver_dataset_id              = var.silver_dataset_id
     gold_dataset_id                = var.gold_dataset_id
     security_dataset_id            = var.security_dataset_id
+    max_parallel_tasks             = var.max_parallel_tasks
   })
 }

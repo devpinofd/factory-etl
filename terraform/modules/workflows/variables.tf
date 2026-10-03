@@ -126,3 +126,14 @@ variable "security_dataset_id" {
   type        = string
   default     = ""
 }
+
+variable "max_parallel_tasks" {
+  description = "Tope de taskCount del fan-out. Debe coincidir con el parallelism del Cloud Run Job para que todas las tareas corran en una sola ola."
+  type        = number
+  default     = 20
+
+  validation {
+    condition     = var.max_parallel_tasks >= 1
+    error_message = "max_parallel_tasks debe ser >= 1."
+  }
+}

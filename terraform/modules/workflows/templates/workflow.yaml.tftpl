@@ -39,13 +39,25 @@ main:
                     - append_manifest_entry:
                         assign:
                           - manifest: '$${list.concat(manifest, {"query_id": q.id, "source_empresa": emp, "has_param": q.has_param})}'
+    # Una sola ola: taskCount = min(entradas, paralelismo del job). Cada tarea
+    # procesa en serie su slice strided del manifest (ver `run-task`), de modo
+    # que el arranque en frio de Cloud Run (~2-3 min) se paga una sola vez y la
+    # concurrencia hacia la API FactorySoft nunca supera max_parallel_tasks.
+    - compute_task_count:
+        switch:
+          - condition: $${len(manifest) < ${max_parallel_tasks}}
+            assign:
+              - fanout_task_count: $${len(manifest)}
+          - condition: true
+            assign:
+              - fanout_task_count: ${max_parallel_tasks}
     - run_fanout_job:
         call: googleapis.run.v2.projects.locations.jobs.run
         args:
           name: $${"projects/" + project_id + "/locations/" + region + "/jobs/" + job_name}
           body:
             overrides:
-              taskCount: $${len(manifest)}
+              taskCount: $${fanout_task_count}
               containerOverrides:
                 - args:
                     - "run-task"
@@ -64,6 +76,8 @@ main:
                       value: "$${bucket_name}"
                     - name: "FACTORY_ETL_CONTROL_DATASET"
                       value: "${control_dataset_id}"
+          connector_params:
+            timeout: 3600
         result: job_result
     - assign_total_queries:
         assign:
