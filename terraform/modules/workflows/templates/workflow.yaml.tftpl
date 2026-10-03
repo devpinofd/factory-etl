@@ -38,7 +38,11 @@ main:
                   steps:
                     - append_manifest_entry:
                         assign:
-                          - manifest: '$${list.concat(manifest, {"query_id": q.id, "source_empresa": emp, "has_param": q.has_param})}'
+                          - entry:
+                              query_id: $${q.id}
+                              source_empresa: $${emp}
+                              has_param: $${q.has_param}
+                          - manifest: $${list.concat(manifest, entry)}
     # Una sola ola: taskCount = min(entradas, paralelismo del job). Cada tarea
     # procesa en serie su slice strided del manifest (ver `run-task`), de modo
     # que el arranque en frio de Cloud Run (~2-3 min) se paga una sola vez y la
