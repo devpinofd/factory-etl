@@ -26,7 +26,7 @@ resource "google_bigquery_table" "sec_acceso_proveedores" {
   dataset_id          = google_bigquery_dataset.security.dataset_id
   table_id            = "sec_acceso_proveedores"
   description         = "Matriz centralizada de acceso de proveedores externos al ecosistema de datos. Patron SCD Type 2 con audit trail."
-  deletion_protection = false
+  deletion_protection = true
 
   time_partitioning {
     type  = "DAY"
@@ -37,24 +37,24 @@ resource "google_bigquery_table" "sec_acceso_proveedores" {
 
   schema = <<EOF
 [
-  {"name": "access_id",       "type": "STRING",    "mode": "REQUIRED", "description": "UUID v4 universal"},
+  {"name": "access_id",       "type": "STRING",    "mode": "NULLABLE", "description": "UUID v4 universal"},
   {"name": "access_hash",     "type": "INT64",     "mode": "NULLABLE", "description": "FARM_FINGERPRINT para lookups SQL"},
-  {"name": "user_email",      "type": "STRING",    "mode": "REQUIRED", "description": "Email normalizado a lowercase"},
-  {"name": "provider_id",     "type": "STRING",    "mode": "REQUIRED", "description": "cod_pro autorizado"},
-  {"name": "source_empresa",  "type": "STRING",    "mode": "REQUIRED", "description": "Empresa: tinito, ctb, o *"},
-  {"name": "cod_suc",         "type": "STRING",    "mode": "REQUIRED", "description": "Sucursal: 01, 03, o *"},
-  {"name": "role_type",       "type": "STRING",    "mode": "REQUIRED", "description": "EDC, KAM, DIRECTOR_CANAL"},
-  {"name": "access_level",    "type": "STRING",    "mode": "REQUIRED", "description": "VENTAS_VOLUMEN, FINANCIERO, FULL"},
-  {"name": "platform_scope",  "type": "STRING",    "mode": "REQUIRED", "description": "ALL, PBI, LOOKER, SUPERSET"},
-  {"name": "access_status",   "type": "STRING",    "mode": "REQUIRED", "description": "ACTIVE, REVOKED, SUSPENDED"},
-  {"name": "effective_from",  "type": "TIMESTAMP", "mode": "REQUIRED", "description": "Inicio de vigencia"},
-  {"name": "effective_to",    "type": "TIMESTAMP", "mode": "REQUIRED", "description": "Fin de vigencia"},
-  {"name": "is_current",      "type": "BOOL",      "mode": "REQUIRED", "description": "Flag registro vigente"},
+  {"name": "user_email",      "type": "STRING",    "mode": "NULLABLE", "description": "Email normalizado a lowercase"},
+  {"name": "provider_id",     "type": "STRING",    "mode": "NULLABLE", "description": "cod_pro autorizado"},
+  {"name": "source_empresa",  "type": "STRING",    "mode": "NULLABLE", "description": "Empresa: tinito, ctb, o *"},
+  {"name": "cod_suc",         "type": "STRING",    "mode": "NULLABLE", "description": "Sucursal: 01, 03, o *"},
+  {"name": "role_type",       "type": "STRING",    "mode": "NULLABLE", "description": "EDC, KAM, DIRECTOR_CANAL"},
+  {"name": "access_level",    "type": "STRING",    "mode": "NULLABLE", "description": "VENTAS_VOLUMEN, FINANCIERO, FULL"},
+  {"name": "platform_scope",  "type": "STRING",    "mode": "NULLABLE", "description": "ALL, PBI, LOOKER, SUPERSET"},
+  {"name": "access_status",   "type": "STRING",    "mode": "NULLABLE", "description": "ACTIVE, REVOKED, SUSPENDED"},
+  {"name": "effective_from",  "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Inicio de vigencia"},
+  {"name": "effective_to",    "type": "TIMESTAMP", "mode": "NULLABLE", "description": "Fin de vigencia"},
+  {"name": "is_current",      "type": "BOOL",      "mode": "NULLABLE", "description": "Flag registro vigente"},
   {"name": "granted_by",      "type": "STRING",    "mode": "NULLABLE", "description": "Admin que otorgo el acceso"},
   {"name": "revoked_by",      "type": "STRING",    "mode": "NULLABLE", "description": "Admin que revoco"},
   {"name": "change_reason",   "type": "STRING",    "mode": "NULLABLE", "description": "Motivo del cambio"},
-  {"name": "created_at",      "type": "TIMESTAMP", "mode": "REQUIRED"},
-  {"name": "updated_at",      "type": "TIMESTAMP", "mode": "REQUIRED"}
+  {"name": "created_at",      "type": "TIMESTAMP", "mode": "NULLABLE"},
+  {"name": "updated_at",      "type": "TIMESTAMP", "mode": "NULLABLE"}
 ]
 EOF
 
@@ -71,25 +71,26 @@ resource "google_bigquery_table" "sec_audit_log" {
   dataset_id          = google_bigquery_dataset.security.dataset_id
   table_id            = "sec_audit_log"
   description         = "Log inmutable de auditoria de accesos."
-  deletion_protection = false
+  deletion_protection = true
 
   time_partitioning {
-    type  = "DAY"
-    field = "performed_at"
+    type          = "DAY"
+    field         = "performed_at"
+    expiration_ms = 5184000000
   }
 
   clustering = ["access_id", "action"]
 
   schema = <<EOF
 [
-  {"name": "audit_id",      "type": "STRING",    "mode": "REQUIRED"},
-  {"name": "access_id",     "type": "STRING",    "mode": "REQUIRED"},
-  {"name": "action",        "type": "STRING",    "mode": "REQUIRED"},
+  {"name": "audit_id",      "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "access_id",     "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "action",        "type": "STRING",    "mode": "NULLABLE"},
   {"name": "field_changed", "type": "STRING",    "mode": "NULLABLE"},
   {"name": "old_value",     "type": "STRING",    "mode": "NULLABLE"},
   {"name": "new_value",     "type": "STRING",    "mode": "NULLABLE"},
-  {"name": "performed_by",  "type": "STRING",    "mode": "REQUIRED"},
-  {"name": "performed_at",  "type": "TIMESTAMP", "mode": "REQUIRED"},
+  {"name": "performed_by",  "type": "STRING",    "mode": "NULLABLE"},
+  {"name": "performed_at",  "type": "TIMESTAMP", "mode": "NULLABLE"},
   {"name": "source_system", "type": "STRING",    "mode": "NULLABLE"}
 ]
 EOF
@@ -107,7 +108,7 @@ resource "google_bigquery_table" "sec_vendedores_auth" {
   dataset_id          = google_bigquery_dataset.security.dataset_id
   table_id            = "sec_vendedores_auth"
   description         = "Matriz de acceso y asignaciones RLS de la fuerza de ventas y supervisores. Sincronizada desde Firebase Auth y Firestore."
-  deletion_protection = false
+  deletion_protection = true
 
   time_partitioning {
     type  = "DAY"
@@ -119,7 +120,7 @@ resource "google_bigquery_table" "sec_vendedores_auth" {
   schema = <<EOF
 [
   {"name": "access_id",       "type": "STRING",    "mode": "REQUIRED", "description": "UUID v4 universal"},
-  {"name": "access_hash",     "type": "INT64",     "mode": "NULLABLE", "description": "FARM_FINGERPRINT para lookups SQL"},
+  {"name": "access_hash",     "type": "STRING",    "mode": "NULLABLE", "description": "FARM_FINGERPRINT para lookups SQL"},
   {"name": "user_email",      "type": "STRING",    "mode": "REQUIRED", "description": "Email del vendedor normalizado a lowercase"},
   {"name": "source_empresa",  "type": "STRING",    "mode": "REQUIRED", "description": "Empresa: tinito, ctb, daroan, ctm, roldan, o *"},
   {"name": "cod_suc",         "type": "STRING",    "mode": "REQUIRED", "description": "Sucursal: 01, 02, 03, 04, 05, 06, 07, o *"},
