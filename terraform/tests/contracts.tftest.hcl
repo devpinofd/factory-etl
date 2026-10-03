@@ -7,19 +7,19 @@ run "validate_production_contracts" {
   command = plan
 
   variables {
-    project_id   = "factory-etl-prod"
-    region       = "us-central1"
-    environment  = "prod"
-    
-    bronze_bucket_name     = "factory-etl-prod-bronze"
-    quarantine_bucket_name = "factory-etl-prod-quarantine"
-    control_dataset_id     = "factory_etl_control"
+    project_id  = "factory-etl-prod"
+    region      = "us-central1"
+    environment = "prod"
+
+    bronze_bucket_name       = "factory-etl-prod-bronze"
+    quarantine_bucket_name   = "factory-etl-prod-quarantine"
+    control_dataset_id       = "factory_etl_control"
     control_dataset_location = "us-central1"
-    service_account_name   = "factory-etl-runtime"
-    artifact_repo_id       = "factory-etl-repo"
-    container_image_tag    = "v1.1.0"
-    container_image_name   = "factory-etl-extractor"
-    
+    service_account_name     = "factory-etl-runtime"
+    artifact_repo_id         = "factory-etl-repo"
+    container_image_tag      = "v1.1.0"
+    container_image_name     = "factory-etl-extractor"
+
     daily_queries = [
       { id = "ventas_diarias_v3", has_param = true },
       { id = "renglones_monedas_v1", has_param = true },

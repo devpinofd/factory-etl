@@ -349,6 +349,7 @@ module "cloud_run_job" {
   memory_limit           = var.articulos_memory_limit
   timeout_seconds        = var.articulos_timeout_seconds
   max_retries            = var.articulos_max_retries
+  parallelism            = var.extractor_parallelism
   labels                 = local.common_labels
 
   depends_on = [google_project_service.required, module.artifact_registry, module.service_account]

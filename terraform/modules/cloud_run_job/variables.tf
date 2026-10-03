@@ -84,3 +84,10 @@ variable "labels" {
   description = "Etiquetas a aplicar al recurso"
   default     = {}
 }
+
+variable "parallelism" {
+  type        = number
+  description = "Maximo de tareas concurrentes por ejecucion del job (limita la concurrencia hacia la API FactorySoft)"
+  default     = 20
+}
+

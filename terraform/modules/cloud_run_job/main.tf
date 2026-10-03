@@ -4,7 +4,8 @@ resource "google_cloud_run_v2_job" "job" {
   project  = var.project_id
 
   template {
-    labels = var.labels
+    labels      = var.labels
+    parallelism = var.parallelism
 
     template {
       service_account = var.service_account_email
