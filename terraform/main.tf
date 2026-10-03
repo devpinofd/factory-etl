@@ -128,16 +128,6 @@ locals {
     { name = "_row_hash", type = "STRING", mode = "NULLABLE" },
   ]
 
-  # Claves de particion Hive derivadas de la ruta Bronze
-  # source_empresa=.../dt=.../run_id=... El load job las agrega como columnas;
-  # se incluyen en el schema de la tabla nativa para evitar drift con Terraform,
-  # pero NO en el schema explicito del load.
-  partition_columns = [
-    { name = "source_empresa", type = "STRING", mode = "NULLABLE" },
-    { name = "dt", type = "STRING", mode = "NULLABLE" },
-    { name = "run_id", type = "STRING", mode = "NULLABLE" },
-  ]
-
   # Schema del LOAD job (sin claves de particion): columnas de la entidad +
   # auditoria JSON.
   staging_schemas = {
@@ -159,10 +149,25 @@ locals {
     )
   }
 
+  # Claves de particion Hive derivadas de la ruta Bronze
+  # source_empresa=.../dt=.../run_id=... El load job las agrega como columnas;
+  # se incluyen en el schema de la tabla nativa para evitar drift con Terraform,
+  # pero NO en el schema explicito del load.
+  # En BigQuery, stg_ventas_diarias_v2 y v3 tienen 'dt' como DATE, mientras que
+  # las tablas de snapshot tienen 'dt' como STRING.
+  partition_columns = {
+    for k in keys(local.staging_schemas) :
+    k => [
+      { name = "source_empresa", type = "STRING", mode = "NULLABLE" },
+      { name = "dt", type = (k == "ventas_diarias_v2" || k == "ventas_diarias_v3") ? "DATE" : "STRING", mode = "NULLABLE" },
+      { name = "run_id", type = "STRING", mode = "NULLABLE" },
+    ]
+  }
+
   # Schema de la TABLA nativa (con claves de particion Hive que agrega el load).
   table_schemas = {
     for k, v in local.staging_schemas :
-    k => concat(v, local.partition_columns)
+    k => concat(v, local.partition_columns[k])
   }
 }
 
