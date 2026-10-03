@@ -57,7 +57,7 @@ SELECT
   v.neto_dcto,
   ROUND(SAFE_DIVIDE(v.unidades_vendidas, NULLIF(art.cap_bulto, 0)), 2) AS cajas_vendidas,
   ROUND(v.unidades_vendidas * COALESCE(art.peso, 0), 2) AS peso_total_kg,
-  ROUND(SAFE_DIVIDE(v.unidades_vendidas * COALESCE(art.peso, 0), 1000), 3) AS peso_total_toneladas
+  SAFE_DIVIDE(ROUND(v.unidades_vendidas * COALESCE(art.peso, 0), 2), 1000) AS peso_total_toneladas
 FROM ${ref("fct_ventas_gold")} v
 LEFT JOIN ${ref("sil_clientes")} cli
   ON v.source_empresa = cli.source_empresa AND v.cod_cli = cli.cod_cli
