@@ -1,0 +1,189 @@
+main:
+  steps:
+    - inspect_bronze:
+        call: googleapis.storage.v1.objects.list
+        args:
+          bucket: "${bronze_bucket_name}"
+          prefix: "bronze/ventas_diarias_v1/"
+          maxResults: 1
+        result: bronze_listing
+    - set_bronze_status:
+        assign:
+          - bronze_present: $${len(default(map.get(bronze_listing, "items"), [])) > 0}
+    - record_bronze_check:
+        switch:
+          - condition: $${bronze_present}
+            steps:
+              - write_bronze_pass:
+                  call: googleapis.bigquery.v2.jobs.query
+                  args:
+                    projectId: "${project_id}"
+                    body:
+                      location: "${region}"
+                      useLegacySql: false
+                      query: |
+                        MERGE `${project_id}.${control_dataset_id}.data_quality_results` AS target
+                        USING (
+                          SELECT
+                            CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_bronze_presence') AS check_id,
+                            CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
+                            'fct_ventas' AS entity,
+                            'bronze_transactional_objects_present' AS check_name,
+                            'PASS' AS status,
+                            '{"bronze_present":true}' AS details,
+                            CURRENT_TIMESTAMP() AS inserted_at
+                        ) AS source
+                        ON target.check_id = source.check_id
+                        WHEN MATCHED THEN UPDATE SET
+                          run_id = source.run_id,
+                          entity = source.entity,
+                          check_name = source.check_name,
+                          status = source.status,
+                          details = source.details,
+                          inserted_at = source.inserted_at
+                        WHEN NOT MATCHED THEN INSERT
+                          (check_id, run_id, entity, check_name, status, details, inserted_at)
+                        VALUES
+                          (source.check_id, source.run_id, source.entity, source.check_name,
+                           source.status, source.details, source.inserted_at)
+            next: run_quality_checks
+          - condition: true
+            steps:
+              - write_bronze_fail:
+                  call: googleapis.bigquery.v2.jobs.query
+                  args:
+                    projectId: "${project_id}"
+                    body:
+                      location: "${region}"
+                      useLegacySql: false
+                      query: |
+                        MERGE `${project_id}.${control_dataset_id}.data_quality_results` AS target
+                        USING (
+                          SELECT
+                            CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_bronze_presence') AS check_id,
+                            CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
+                            'fct_ventas' AS entity,
+                            'bronze_transactional_objects_present' AS check_name,
+                            'FAIL' AS status,
+                            '{"bronze_present":false}' AS details,
+                            CURRENT_TIMESTAMP() AS inserted_at
+                        ) AS source
+                        ON target.check_id = source.check_id
+                        WHEN MATCHED THEN UPDATE SET
+                          run_id = source.run_id,
+                          entity = source.entity,
+                          check_name = source.check_name,
+                          status = source.status,
+                          details = source.details,
+                          inserted_at = source.inserted_at
+                        WHEN NOT MATCHED THEN INSERT
+                          (check_id, run_id, entity, check_name, status, details, inserted_at)
+                        VALUES
+                          (source.check_id, source.run_id, source.entity, source.check_name,
+                           source.status, source.details, source.inserted_at)
+    - run_quality_checks:
+        call: googleapis.bigquery.v2.jobs.query
+        args:
+          projectId: "${project_id}"
+          body:
+            location: "${region}"
+            useLegacySql: false
+            query: |
+              MERGE `${project_id}.${control_dataset_id}.data_quality_results` AS target
+              USING (
+                WITH
+                gold AS (
+                  SELECT
+                    MAX(DATE(registro)) AS latest_date,
+                    COUNTIF(source_empresa IS NULL OR TRIM(source_empresa) = '') AS null_source_rows
+                  FROM `${project_id}.${gold_dataset_id}.fct_ventas`
+                ),
+                gold_duplicates AS (
+                  SELECT COUNT(*) AS duplicate_groups
+                  FROM (
+                    SELECT source_empresa, tipo_documento, cod_suc, documento, renglon
+                    FROM `${project_id}.${gold_dataset_id}.fct_ventas`
+                    GROUP BY 1, 2, 3, 4, 5
+                    HAVING COUNT(*) > 1
+                  )
+                ),
+                latest_counts AS (
+                  SELECT
+                    g.latest_date,
+                    (SELECT COUNT(*)
+                     FROM `${project_id}.${gold_dataset_id}.fct_ventas`
+                     WHERE DATE(registro) = g.latest_date) AS gold_rows,
+                    (SELECT COUNT(*)
+                     FROM `${project_id}.${staging_dataset_id}.stg_ventas_diarias`
+                     WHERE SUBSTR(CAST(registro AS STRING), 1, 10) = CAST(g.latest_date AS STRING)) AS staging_rows,
+                    (SELECT COUNT(DISTINCT source_empresa)
+                     FROM `${project_id}.${gold_dataset_id}.fct_ventas`
+                     WHERE DATE(registro) = g.latest_date) AS gold_companies
+                  FROM gold g
+                ),
+                checks AS (
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_latest_date') AS check_id,
+                    'latest_date' AS check_name,
+                    IF(latest_date IS NOT NULL, 'PASS', 'FAIL') AS status,
+                    TO_JSON_STRING(STRUCT(latest_date)) AS details
+                  FROM latest_counts
+                  UNION ALL
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_null_source'),
+                    'gold_null_source_empresa',
+                    IF(null_source_rows = 0, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(null_source_rows))
+                  FROM gold
+                  UNION ALL
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_duplicate_key'),
+                    'gold_duplicate_natural_key',
+                    IF(duplicate_groups = 0, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(duplicate_groups))
+                  FROM gold_duplicates
+                  UNION ALL
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_latest_reconciliation'),
+                    'latest_day_staging_gold_reconciliation',
+                    IF(latest_date IS NOT NULL AND staging_rows >= gold_rows AND gold_rows > 0, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(latest_date, staging_rows, gold_rows, staging_rows - gold_rows AS deduplicated_rows))
+                  FROM latest_counts
+                  UNION ALL
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_company_coverage'),
+                    'latest_day_company_coverage',
+                    IF(gold_companies = 5, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(latest_date, gold_companies))
+                  FROM latest_counts
+                )
+                SELECT
+                  check_id,
+                  CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
+                  CAST(NULL AS STRING) AS batch_id,
+                  'fct_ventas' AS entity,
+                  check_name,
+                  status,
+                  details,
+                  CURRENT_TIMESTAMP() AS inserted_at
+                FROM checks
+              ) AS source
+              ON target.check_id = source.check_id
+              WHEN MATCHED THEN UPDATE SET
+                run_id = source.run_id,
+                batch_id = source.batch_id,
+                entity = source.entity,
+                check_name = source.check_name,
+                status = source.status,
+                details = source.details,
+                inserted_at = source.inserted_at
+              WHEN NOT MATCHED THEN INSERT
+                (check_id, run_id, batch_id, entity, check_name, status, details, inserted_at)
+              VALUES
+                (source.check_id, source.run_id, source.batch_id, source.entity,
+                 source.check_name, source.status, source.details, source.inserted_at)
+        result: quality_result
+    - finish:
+        return:
+          status: "SUCCESS"
+          checks_written: 6

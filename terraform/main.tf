@@ -430,6 +430,26 @@ module "workflows_consolidation" {
   depends_on = [google_project_service.required, module.dataform]
 }
 
+# -----------------------------------------------------------------------------
+# Data Quality: workflow diario de controles sobre staging/gold
+# -----------------------------------------------------------------------------
+module "data_quality_workflow" {
+  source = "./modules/data_quality_workflow"
+
+  project_id            = var.project_id
+  region                = var.region
+  service_account_email = module.service_account.email
+  control_dataset_id    = local.workflow_control_dataset_id
+  staging_dataset_id    = var.bronze_stg_dataset_id
+  gold_dataset_id       = var.gold_dataset_id
+  bronze_bucket_name    = module.storage.bronze_bucket_name
+  scheduler_name        = "factory-etl-data-quality-daily-${var.environment}"
+  time_zone             = var.time_zone
+  labels                = local.common_labels
+
+  depends_on = [google_project_service.required]
+}
+
 resource "google_service_account_iam_member" "dataform_service_agent_act_as" {
   service_account_id = module.service_account.name
   role               = "roles/iam.serviceAccountUser"
