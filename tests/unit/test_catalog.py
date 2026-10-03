@@ -84,4 +84,3 @@ class TestArticulosV2:
         sql = ARTICULOS_V2.read_sql()
         assert "from articulos" in sql.lower()
         assert "tipo" in sql.lower()
-
