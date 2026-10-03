@@ -1,10 +1,10 @@
 resource "google_workflows_workflow" "workflow" {
-  name            = var.workflow_name
-  region          = var.region
-  project         = var.project_id
-  description     = "Orquestador diario que registra etl_runs en BigQuery y ejecuta el Cloud Run Job"
-  service_account = var.service_account_email
-  labels          = var.labels
+  name                = var.workflow_name
+  region              = var.region
+  project             = var.project_id
+  description         = "Orquestador diario que registra etl_runs en BigQuery y ejecuta el Cloud Run Job"
+  service_account     = var.service_account_email
+  labels              = var.labels
   deletion_protection = false
 
   user_env_vars = {
@@ -35,5 +35,6 @@ resource "google_workflows_workflow" "workflow" {
     silver_dataset_id              = var.silver_dataset_id
     gold_dataset_id                = var.gold_dataset_id
     security_dataset_id            = var.security_dataset_id
+    max_parallel_tasks             = var.max_parallel_tasks
   })
 }

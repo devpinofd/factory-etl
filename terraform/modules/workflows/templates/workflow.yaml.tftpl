@@ -23,66 +23,69 @@ main:
             assign:
               - empresas: [$${target_empresa}]
 %{ if !consolidation_only }
-    - process_empresas_in_parallel:
-        parallel:
-          shared: [total_queries]
-          for:
-            value: emp
-            in: $${empresas}
-            steps:
-              - process_queries_for_empresa:
-                  parallel:
-                    concurrency_limit: 5
-                    shared: [total_queries]
-                    for:
-                      value: q
-                      in: $${queries_list}
-                      steps:
-                      - prepare_default_args:
-                          assign:
-                            - cmd_args:
-                                - "run-batch"
-                                - "--query-id"
-                                - $${q.id}
-                                - "--source-empresa"
-                                - $${emp}
-                                - "--dt"
-                                - $${dt_param}
-                      - check_param_switch:
-                          switch:
-                            - condition: $${q.has_param}
-                              assign:
-                                - cmd_args:
-                                    - "run-batch"
-                                    - "--query-id"
-                                    - $${q.id}
-                                    - "--source-empresa"
-                                    - $${emp}
-                                    - "--dt"
-                                    - $${dt_param}
-                                    - "-p"
-                                    - $${"fec_des=" + fec_des_param}
-                                    - "-p"
-                                    - $${"fec_has=" + fec_has_param}
-                      - run_job:
-                          call: googleapis.run.v2.projects.locations.jobs.run
-                          args:
-                            name: $${"projects/" + project_id + "/locations/" + region + "/jobs/" + job_name}
-                            body:
-                              overrides:
-                                containerOverrides:
-                                  - args: $${cmd_args}
-                                    env:
-                                      - name: "FACTORY_ETL_GCP_PROJECT"
-                                        value: "$${project_id}"
-                                      - name: "FACTORY_ETL_BRONZE_BUCKET"
-                                        value: "$${bucket_name}"
-                                      - name: "FACTORY_ETL_CONTROL_DATASET"
-                                        value: "${control_dataset_id}"
-                          result: job_result
-                      - increment_counter:
-                          assign:
-                            - total_queries: $${total_queries + 1}
+    - init_manifest:
+        assign:
+          - manifest: []
+    - build_manifest:
+        for:
+          value: emp
+          in: $${empresas}
+          steps:
+            - iterate_queries:
+                for:
+                  value: q
+                  in: $${queries_list}
+                  steps:
+                    - append_manifest_entry:
+                        assign:
+                          - entry:
+                              query_id: $${q.id}
+                              source_empresa: $${emp}
+                              has_param: $${q.has_param}
+                          - manifest: $${list.concat(manifest, entry)}
+    # Una sola ola: taskCount = min(entradas, paralelismo del job). Cada tarea
+    # procesa en serie su slice strided del manifest (ver `run-task`), de modo
+    # que el arranque en frio de Cloud Run (~2-3 min) se paga una sola vez y la
+    # concurrencia hacia la API FactorySoft nunca supera max_parallel_tasks.
+    - compute_task_count:
+        switch:
+          - condition: $${len(manifest) < ${max_parallel_tasks}}
+            assign:
+              - fanout_task_count: $${len(manifest)}
+          - condition: true
+            assign:
+              - fanout_task_count: ${max_parallel_tasks}
+    - run_fanout_job:
+        call: googleapis.run.v2.projects.locations.jobs.run
+        args:
+          name: $${"projects/" + project_id + "/locations/" + region + "/jobs/" + job_name}
+          body:
+            overrides:
+              taskCount: $${fanout_task_count}
+              containerOverrides:
+                - args:
+                    - "run-task"
+                    - "--manifest"
+                    - $${json.encode_to_string(manifest)}
+                    - "--dt"
+                    - $${dt_param}
+                    - "--fec-des"
+                    - $${fec_des_param}
+                    - "--fec-has"
+                    - $${fec_has_param}
+                  env:
+                    - name: "FACTORY_ETL_GCP_PROJECT"
+                      value: "$${project_id}"
+                    - name: "FACTORY_ETL_BRONZE_BUCKET"
+                      value: "$${bucket_name}"
+                    - name: "FACTORY_ETL_CONTROL_DATASET"
+                      value: "${control_dataset_id}"
+          connector_params:
+            timeout: 3600
+        result: job_result
+    - assign_total_queries:
+        assign:
+          - total_queries: $${len(manifest)}
 %{ if consolidation_workflow_name != "" }
     - trigger_consolidation:
         call: googleapis.workflowexecutions.v1.projects.locations.workflows.executions.create

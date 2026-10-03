@@ -216,6 +216,12 @@ variable "articulos_max_retries" {
   default     = 3
 }
 
+variable "extractor_parallelism" {
+  description = "Maximo de tareas concurrentes por ejecucion del Cloud Run Job del extractor (limita la concurrencia hacia la API FactorySoft)."
+  type        = number
+  default     = 20
+}
+
 variable "daily_queries" {
   description = "Lista de query_ids ejecutados por el Cloud Workflow diario, con has_param indicando si se le inyectan --parameter fec_des/fec_has."
   type = list(object({

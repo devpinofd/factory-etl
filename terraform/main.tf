@@ -349,6 +349,7 @@ module "cloud_run_job" {
   memory_limit           = var.articulos_memory_limit
   timeout_seconds        = var.articulos_timeout_seconds
   max_retries            = var.articulos_max_retries
+  parallelism            = var.extractor_parallelism
   labels                 = local.common_labels
 
   depends_on = [google_project_service.required, module.artifact_registry, module.service_account]
@@ -376,6 +377,7 @@ module "workflows" {
   service_account_email       = module.service_account.email
   labels                      = local.common_labels
   queries                     = local.effective_daily_queries
+  max_parallel_tasks          = var.extractor_parallelism
 
   depends_on = [google_project_service.required, module.cloud_run_job]
 }
@@ -395,6 +397,7 @@ module "workflows_full" {
   service_account_email       = module.service_account.email
   labels                      = local.common_labels
   queries                     = local.effective_full_queries
+  max_parallel_tasks          = var.extractor_parallelism
 
   depends_on = [google_project_service.required, module.cloud_run_job, module.dataform]
 }
