@@ -264,3 +264,10 @@ variable "daily_queries_full" {
     { id = "conceptos_v1", has_param = false },
   ]
 }
+
+variable "adopt_existing_data_quality" {
+  description = "Importa al state el workflow/scheduler de QA ya existentes en prod."
+  type        = bool
+  default     = true
+}
+

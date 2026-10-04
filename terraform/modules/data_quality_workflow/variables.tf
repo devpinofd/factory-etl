@@ -30,6 +30,17 @@ variable "scheduler_name" {
   type = string
 }
 
+variable "workflow_name" {
+  description = "Nombre del workflow de QA."
+  type        = string
+}
+
+variable "scheduler_paused" {
+  description = "Mantiene el Cloud Scheduler en pausa (estado actual en prod)."
+  type        = bool
+  default     = true
+}
+
 variable "cron_schedule" {
   type    = string
   default = "0 3 * * *"

@@ -11,6 +11,9 @@ run "validate_production_contracts" {
     region      = "us-central1"
     environment = "prod"
 
+    # Los mocks no soportan import; la adopcion se valida con un plan real.
+    adopt_existing_data_quality = false
+
     bronze_bucket_name       = "factory-etl-prod-bronze"
     quarantine_bucket_name   = "factory-etl-prod-quarantine"
     control_dataset_id       = "factory_etl_control"

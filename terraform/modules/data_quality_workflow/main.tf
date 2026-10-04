@@ -1,5 +1,5 @@
 resource "google_workflows_workflow" "workflow" {
-  name            = "factory-etl-data-quality-prod"
+  name            = var.workflow_name
   project         = var.project_id
   region          = var.region
   service_account = var.service_account_email
@@ -23,6 +23,7 @@ resource "google_cloud_scheduler_job" "job" {
   description      = "Ejecuta el QA periódico del ETL sin reprocesar datos."
   schedule         = var.cron_schedule
   time_zone        = var.time_zone
+  paused           = var.scheduler_paused
   attempt_deadline = "320s"
 
   retry_config {

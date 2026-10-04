@@ -443,11 +443,26 @@ module "data_quality_workflow" {
   staging_dataset_id    = var.bronze_stg_dataset_id
   gold_dataset_id       = var.gold_dataset_id
   bronze_bucket_name    = module.storage.bronze_bucket_name
+  workflow_name         = "factory-etl-data-quality-${var.environment}"
   scheduler_name        = "factory-etl-data-quality-daily-${var.environment}"
   time_zone             = var.time_zone
   labels                = local.common_labels
 
   depends_on = [google_project_service.required]
+}
+
+# Los recursos de QA ya existen en prod (creados fuera de este state el
+# 2026-08-05). Se adoptan en vez de recrearlos; el scheduler sigue en pausa.
+import {
+  for_each = var.environment == "prod" && var.adopt_existing_data_quality ? toset(["prod"]) : toset([])
+  to       = module.data_quality_workflow.google_workflows_workflow.workflow
+  id       = "projects/${var.project_id}/locations/${var.region}/workflows/factory-etl-data-quality-prod"
+}
+
+import {
+  for_each = var.environment == "prod" && var.adopt_existing_data_quality ? toset(["prod"]) : toset([])
+  to       = module.data_quality_workflow.google_cloud_scheduler_job.job
+  id       = "projects/${var.project_id}/locations/${var.region}/jobs/factory-etl-data-quality-daily-prod"
 }
 
 resource "google_service_account_iam_member" "dataform_service_agent_act_as" {
