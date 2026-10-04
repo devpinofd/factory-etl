@@ -2,7 +2,7 @@ main:
   steps:
     - init_bronze_check:
         assign:
-          - target_dt: $${text.substring(time.format(sys.now() - 86400, "America/Caracas"), 0, 10)}
+          - target_dt: '$${text.substring(time.format(sys.now() - 86400, "America/Caracas"), 0, 10)}'
           - missing_companies: []
           - expected_companies: ${expected_companies_json}
     - check_bronze_companies:
@@ -14,17 +14,17 @@ main:
                 call: googleapis.storage.v1.objects.list
                 args:
                   bucket: "${bronze_bucket_name}"
-                  prefix: $${"${bronze_prefix}source_empresa=" + company + "/dt=" + target_dt + "/"}
+                  prefix: '$${"${bronze_prefix}source_empresa=" + company + "/dt=" + target_dt + "/"}'
                   maxResults: 1
                 result: company_listing
             - check_company_presence:
                 switch:
-                  - condition: $${len(default(map.get(company_listing, "items"), [])) == 0}
+                  - condition: '$${len(default(map.get(company_listing, "items"), [])) == 0}'
                     assign:
-                      - missing_companies: $${list.concat(missing_companies, [company])}
+                      - missing_companies: '$${list.concat(missing_companies, [company])}'
     - set_bronze_status:
         switch:
-          - condition: $${len(missing_companies) == 0}
+          - condition: '$${len(missing_companies) == 0}'
             assign:
               - bronze_status: "PASS"
           - condition: true
@@ -32,7 +32,7 @@ main:
               - bronze_status: "FAIL"
     - set_bronze_details:
         assign:
-          - bronze_details: $${json.encode({"target_dt": target_dt, "missing_companies": missing_companies})}
+          - bronze_details: '$${json.encode({"target_dt": target_dt, "missing_companies": missing_companies})}'
     - record_bronze_check:
         call: googleapis.bigquery.v2.jobs.query
         args:
@@ -46,12 +46,12 @@ main:
                 parameterType:
                   type: "STRING"
                 parameterValue:
-                  value: $${bronze_status}
+                  value: '$${bronze_status}'
               - name: "details"
                 parameterType:
                   type: "STRING"
                 parameterValue:
-                  value: $${bronze_details}
+                  value: '$${bronze_details}'
             query: |
               MERGE `${project_id}.${control_dataset_id}.data_quality_results` AS target
               USING (
