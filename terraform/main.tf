@@ -443,6 +443,7 @@ module "data_quality_workflow" {
   staging_dataset_id    = var.bronze_stg_dataset_id
   gold_dataset_id       = var.gold_dataset_id
   bronze_bucket_name    = module.storage.bronze_bucket_name
+  expected_companies    = var.expected_companies
   workflow_name         = "factory-etl-data-quality-${var.environment}"
   scheduler_name        = "factory-etl-data-quality-daily-${var.environment}"
   time_zone             = var.time_zone

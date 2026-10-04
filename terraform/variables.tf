@@ -271,3 +271,9 @@ variable "adopt_existing_data_quality" {
   default     = true
 }
 
+variable "expected_companies" {
+  description = "Lista de identificadores de empresas esperadas en fct_ventas_gold para el check de cobertura."
+  type        = list(string)
+  default     = ["ctb", "ctm", "daroan", "roldan", "tinito"]
+}
+

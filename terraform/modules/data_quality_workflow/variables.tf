@@ -55,3 +55,27 @@ variable "labels" {
   type    = map(string)
   default = {}
 }
+
+variable "expected_companies" {
+  description = "Lista de identificadores de empresas esperadas en fct_ventas_gold para el check de cobertura."
+  type        = list(string)
+  default     = ["ctb", "ctm", "daroan", "roldan", "tinito"]
+}
+
+variable "bronze_prefix" {
+  description = "Prefijo en Cloud Storage para la inspección de Bronze."
+  type        = string
+  default     = "bronze/ventas_diarias_v3/"
+}
+
+variable "staging_table_name" {
+  description = "Nombre de la tabla de staging para la reconciliación."
+  type        = string
+  default     = "stg_ventas_diarias_v3"
+}
+
+variable "gold_table_name" {
+  description = "Nombre de la tabla Gold para los controles de calidad."
+  type        = string
+  default     = "fct_ventas_gold"
+}

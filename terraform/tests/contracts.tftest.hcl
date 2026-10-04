@@ -54,5 +54,31 @@ run "validate_production_contracts" {
     condition     = contains(local.environment_inventory.datasets, "factory_etl_security")
     error_message = "ERROR DE CONTRATO: El dataset factory_etl_security debe estar declarado en el inventario de producción."
   }
+
+  # Aserciones: El workflow de data quality debe apuntar a fuentes v3 y fct_ventas_gold
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "fct_ventas_gold")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality debe apuntar a fct_ventas_gold."
+  }
+
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "stg_ventas_diarias_v3")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality debe apuntar a stg_ventas_diarias_v3."
+  }
+
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "bronze/ventas_diarias_v3/")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality debe apuntar al prefijo bronze/ventas_diarias_v3/."
+  }
+
+  assert {
+    condition     = !strcontains(module.data_quality_workflow.workflow_source_contents, "ventas_diarias_v1")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality no debe referenciar fuentes retiradas ventas_diarias_v1."
+  }
+
+  assert {
+    condition     = length(var.expected_companies) == 5 && contains(var.expected_companies, "tinito")
+    error_message = "ERROR DE CONTRATO: expected_companies debe incluir las 5 empresas activas en producción."
+  }
 }
 

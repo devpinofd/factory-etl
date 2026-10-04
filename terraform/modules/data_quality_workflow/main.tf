@@ -7,12 +7,17 @@ resource "google_workflows_workflow" "workflow" {
   labels          = var.labels
 
   source_contents = templatefile("${path.module}/templates/workflow.yaml.tftpl", {
-    project_id         = var.project_id
-    region             = var.region
-    control_dataset_id = var.control_dataset_id
-    staging_dataset_id = var.staging_dataset_id
-    gold_dataset_id    = var.gold_dataset_id
-    bronze_bucket_name = var.bronze_bucket_name
+    project_id               = var.project_id
+    region                   = var.region
+    control_dataset_id       = var.control_dataset_id
+    staging_dataset_id       = var.staging_dataset_id
+    gold_dataset_id          = var.gold_dataset_id
+    bronze_bucket_name       = var.bronze_bucket_name
+    bronze_prefix            = var.bronze_prefix
+    staging_table_name       = var.staging_table_name
+    gold_table_name          = var.gold_table_name
+    expected_companies_count = length(var.expected_companies)
+    expected_companies_array = "[${join(", ", [for c in var.expected_companies : "'${c}'"])}]"
   })
 }
 

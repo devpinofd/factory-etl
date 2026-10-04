@@ -4,7 +4,7 @@ main:
         call: googleapis.storage.v1.objects.list
         args:
           bucket: "${bronze_bucket_name}"
-          prefix: "bronze/ventas_diarias_v1/"
+          prefix: "${bronze_prefix}"
           maxResults: 1
         result: bronze_listing
     - set_bronze_status:
@@ -27,7 +27,7 @@ main:
                           SELECT
                             CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_bronze_presence') AS check_id,
                             CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
-                            'fct_ventas' AS entity,
+                            '${gold_table_name}' AS entity,
                             'bronze_transactional_objects_present' AS check_name,
                             'PASS' AS status,
                             '{"bronze_present":true}' AS details,
@@ -62,7 +62,7 @@ main:
                           SELECT
                             CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_bronze_presence') AS check_id,
                             CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
-                            'fct_ventas' AS entity,
+                            '${gold_table_name}' AS entity,
                             'bronze_transactional_objects_present' AS check_name,
                             'FAIL' AS status,
                             '{"bronze_present":false}' AS details,
@@ -96,13 +96,13 @@ main:
                   SELECT
                     MAX(DATE(registro)) AS latest_date,
                     COUNTIF(source_empresa IS NULL OR TRIM(source_empresa) = '') AS null_source_rows
-                  FROM `${project_id}.${gold_dataset_id}.fct_ventas`
+                  FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
                 ),
                 gold_duplicates AS (
                   SELECT COUNT(*) AS duplicate_groups
                   FROM (
                     SELECT source_empresa, tipo_documento, cod_suc, documento, renglon
-                    FROM `${project_id}.${gold_dataset_id}.fct_ventas`
+                    FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
                     GROUP BY 1, 2, 3, 4, 5
                     HAVING COUNT(*) > 1
                   )
@@ -111,14 +111,31 @@ main:
                   SELECT
                     g.latest_date,
                     (SELECT COUNT(*)
-                     FROM `${project_id}.${gold_dataset_id}.fct_ventas`
+                     FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
                      WHERE DATE(registro) = g.latest_date) AS gold_rows,
                     (SELECT COUNT(*)
-                     FROM `${project_id}.${staging_dataset_id}.stg_ventas_diarias`
+                     FROM `${project_id}.${staging_dataset_id}.${staging_table_name}`
                      WHERE SUBSTR(CAST(registro AS STRING), 1, 10) = CAST(g.latest_date AS STRING)) AS staging_rows,
+                    (SELECT COUNT(*)
+                     FROM (
+                       SELECT source_empresa, tipo_documento, cod_suc, documento, renglon
+                       FROM `${project_id}.${staging_dataset_id}.${staging_table_name}`
+                       WHERE SUBSTR(CAST(registro AS STRING), 1, 10) = CAST(g.latest_date AS STRING)
+                       GROUP BY 1, 2, 3, 4, 5
+                     )) AS staging_distinct_keys,
                     (SELECT COUNT(DISTINCT source_empresa)
-                     FROM `${project_id}.${gold_dataset_id}.fct_ventas`
-                     WHERE DATE(registro) = g.latest_date) AS gold_companies
+                     FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
+                     WHERE DATE(registro) = g.latest_date) AS gold_companies,
+                    (SELECT ARRAY(
+                       SELECT expected
+                       FROM UNNEST(${expected_companies_array}) AS expected
+                       WHERE expected NOT IN (
+                         SELECT DISTINCT source_empresa
+                         FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
+                         WHERE DATE(registro) = g.latest_date
+                       )
+                       ORDER BY expected
+                     )) AS missing_companies
                   FROM gold g
                 ),
                 checks AS (
@@ -146,22 +163,29 @@ main:
                   SELECT
                     CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_latest_reconciliation'),
                     'latest_day_staging_gold_reconciliation',
-                    IF(latest_date IS NOT NULL AND staging_rows >= gold_rows AND gold_rows > 0, 'PASS', 'FAIL'),
-                    TO_JSON_STRING(STRUCT(latest_date, staging_rows, gold_rows, staging_rows - gold_rows AS deduplicated_rows))
+                    IF(latest_date IS NOT NULL AND gold_rows > 0 AND gold_rows = staging_distinct_keys, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(
+                      latest_date,
+                      staging_rows,
+                      staging_distinct_keys,
+                      gold_rows,
+                      staging_rows - gold_rows AS deduplicated_rows,
+                      staging_distinct_keys - gold_rows AS missing_in_gold
+                    ))
                   FROM latest_counts
                   UNION ALL
                   SELECT
                     CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_company_coverage'),
                     'latest_day_company_coverage',
-                    IF(gold_companies = 5, 'PASS', 'FAIL'),
-                    TO_JSON_STRING(STRUCT(latest_date, gold_companies))
+                    IF(gold_companies = ${expected_companies_count} AND ARRAY_LENGTH(missing_companies) = 0, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(latest_date, gold_companies, ${expected_companies_count} AS expected_companies, missing_companies))
                   FROM latest_counts
                 )
                 SELECT
                   check_id,
                   CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
                   CAST(NULL AS STRING) AS batch_id,
-                  'fct_ventas' AS entity,
+                  '${gold_table_name}' AS entity,
                   check_name,
                   status,
                   details,
