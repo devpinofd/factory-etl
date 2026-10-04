@@ -32,7 +32,10 @@ main:
               - bronze_status: "FAIL"
     - set_bronze_details:
         assign:
-          - bronze_details: '$${json.encode({"target_dt": target_dt, "missing_companies": missing_companies})}'
+          - bronze_details_map:
+              target_dt: '$${target_dt}'
+              missing_companies: '$${missing_companies}'
+          - bronze_details: '$${json.encode_to_string(bronze_details_map)}'
     - record_bronze_check:
         call: googleapis.bigquery.v2.jobs.query
         args:
