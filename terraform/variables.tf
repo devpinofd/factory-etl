@@ -277,3 +277,9 @@ variable "expected_companies" {
   default     = ["ctb", "ctm", "daroan", "roldan", "tinito"]
 }
 
+variable "max_staleness_days" {
+  description = "Días máximos tolerados de antigüedad para la fecha más reciente de ventas (latest_date) en el workflow de QA."
+  type        = number
+  default     = 2
+}
+

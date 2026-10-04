@@ -1,86 +1,82 @@
 main:
   steps:
-    - inspect_bronze:
-        call: googleapis.storage.v1.objects.list
-        args:
-          bucket: "${bronze_bucket_name}"
-          prefix: "${bronze_prefix}"
-          maxResults: 1
-        result: bronze_listing
-    - set_bronze_status:
+    - init_bronze_check:
         assign:
-          - bronze_present: $${len(default(map.get(bronze_listing, "items"), [])) > 0}
-    - record_bronze_check:
+          - target_dt: $${text.substring(time.format(sys.now() - 86400, "America/Caracas"), 0, 10)}
+          - missing_companies: []
+          - expected_companies: ${expected_companies_json}
+    - check_bronze_companies:
+        for:
+          value: company
+          in: $${expected_companies}
+          steps:
+            - list_company_objects:
+                call: googleapis.storage.v1.objects.list
+                args:
+                  bucket: "${bronze_bucket_name}"
+                  prefix: $${"${bronze_prefix}source_empresa=" + company + "/dt=" + target_dt + "/"}
+                  maxResults: 1
+                result: company_listing
+            - check_company_presence:
+                switch:
+                  - condition: $${len(default(map.get(company_listing, "items"), [])) == 0}
+                    assign:
+                      - missing_companies: $${list.concat(missing_companies, [company])}
+    - set_bronze_status:
         switch:
-          - condition: $${bronze_present}
-            steps:
-              - write_bronze_pass:
-                  call: googleapis.bigquery.v2.jobs.query
-                  args:
-                    projectId: "${project_id}"
-                    body:
-                      location: "${region}"
-                      useLegacySql: false
-                      query: |
-                        MERGE `${project_id}.${control_dataset_id}.data_quality_results` AS target
-                        USING (
-                          SELECT
-                            CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_bronze_presence') AS check_id,
-                            CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
-                            '${gold_table_name}' AS entity,
-                            'bronze_transactional_objects_present' AS check_name,
-                            'PASS' AS status,
-                            '{"bronze_present":true}' AS details,
-                            CURRENT_TIMESTAMP() AS inserted_at
-                        ) AS source
-                        ON target.check_id = source.check_id
-                        WHEN MATCHED THEN UPDATE SET
-                          run_id = source.run_id,
-                          entity = source.entity,
-                          check_name = source.check_name,
-                          status = source.status,
-                          details = source.details,
-                          inserted_at = source.inserted_at
-                        WHEN NOT MATCHED THEN INSERT
-                          (check_id, run_id, entity, check_name, status, details, inserted_at)
-                        VALUES
-                          (source.check_id, source.run_id, source.entity, source.check_name,
-                           source.status, source.details, source.inserted_at)
-            next: run_quality_checks
+          - condition: $${len(missing_companies) == 0}
+            assign:
+              - bronze_status: "PASS"
           - condition: true
-            steps:
-              - write_bronze_fail:
-                  call: googleapis.bigquery.v2.jobs.query
-                  args:
-                    projectId: "${project_id}"
-                    body:
-                      location: "${region}"
-                      useLegacySql: false
-                      query: |
-                        MERGE `${project_id}.${control_dataset_id}.data_quality_results` AS target
-                        USING (
-                          SELECT
-                            CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_bronze_presence') AS check_id,
-                            CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
-                            '${gold_table_name}' AS entity,
-                            'bronze_transactional_objects_present' AS check_name,
-                            'FAIL' AS status,
-                            '{"bronze_present":false}' AS details,
-                            CURRENT_TIMESTAMP() AS inserted_at
-                        ) AS source
-                        ON target.check_id = source.check_id
-                        WHEN MATCHED THEN UPDATE SET
-                          run_id = source.run_id,
-                          entity = source.entity,
-                          check_name = source.check_name,
-                          status = source.status,
-                          details = source.details,
-                          inserted_at = source.inserted_at
-                        WHEN NOT MATCHED THEN INSERT
-                          (check_id, run_id, entity, check_name, status, details, inserted_at)
-                        VALUES
-                          (source.check_id, source.run_id, source.entity, source.check_name,
-                           source.status, source.details, source.inserted_at)
+            assign:
+              - bronze_status: "FAIL"
+    - set_bronze_details:
+        assign:
+          - bronze_details: $${json.encode({"target_dt": target_dt, "missing_companies": missing_companies})}
+    - record_bronze_check:
+        call: googleapis.bigquery.v2.jobs.query
+        args:
+          projectId: "${project_id}"
+          body:
+            location: "${region}"
+            useLegacySql: false
+            parameterMode: "NAMED"
+            queryParameters:
+              - name: "status"
+                parameterType:
+                  type: "STRING"
+                parameterValue:
+                  value: $${bronze_status}
+              - name: "details"
+                parameterType:
+                  type: "STRING"
+                parameterValue:
+                  value: $${bronze_details}
+            query: |
+              MERGE `${project_id}.${control_dataset_id}.data_quality_results` AS target
+              USING (
+                SELECT
+                  CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_bronze_presence') AS check_id,
+                  CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
+                  '${gold_table_name}' AS entity,
+                  'bronze_transactional_objects_present' AS check_name,
+                  @status AS status,
+                  @details AS details,
+                  CURRENT_TIMESTAMP() AS inserted_at
+              ) AS source
+              ON target.check_id = source.check_id
+              WHEN MATCHED THEN UPDATE SET
+                run_id = source.run_id,
+                entity = source.entity,
+                check_name = source.check_name,
+                status = source.status,
+                details = source.details,
+                inserted_at = source.inserted_at
+              WHEN NOT MATCHED THEN INSERT
+                (check_id, run_id, entity, check_name, status, details, inserted_at)
+              VALUES
+                (source.check_id, source.run_id, source.entity, source.check_name,
+                 source.status, source.details, source.inserted_at)
     - run_quality_checks:
         call: googleapis.bigquery.v2.jobs.query
         args:
@@ -110,6 +106,8 @@ main:
                 latest_counts AS (
                   SELECT
                     g.latest_date,
+                    DATE_SUB(CURRENT_DATE('America/Caracas'), INTERVAL ${max_staleness_days} DAY) AS expected_min_date,
+                    DATE_DIFF(CURRENT_DATE('America/Caracas'), g.latest_date, DAY) AS staleness_days,
                     (SELECT COUNT(*)
                      FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
                      WHERE DATE(registro) = g.latest_date) AS gold_rows,
@@ -142,8 +140,8 @@ main:
                   SELECT
                     CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_latest_date') AS check_id,
                     'latest_date' AS check_name,
-                    IF(latest_date IS NOT NULL, 'PASS', 'FAIL') AS status,
-                    TO_JSON_STRING(STRUCT(latest_date)) AS details
+                    IF(latest_date IS NOT NULL AND latest_date >= expected_min_date, 'PASS', 'FAIL') AS status,
+                    TO_JSON_STRING(STRUCT(latest_date, expected_min_date, staleness_days)) AS details
                   FROM latest_counts
                   UNION ALL
                   SELECT

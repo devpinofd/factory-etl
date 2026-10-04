@@ -18,6 +18,8 @@ resource "google_workflows_workflow" "workflow" {
     gold_table_name          = var.gold_table_name
     expected_companies_count = length(var.expected_companies)
     expected_companies_array = "[${join(", ", [for c in var.expected_companies : "'${c}'"])}]"
+    expected_companies_json  = jsonencode(var.expected_companies)
+    max_staleness_days       = var.max_staleness_days
   })
 }
 

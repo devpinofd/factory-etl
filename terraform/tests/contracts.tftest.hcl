@@ -80,5 +80,20 @@ run "validate_production_contracts" {
     condition     = length(var.expected_companies) == 5 && contains(var.expected_companies, "tinito")
     error_message = "ERROR DE CONTRATO: expected_companies debe incluir las 5 empresas activas en producción."
   }
+
+  assert {
+    condition     = var.max_staleness_days == 2
+    error_message = "ERROR DE CONTRATO: max_staleness_days debe tener valor 2 por defecto."
+  }
+
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "expected_min_date") && strcontains(module.data_quality_workflow.workflow_source_contents, "staleness_days")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality debe calcular expected_min_date y staleness_days."
+  }
+
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "target_dt") && strcontains(module.data_quality_workflow.workflow_source_contents, "check_bronze_companies")
+    error_message = "ERROR DE CONTRATO: El check de bronze debe iterar por empresa verificando target_dt."
+  }
 }
 

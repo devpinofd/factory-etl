@@ -79,3 +79,9 @@ variable "gold_table_name" {
   type        = string
   default     = "fct_ventas_gold"
 }
+
+variable "max_staleness_days" {
+  description = "Días máximos tolerados de antigüedad para la fecha más reciente de ventas (latest_date)."
+  type        = number
+  default     = 2
+}
