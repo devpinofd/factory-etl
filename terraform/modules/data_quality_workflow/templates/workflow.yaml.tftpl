@@ -1,0 +1,214 @@
+main:
+  steps:
+    - init_bronze_check:
+        assign:
+          - target_dt: '$${text.substring(time.format(sys.now() - 86400, "America/Caracas"), 0, 10)}'
+          - missing_companies: []
+          - expected_companies: ${expected_companies_json}
+    - check_bronze_companies:
+        for:
+          value: company
+          in: $${expected_companies}
+          steps:
+            - list_company_objects:
+                call: googleapis.storage.v1.objects.list
+                args:
+                  bucket: "${bronze_bucket_name}"
+                  prefix: '$${"${bronze_prefix}source_empresa=" + company + "/dt=" + target_dt + "/"}'
+                  maxResults: 1
+                result: company_listing
+            - check_company_presence:
+                switch:
+                  - condition: '$${len(default(map.get(company_listing, "items"), [])) == 0}'
+                    assign:
+                      - missing_companies: '$${list.concat(missing_companies, [company])}'
+    - set_bronze_status:
+        switch:
+          - condition: '$${len(missing_companies) == 0}'
+            assign:
+              - bronze_status: "PASS"
+          - condition: true
+            assign:
+              - bronze_status: "FAIL"
+    - set_bronze_details:
+        assign:
+          - bronze_details_map:
+              target_dt: '$${target_dt}'
+              missing_companies: '$${missing_companies}'
+          - bronze_details: '$${json.encode_to_string(bronze_details_map)}'
+    - record_bronze_check:
+        call: googleapis.bigquery.v2.jobs.query
+        args:
+          projectId: "${project_id}"
+          body:
+            location: "${region}"
+            useLegacySql: false
+            parameterMode: "NAMED"
+            queryParameters:
+              - name: "status"
+                parameterType:
+                  type: "STRING"
+                parameterValue:
+                  value: '$${bronze_status}'
+              - name: "details"
+                parameterType:
+                  type: "STRING"
+                parameterValue:
+                  value: '$${bronze_details}'
+            query: |
+              MERGE `${project_id}.${control_dataset_id}.data_quality_results` AS target
+              USING (
+                SELECT
+                  CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_bronze_presence') AS check_id,
+                  CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
+                  '${gold_table_name}' AS entity,
+                  'bronze_transactional_objects_present' AS check_name,
+                  @status AS status,
+                  @details AS details,
+                  CURRENT_TIMESTAMP() AS inserted_at
+              ) AS source
+              ON target.check_id = source.check_id
+              WHEN MATCHED THEN UPDATE SET
+                run_id = source.run_id,
+                entity = source.entity,
+                check_name = source.check_name,
+                status = source.status,
+                details = source.details,
+                inserted_at = source.inserted_at
+              WHEN NOT MATCHED THEN INSERT
+                (check_id, run_id, entity, check_name, status, details, inserted_at)
+              VALUES
+                (source.check_id, source.run_id, source.entity, source.check_name,
+                 source.status, source.details, source.inserted_at)
+    - run_quality_checks:
+        call: googleapis.bigquery.v2.jobs.query
+        args:
+          projectId: "${project_id}"
+          body:
+            location: "${region}"
+            useLegacySql: false
+            query: |
+              MERGE `${project_id}.${control_dataset_id}.data_quality_results` AS target
+              USING (
+                WITH
+                gold AS (
+                  SELECT
+                    MAX(DATE(registro)) AS latest_date,
+                    COUNTIF(source_empresa IS NULL OR TRIM(source_empresa) = '') AS null_source_rows
+                  FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
+                ),
+                gold_duplicates AS (
+                  SELECT COUNT(*) AS duplicate_groups
+                  FROM (
+                    SELECT source_empresa, tipo_documento, cod_suc, documento, renglon
+                    FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
+                    GROUP BY 1, 2, 3, 4, 5
+                    HAVING COUNT(*) > 1
+                  )
+                ),
+                latest_counts AS (
+                  SELECT
+                    g.latest_date,
+                    DATE_SUB(CURRENT_DATE('America/Caracas'), INTERVAL ${max_staleness_days} DAY) AS expected_min_date,
+                    DATE_DIFF(CURRENT_DATE('America/Caracas'), g.latest_date, DAY) AS staleness_days,
+                    (SELECT COUNT(*)
+                     FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
+                     WHERE DATE(registro) = g.latest_date) AS gold_rows,
+                    (SELECT COUNT(*)
+                     FROM `${project_id}.${staging_dataset_id}.${staging_table_name}`
+                     WHERE SUBSTR(CAST(registro AS STRING), 1, 10) = CAST(g.latest_date AS STRING)) AS staging_rows,
+                    (SELECT COUNT(*)
+                     FROM (
+                       SELECT source_empresa, tipo_documento, cod_suc, documento, renglon
+                       FROM `${project_id}.${staging_dataset_id}.${staging_table_name}`
+                       WHERE SUBSTR(CAST(registro AS STRING), 1, 10) = CAST(g.latest_date AS STRING)
+                       GROUP BY 1, 2, 3, 4, 5
+                     )) AS staging_distinct_keys,
+                    (SELECT COUNT(DISTINCT source_empresa)
+                     FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
+                     WHERE DATE(registro) = g.latest_date) AS gold_companies,
+                    (SELECT ARRAY(
+                       SELECT expected
+                       FROM UNNEST(${expected_companies_array}) AS expected
+                       WHERE expected NOT IN (
+                         SELECT DISTINCT source_empresa
+                         FROM `${project_id}.${gold_dataset_id}.${gold_table_name}`
+                         WHERE DATE(registro) = g.latest_date
+                       )
+                       ORDER BY expected
+                     )) AS missing_companies
+                  FROM gold g
+                ),
+                checks AS (
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_latest_date') AS check_id,
+                    'latest_date' AS check_name,
+                    IF(latest_date IS NOT NULL AND latest_date >= expected_min_date, 'PASS', 'FAIL') AS status,
+                    TO_JSON_STRING(STRUCT(latest_date, expected_min_date, staleness_days)) AS details
+                  FROM latest_counts
+                  UNION ALL
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_null_source'),
+                    'gold_null_source_empresa',
+                    IF(null_source_rows = 0, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(null_source_rows))
+                  FROM gold
+                  UNION ALL
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_duplicate_key'),
+                    'gold_duplicate_natural_key',
+                    IF(duplicate_groups = 0, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(duplicate_groups))
+                  FROM gold_duplicates
+                  UNION ALL
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_latest_reconciliation'),
+                    'latest_day_staging_gold_reconciliation',
+                    IF(latest_date IS NOT NULL AND gold_rows > 0 AND gold_rows = staging_distinct_keys, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(
+                      latest_date,
+                      staging_rows,
+                      staging_distinct_keys,
+                      gold_rows,
+                      staging_rows - gold_rows AS deduplicated_rows,
+                      staging_distinct_keys - gold_rows AS missing_in_gold
+                    ))
+                  FROM latest_counts
+                  UNION ALL
+                  SELECT
+                    CONCAT('qa_', CAST(CURRENT_DATE() AS STRING), '_company_coverage'),
+                    'latest_day_company_coverage',
+                    IF(gold_companies = ${expected_companies_count} AND ARRAY_LENGTH(missing_companies) = 0, 'PASS', 'FAIL'),
+                    TO_JSON_STRING(STRUCT(latest_date, gold_companies, ${expected_companies_count} AS expected_companies, missing_companies))
+                  FROM latest_counts
+                )
+                SELECT
+                  check_id,
+                  CONCAT('qa-', CAST(CURRENT_DATE() AS STRING)) AS run_id,
+                  CAST(NULL AS STRING) AS batch_id,
+                  '${gold_table_name}' AS entity,
+                  check_name,
+                  status,
+                  details,
+                  CURRENT_TIMESTAMP() AS inserted_at
+                FROM checks
+              ) AS source
+              ON target.check_id = source.check_id
+              WHEN MATCHED THEN UPDATE SET
+                run_id = source.run_id,
+                batch_id = source.batch_id,
+                entity = source.entity,
+                check_name = source.check_name,
+                status = source.status,
+                details = source.details,
+                inserted_at = source.inserted_at
+              WHEN NOT MATCHED THEN INSERT
+                (check_id, run_id, batch_id, entity, check_name, status, details, inserted_at)
+              VALUES
+                (source.check_id, source.run_id, source.batch_id, source.entity,
+                 source.check_name, source.status, source.details, source.inserted_at)
+        result: quality_result
+    - finish:
+        return:
+          status: "SUCCESS"
+          checks_written: 6

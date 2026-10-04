@@ -11,6 +11,9 @@ run "validate_production_contracts" {
     region      = "us-central1"
     environment = "prod"
 
+    # Los mocks no soportan import; la adopcion se valida con un plan real.
+    adopt_existing_data_quality = false
+
     bronze_bucket_name       = "factory-etl-prod-bronze"
     quarantine_bucket_name   = "factory-etl-prod-quarantine"
     control_dataset_id       = "factory_etl_control"
@@ -50,6 +53,47 @@ run "validate_production_contracts" {
   assert {
     condition     = contains(local.environment_inventory.datasets, "factory_etl_security")
     error_message = "ERROR DE CONTRATO: El dataset factory_etl_security debe estar declarado en el inventario de producción."
+  }
+
+  # Aserciones: El workflow de data quality debe apuntar a fuentes v3 y fct_ventas_gold
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "fct_ventas_gold")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality debe apuntar a fct_ventas_gold."
+  }
+
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "stg_ventas_diarias_v3")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality debe apuntar a stg_ventas_diarias_v3."
+  }
+
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "bronze/ventas_diarias_v3/")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality debe apuntar al prefijo bronze/ventas_diarias_v3/."
+  }
+
+  assert {
+    condition     = !strcontains(module.data_quality_workflow.workflow_source_contents, "ventas_diarias_v1")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality no debe referenciar fuentes retiradas ventas_diarias_v1."
+  }
+
+  assert {
+    condition     = length(var.expected_companies) == 5 && contains(var.expected_companies, "tinito")
+    error_message = "ERROR DE CONTRATO: expected_companies debe incluir las 5 empresas activas en producción."
+  }
+
+  assert {
+    condition     = var.max_staleness_days == 2
+    error_message = "ERROR DE CONTRATO: max_staleness_days debe tener valor 2 por defecto."
+  }
+
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "expected_min_date") && strcontains(module.data_quality_workflow.workflow_source_contents, "staleness_days")
+    error_message = "ERROR DE CONTRATO: El workflow de data quality debe calcular expected_min_date y staleness_days."
+  }
+
+  assert {
+    condition     = strcontains(module.data_quality_workflow.workflow_source_contents, "target_dt") && strcontains(module.data_quality_workflow.workflow_source_contents, "check_bronze_companies")
+    error_message = "ERROR DE CONTRATO: El check de bronze debe iterar por empresa verificando target_dt."
   }
 }
 

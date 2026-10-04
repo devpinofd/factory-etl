@@ -264,3 +264,22 @@ variable "daily_queries_full" {
     { id = "conceptos_v1", has_param = false },
   ]
 }
+
+variable "adopt_existing_data_quality" {
+  description = "Importa al state el workflow/scheduler de QA ya existentes en prod."
+  type        = bool
+  default     = true
+}
+
+variable "expected_companies" {
+  description = "Lista de identificadores de empresas esperadas en fct_ventas_gold para el check de cobertura."
+  type        = list(string)
+  default     = ["ctb", "ctm", "daroan", "roldan", "tinito"]
+}
+
+variable "max_staleness_days" {
+  description = "Días máximos tolerados de antigüedad para la fecha más reciente de ventas (latest_date) en el workflow de QA."
+  type        = number
+  default     = 2
+}
+
