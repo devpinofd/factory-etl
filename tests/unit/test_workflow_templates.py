@@ -305,62 +305,20 @@ def test_data_quality_workflow_template_passes_all_checks():
 @pytest.mark.parametrize(
     "profile_name,context",
     [
-        pytest.param(
-            "full_ingestion_and_medallion",
-            WORKFLOWS_CONTEXT_FULL,
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason=(
-                    "Problema conocido en template productivo de ingesta: Líneas 24 y 198 usan "
-                    "secuencias de flujo no entrecomilladas [- empresas: [$${target_empresa}]] y "
-                    "[sourceUris: [$${source_prefix + '*'}]] que violan la sintaxis YAML 1.2 "
-                    "al iniciar un escalar plano con '{' dentro de un corchete []."
-                ),
-            ),
-        ),
-        pytest.param(
-            "consolidation_only",
-            WORKFLOWS_CONTEXT_CONSOLIDATION_ONLY,
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason=(
-                    "Problema conocido en template productivo de ingesta: Líneas 24 y 198 usan "
-                    "secuencias de flujo no entrecomilladas [- empresas: [$${target_empresa}]] y "
-                    "[sourceUris: [$${source_prefix + '*'}]] que violan la sintaxis YAML 1.2."
-                ),
-            ),
-        ),
+        pytest.param("full_ingestion_and_medallion", WORKFLOWS_CONTEXT_FULL),
+        pytest.param("consolidation_only", WORKFLOWS_CONTEXT_CONSOLIDATION_ONLY),
     ],
 )
 def test_workflows_ingestion_template_syntax(profile_name: str, context: dict[str, Any]):
     """
-    Ejecuta el linter contra la plantilla productiva de ingesta.
-    Marcado como xfail(strict=True) para no modificar el template productivo
-    en este PR mientras se reportan los hallazgos en líneas 24 y 198.
+    Ejecuta el linter contra la plantilla productiva de ingesta en ambos perfiles.
+    Las expresiones dentro de secuencias de flujo deben ir entrecomilladas: ['$${...}'].
     """
     wf_tpl = TERRAFORM_DIR / "modules/workflows/templates/workflow.yaml.tftpl"
     content = wf_tpl.read_text(encoding="utf-8")
     rendered = render_workflow_template(content, context)
     errors = lint_workflow_yaml(rendered)
     assert not errors, f"Errores en workflows ({profile_name}):\n" + "\n".join(errors)
-
-
-def test_workflows_ingestion_template_passes_when_flow_sequences_quoted():
-    """
-    Verifica que la plantilla de ingesta pasa al 100% (incluyendo reglas 3b y 3c)
-    si únicamente se corrigen las secuencias de flujo no entrecomilladas [${...}].
-    Demuestra que el resto de expresiones y llamadas a json.encode_to_string son válidas.
-    """
-    wf_tpl = TERRAFORM_DIR / "modules/workflows/templates/workflow.yaml.tftpl"
-    content = wf_tpl.read_text(encoding="utf-8")
-    rendered = render_workflow_template(content, WORKFLOWS_CONTEXT_FULL)
-
-    # Sanitizar únicamente las secuencias de flujo [${...}] -> ['${...}']
-    sanitized = re.sub(r"\[\$\{([^\]]+)\}\]", r"['${\1}']", rendered)
-    errors = lint_workflow_yaml(sanitized)
-    assert not errors, (
-        "La plantilla de ingesta sanitizada aún presenta errores inesperados:\n" + "\n".join(errors)
-    )
 
 
 # ---------------------------------------------------------------------------

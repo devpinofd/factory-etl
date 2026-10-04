@@ -21,7 +21,7 @@ main:
         switch:
           - condition: $${target_empresa != ""}
             assign:
-              - empresas: [$${target_empresa}]
+              - empresas: ['$${target_empresa}']
 %{ if !consolidation_only }
     - init_manifest:
         assign:
@@ -195,7 +195,7 @@ load_staging_table:
           body:
             configuration:
               load:
-                sourceUris: [$${source_prefix + "*"}]
+                sourceUris: ['$${source_prefix + "*"}']
                 sourceFormat: "NEWLINE_DELIMITED_JSON"
                 schema:
                   fields: $${schema_fields}
