@@ -453,13 +453,10 @@ module "data_quality_workflow" {
   depends_on = [google_project_service.required]
 }
 
-# Los recursos de QA ya existen en prod (creados fuera de este state el
-# 2026-08-05). Se adoptan en vez de recrearlos; el scheduler sigue en pausa.
-import {
-  for_each = var.environment == "prod" && var.adopt_existing_data_quality ? toset(["prod"]) : toset([])
-  to       = module.data_quality_workflow.google_workflows_workflow.workflow
-  id       = "projects/${var.project_id}/locations/${var.region}/workflows/factory-etl-data-quality-prod"
-}
+# El scheduler de QA ya existe en prod (creado fuera de este state el
+# 2026-08-05). Se adopta en vez de recrearlo; sigue en pausa.
+# NOTA: google_workflows_workflow no implementa import en el provider de Terraform.
+
 
 import {
   for_each = var.environment == "prod" && var.adopt_existing_data_quality ? toset(["prod"]) : toset([])
