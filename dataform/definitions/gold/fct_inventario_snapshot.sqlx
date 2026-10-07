@@ -8,8 +8,8 @@ config {
     clusterBy: ["source_empresa", "cod_alm", "cod_art"]
   },
   assertions: {
-    uniqueKey: ["source_empresa", "snapshot_date", "run_id", "cod_alm", "cod_art"],
-    nonNull: ["source_empresa", "snapshot_date", "run_id", "cod_alm", "cod_art", "unidades_disponibles"]
+    uniqueKey: ["source_empresa", "snapshot_date", "cod_alm", "cod_art"],
+    nonNull: ["source_empresa", "snapshot_date", "cod_alm", "cod_art", "unidades_disponibles"]
   }
 }
 
@@ -23,3 +23,7 @@ SELECT
   h.registro,
   CURRENT_TIMESTAMP() AS _processed_at
 FROM ${ref("sil_renglones_almacenes_historico")} h
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY h.source_empresa, h.snapshot_date, h.cod_alm, h.cod_art
+  ORDER BY COALESCE(h._ingested_at, h.registro, h._processed_at) DESC, h.run_id DESC
+) = 1

@@ -22,6 +22,7 @@ SELECT
   TRIM(cod_art) AS cod_art,
   SAFE_CAST(exi_act1 AS NUMERIC) AS exi_act1,
   SAFE_CAST(registro AS TIMESTAMP) AS registro,
+  SAFE_CAST(_ingested_at AS TIMESTAMP) AS _ingested_at,
   CURRENT_TIMESTAMP() AS _processed_at
 FROM ${ref("stg_renglones_almacenes_snapshot")}
 WHERE _ingested_at IS NOT NULL
