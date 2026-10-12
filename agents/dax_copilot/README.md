@@ -25,7 +25,9 @@ agents/dax_copilot/
 │   └── proxy_package.zip           # Paquete de despliegue
 │
 ├── prompts/                    # 📚 Reglas del Sistema y Metadatos Semánticos
-│   └── system_prompt_v1.0.md       # Reglas de negocio, documentación obligatoria y modelo
+│   └── system_prompt_v1.0.md       # Reglas de negocio, skills y modelo
+├── skills/                     # 🧠 Catálogo versionado de capacidades del agente
+│   └── manifest.json               # Activación de skills DAX, CPG y Data Analyst
 │
 ├── qa_judge/                   # 🧑‍⚖️ Agente Evaluador y Calidad (LLM-as-a-Judge)
 │   └── qa_judge_agent.py           # Auditoría nocturna y creación de Pull Requests en GitHub

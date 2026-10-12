@@ -6,8 +6,7 @@ config {
   uniqueKey: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
   bigquery: {
     partitionBy: "DATE(registro)",
-    clusterBy: ["source_empresa", "cod_pro", "cod_suc"],
-    updatePartitionFilter: "DATE(registro) >= DATE_SUB(CURRENT_DATE(), INTERVAL 14 DAY)"
+    clusterBy: ["source_empresa", "cod_pro", "cod_suc"]
   },
   assertions: {
     uniqueKey: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
