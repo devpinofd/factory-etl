@@ -9,7 +9,7 @@ function trimStr(columnName) {
 
 // Casteo seguro a TIMESTAMP (.NET eFactory de 7 decimales de subsegundo)
 function toTimestamp(columnName) {
-  return `COALESCE(PARSE_TIMESTAMP('%Y-%m-%dT%H:%M:%E*S', ${columnName}), SAFE_CAST(${columnName} AS TIMESTAMP))`;
+  return `COALESCE(SAFE.PARSE_TIMESTAMP('%Y-%m-%dT%H:%M:%E*S', ${columnName}), SAFE_CAST(${columnName} AS TIMESTAMP))`;
 }
 
 // Casteo seguro a DATE
