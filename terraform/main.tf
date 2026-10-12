@@ -159,7 +159,7 @@ locals {
     for k in keys(local.staging_schemas) :
     k => [
       { name = "source_empresa", type = "STRING", mode = "NULLABLE" },
-      { name = "dt", type = (k == "ventas_diarias_v2" || k == "ventas_diarias_v3") ? "DATE" : "STRING", mode = "NULLABLE" },
+      { name = "dt", type = (k == "ventas_diarias_v3") ? "DATE" : "STRING", mode = "NULLABLE" },
       { name = "run_id", type = "STRING", mode = "NULLABLE" },
     ]
   }
@@ -544,7 +544,7 @@ resource "google_bigquery_table" "staging_native" {
   for_each            = local.staging_schemas
   project             = var.project_id
   dataset_id          = var.bronze_stg_dataset_id
-  table_id            = (each.key == "ventas_diarias_v2" || each.key == "ventas_diarias_v3") ? "stg_${each.key}" : "stg_${each.key}_snapshot"
+  table_id            = (each.key == "ventas_diarias_v3") ? "stg_${each.key}" : "stg_${each.key}_snapshot"
   schema              = jsonencode(local.table_schemas[each.key])
   deletion_protection = true
   labels              = local.common_labels

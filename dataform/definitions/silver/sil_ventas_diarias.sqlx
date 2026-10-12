@@ -1,11 +1,13 @@
 config {
-  type: "table",
+  type: "incremental",
   schema: "factory_etl_silver",
   name: "sil_ventas_diarias",
   description: "Tabla Silver consolidada de ventas diarias (limpia, tipada, deduplicada y particionada)",
+  uniqueKey: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
   bigquery: {
     partitionBy: "DATE(registro)",
-    clusterBy: ["source_empresa", "cod_pro", "cod_suc"]
+    clusterBy: ["source_empresa", "cod_pro", "cod_suc"],
+    updatePartitionFilter: "DATE(registro) >= DATE_SUB(CURRENT_DATE(), INTERVAL 14 DAY)"
   },
   assertions: {
     uniqueKey: ["source_empresa", "tipo_documento", "cod_suc", "documento", "renglon"],
@@ -62,6 +64,8 @@ WITH source_rows AS (
     v3.run_id,
     2 AS source_priority
   FROM ${ref("stg_ventas_diarias_v3")} v3
+  ${when(incremental(), `WHERE v3.dt >= DATE_SUB(CURRENT_DATE(), INTERVAL 14 DAY)`)}
+  ${when(!incremental(), `
   UNION ALL
   SELECT
     snap.tipo_documento,
@@ -111,6 +115,7 @@ WITH source_rows AS (
     snap.run_id,
     1 AS source_priority
   FROM ${ref("stg_ventas_diarias_snapshot")} snap
+  `)}
 ),
 deduplicated AS (
   SELECT *
