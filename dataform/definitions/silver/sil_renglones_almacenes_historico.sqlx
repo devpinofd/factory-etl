@@ -10,7 +10,7 @@ config {
   },
   assertions: {
     uniqueKey: ["source_empresa", "snapshot_date", "run_id", "cod_alm", "cod_art"],
-    nonNull: ["source_empresa", "snapshot_date", "run_id", "cod_alm", "cod_art", "exi_act1"]
+    nonNull: ["source_empresa", "snapshot_date", "run_id", "cod_alm", "cod_art", "exi_act1", "registro"]
   }
 }
 
@@ -21,7 +21,7 @@ SELECT
   TRIM(cod_alm) AS cod_alm,
   TRIM(cod_art) AS cod_art,
   SAFE_CAST(exi_act1 AS NUMERIC) AS exi_act1,
-  SAFE_CAST(registro AS TIMESTAMP) AS registro,
+  ${helpers.toTimestamp("registro")} AS registro,
   SAFE_CAST(_ingested_at AS TIMESTAMP) AS _ingested_at,
   CURRENT_TIMESTAMP() AS _processed_at
 FROM ${ref("stg_renglones_almacenes_snapshot")}
