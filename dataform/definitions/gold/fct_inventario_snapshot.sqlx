@@ -9,7 +9,7 @@ config {
   },
   assertions: {
     uniqueKey: ["source_empresa", "snapshot_date", "cod_alm", "cod_art"],
-    nonNull: ["source_empresa", "snapshot_date", "cod_alm", "cod_art", "unidades_disponibles"]
+    nonNull: ["source_empresa", "snapshot_date", "cod_alm", "cod_art", "unidades_disponibles", "registro"]
   }
 }
 
