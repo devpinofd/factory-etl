@@ -6,6 +6,51 @@ No se desplegaron recursos, ejecutaron consultas de datos ni modificaron permiso
 
 ## 1. Resumen
 
+### Resultado administrado verificado, 2026-10-22
+
+Revision publicada: 2374d3e431be2df4e8ec89b2ab9929d627a4502a en
+feat/sort-managed-dataform. Compilacion administrada:
+31d2e9ea-8e11-4375-8278-b2d21a0481f1, sin errores.
+Se usa pipelineConfig DATAFORM con path dataform, como en el workflow
+existente; el proyecto Dataform no reside en la raiz del repositorio Git.
+
+Terraform aplico exclusivamente un alta adicional: dataEditor de
+factory-etl-runtime-prod@factory-etl-prod.iam.gserviceaccount.com en sort.
+Se verifico el ACL WRITER equivalente, sin permisos del tercero.
+Se retiraron el ejecutor Python y su test especifico antes de publicar.
+
+Invocacion Dataform:
+1792720154-b26de7dd-31d9-4069-a249-2f9e84a07c9c.
+Identidad ejecutora: la cuenta de servicio interna anterior.
+Seleccion: 14 modelos/operacion Mondelez y 37 assertions, incluidas
+las dependencias de calidad de fuentes, sin reconstruir modelos ajenos.
+Resultado FAILED: 46 acciones SUCCEEDED, una FAILED y cuatro SKIPPED.
+
+La operacion pub_mondelez_existencias fallo el control aprobado
+"Maestro faltante: cobertura de inventario no verificable".
+Job: dataform-gcp-e5599aca0d5405e25c5db9617d23a41f017bf015cc4ed6b9f2acd96c20a25ee8-0.
+Diagnostico agregado del dia 2026-10-22:
+ctb tiene una fila/un articulo sin maestro; tinito dos filas/dos articulos.
+Sin maestro no se puede determinar si esos articulos son del proveedor
+0301; no se omiten ni se relaja la validacion para completar el despliegue.
+Se omiten por dependencia las vistas interna/publica de existencias y
+las dos assertions de la interna. Existencias no esta disponible.
+
+Tres vistas publicas se crearon y verificaron mediante consultas sin cache,
+limite de 1 GiB por consulta, sin NULL en ninguno de sus campos:
+
+| Vista | Campos STRING | ctb | ctm | tinito |
+|---|---:|---:|---:|---:|
+| vw_mondelez_clientes | 18 | 8350 | 5333 | 15744 |
+| vw_mondelez_ventas | 25 | 102158 | 58257 | 283284 |
+| vw_mondelez_articulos | 6 | 95 | 122 | 189 |
+
+No se otorgaron permisos a consumidores, no se crearon usuarios y no
+se cambio la politica de organizacion. Queda bloqueada la publicacion
+de existencias hasta conciliar los tres articulos con su fuente/maestro.
+La recurrencia permanece pendiente: no se fusiono la rama en main ni
+se habilito el flag acoplado a la API. No declarar entrega integral lista.
+
 ### Recuperacion mediante Terraform y Dataform administrado
 
 Se retira el ejecutor Python introducido durante el primer intento. El
