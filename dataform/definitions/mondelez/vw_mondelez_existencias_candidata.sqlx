@@ -4,9 +4,32 @@ config {
   schema: "sort",
   tags: ["mondelez"],
   dependOnDependencyAssertions: true,
-  description: "Candidata consolidada por captura/grupo/SKU. Solo filas capturadas, sin completar catalogo con ceros."
+  dependencies: ["assert_inventario_snapshot_captura_unica"],
+  description: "Inventario dinamico desde el snapshot Gold Venezuela; agrega almacenes solo dentro del mismo corte, sin completar catalogo con ceros."
 }
 
+WITH inventario AS (
+  SELECT source_empresa, snapshot_date AS dia_venezuela, run_id,
+    _ingested_at AS captura, cod_alm, cod_art, unidades_disponibles
+  FROM ${ref("fct_inventario_snapshot")}
+  WHERE source_empresa IN ('ctb', 'ctm', 'tinito')
+),
+articulos AS (
+  SELECT source_empresa, cod_art,
+    IF(COUNT(*) = 1, ANY_VALUE(cod_pro),
+      ERROR(CONCAT('Maestro de articulo ambiguo: ', source_empresa, '/', cod_art))) AS cod_pro,
+    ANY_VALUE(nom_art) AS nom_art, ANY_VALUE(modelo) AS modelo,
+    ANY_VALUE(fraccion) AS fraccion
+  FROM ${ref("dim_articulo")}
+  GROUP BY 1, 2
+),
+almacenes AS (
+  SELECT source_empresa, cod_alm,
+    IF(COUNT(*) = 1, ANY_VALUE(cod_suc),
+      ERROR(CONCAT('Maestro de almacen ambiguo: ', source_empresa, '/', cod_alm))) AS cod_suc
+  FROM ${ref("dim_almacen")}
+  GROUP BY 1, 2
+)
 SELECT
   i.source_empresa,
   i.dia_venezuela AS FECHA_SNAPSHOT,
@@ -16,21 +39,29 @@ SELECT
   g.nombre_grupo AS NOMBRE_GRUPO,
   i.cod_art AS _cod_art,
   TRIM(LEFT(i.cod_art, 20), ' ') AS CODIGO_SKU,
-  TRIM(LEFT(a.nom_art, 40), ' ') AS DESCRIPCION_SKU,
+  IF(a.nom_art IS NOT NULL, TRIM(LEFT(a.nom_art, 40), ' '),
+    ERROR(CONCAT('Descripcion de articulo nula: ', i.source_empresa, '/', i.cod_art))) AS DESCRIPCION_SKU,
   TRIM(LEFT(COALESCE(a.modelo, ''), 13), ' ') AS CODIGO_BARRA,
   SUM(i.unidades_disponibles) AS DISPONIBLE,
   'UNI' AS TIPO_UNIDADES,
   IF(a.fraccion >= 0, a.fraccion,
     ERROR(CONCAT('Fraccion nula o negativa: ', i.source_empresa, '/', i.cod_art))) AS UNIDAD_SIMPLE_X_EMPAQUE,
   FORMAT_TIMESTAMP('%Y%m%d%H%M%S', i.captura, 'America/Caracas') AS FECHA_DATA
-FROM ${ref("fct_inventario_diario_validado")} i
-LEFT JOIN ${ref("dim_articulo")} a
+FROM inventario i
+LEFT JOIN articulos a
   ON i.source_empresa = a.source_empresa AND i.cod_art = a.cod_art
-LEFT JOIN ${ref("dim_almacen")} alm
+LEFT JOIN almacenes alm
   ON i.source_empresa = alm.source_empresa AND i.cod_alm = alm.cod_alm
-JOIN ${ref("vw_mondelez_grupos")} g
+LEFT JOIN ${ref("vw_mondelez_grupos")} g
   ON alm.source_empresa = g.source_empresa AND alm.cod_suc = g.cod_suc
-WHERE a.cod_pro = '0301'
-  AND UPPER(TRIM(i.cod_alm)) != 'TRANSITO'
+WHERE CASE
+  WHEN UPPER(TRIM(i.cod_alm)) = 'TRANSITO' THEN FALSE
+  WHEN a.cod_art IS NULL THEN
+    ERROR(CONCAT('Maestro de articulo faltante: ', i.source_empresa, '/', i.cod_art))
+  WHEN a.cod_pro IS DISTINCT FROM '0301' THEN FALSE
+  WHEN alm.cod_alm IS NULL THEN
+    ERROR(CONCAT('Maestro de almacen faltante: ', i.source_empresa, '/', i.cod_alm))
+  ELSE g.codigo_grupo IS NOT NULL
+END
 GROUP BY i.source_empresa, i.dia_venezuela, i.run_id, i.captura,
   g.codigo_grupo, g.nombre_grupo, i.cod_art, a.nom_art, a.modelo, a.fraccion

@@ -19,6 +19,7 @@ WITH ganadoras AS (
   SELECT *
   FROM ${ref("vw_inventario_capturas_qa")}
   WHERE estado = 'COMPLETA'
+    AND source_empresa IN ('ctb', 'ctm', 'tinito')
   QUALIFY ROW_NUMBER() OVER (
     PARTITION BY source_empresa, dia_venezuela
     ORDER BY captura DESC, run_id DESC

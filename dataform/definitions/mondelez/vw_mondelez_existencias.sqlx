@@ -5,18 +5,31 @@ config {
   name: "vw_mondelez_existencias_interna",
   tags: ["mondelez"],
   dependOnDependencyAssertions: true,
-  description: "Publicacion validada de nueve campos, una captura por empresa/dia Venezuela. Metadata tecnica fuera del JSON.",
+  description: "Consumo dinamico del ultimo snapshot Gold por empresa/dia Venezuela, con contrato numerico y sin persistencia adicional.",
   assertions: {
     uniqueKey: ["source_empresa", "FECHA_SNAPSHOT", "CODIGO_GRUPO", "CODIGO_SKU"],
     nonNull: ["source_empresa", "FECHA_SNAPSHOT", "_capture_id", "CODIGO_GRUPO", "CODIGO_SKU", "DISPONIBLE", "FECHA_DATA"]
   }
 }
 
+WITH candidata AS (
+  SELECT *,
+    COUNT(*) OVER (
+      PARTITION BY source_empresa, FECHA_SNAPSHOT, CODIGO_GRUPO, CODIGO_SKU
+    ) AS claves_publicas
+  FROM ${ref("vw_mondelez_existencias_candidata")}
+)
 SELECT
-  * EXCEPT (_published_at, FECHA_DATA),
+  * EXCEPT (FECHA_DATA, claves_publicas, _cod_art)
+  REPLACE (
+    IF(claves_publicas = 1 AND CODIGO_SKU IS NOT NULL
+      AND DISPONIBLE IS NOT NULL AND ABS(DISPONIBLE) < 10000000000
+      AND DISPONIBLE * 100 = TRUNC(DISPONIBLE * 100),
+      DISPONIBLE, ERROR('Contrato inventario invalido: cantidad o clave publica')) AS DISPONIBLE,
+    IF(UNIDAD_SIMPLE_X_EMPAQUE IS NOT NULL AND UNIDAD_SIMPLE_X_EMPAQUE >= 0
+      AND UNIDAD_SIMPLE_X_EMPAQUE < 10000000000
+      AND UNIDAD_SIMPLE_X_EMPAQUE * 100 = TRUNC(UNIDAD_SIMPLE_X_EMPAQUE * 100),
+      UNIDAD_SIMPLE_X_EMPAQUE, ERROR('Contrato inventario invalido: empaque')) AS UNIDAD_SIMPLE_X_EMPAQUE
+  ),
   FORMAT_TIMESTAMP('%Y%m%d%H%M%S', _captured_at, 'America/Caracas') AS FECHA_DATA
-FROM ${ref("pub_mondelez_existencias")}
-QUALIFY DENSE_RANK() OVER (
-  PARTITION BY source_empresa, FECHA_SNAPSHOT
-  ORDER BY _captured_at DESC, _capture_id DESC
-) = 1
+FROM candidata

@@ -1,8 +1,7 @@
 config {
   type: "view",
-  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
   schema: "factory_etl_gold",
-  tags: ["mondelez"],
+  tags: ["inventario"],
   description: "Evidencia de captura cargada: recibo SUCCESS de Bronze y reconciliacion exacta del numero de filas Silver. No certifica atomicidad de lectura del ERP."
 }
 
@@ -10,7 +9,6 @@ WITH recibos AS (
   SELECT *
   FROM ${ref("etl_batches")}
   WHERE entity = 'renglones_almacenes_v1'
-    AND source_empresa IN ('ctb', 'ctm', 'tinito')
   QUALIFY ROW_NUMBER() OVER (
     PARTITION BY source_empresa, run_id
     ORDER BY inserted_at DESC, status
@@ -26,7 +24,6 @@ cargadas AS (
       OR NULLIF(TRIM(cod_alm), '') IS NULL OR NULLIF(TRIM(cod_art), '') IS NULL) AS filas_invalidas,
     MAX(_ingested_at) AS captura
   FROM ${ref("sil_renglones_almacenes_historico")}
-  WHERE source_empresa IN ('ctb', 'ctm', 'tinito')
   GROUP BY 1, 2
 )
 SELECT
