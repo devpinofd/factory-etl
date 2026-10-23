@@ -1,0 +1,46 @@
+config {
+  type: "view",
+  schema: "factory_etl_gold",
+  tags: ["inventario"],
+  description: "Evidencia de captura cargada: recibo SUCCESS de Bronze y reconciliacion exacta del numero de filas Silver. No certifica atomicidad de lectura del ERP."
+}
+
+WITH recibos AS (
+  SELECT *
+  FROM ${ref("etl_batches")}
+  WHERE entity = 'renglones_almacenes_v1'
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY source_empresa, run_id
+    ORDER BY inserted_at DESC, status
+  ) = 1
+),
+cargadas AS (
+  SELECT
+    source_empresa, run_id,
+    COUNT(*) AS filas_cargadas,
+    COUNT(DISTINCT TO_JSON_STRING(STRUCT(cod_alm, cod_art))) AS claves_distintas,
+    COUNT(DISTINCT _ingested_at) AS marcas_ingesta,
+    COUNTIF(_ingested_at IS NULL OR registro IS NULL OR exi_act1 IS NULL
+      OR NULLIF(TRIM(cod_alm), '') IS NULL OR NULLIF(TRIM(cod_art), '') IS NULL) AS filas_invalidas,
+    MAX(_ingested_at) AS captura
+  FROM ${ref("sil_renglones_almacenes_historico")}
+  GROUP BY 1, 2
+)
+SELECT
+  COALESCE(c.source_empresa, r.source_empresa) AS source_empresa,
+  COALESCE(c.run_id, r.run_id) AS run_id,
+  DATE(c.captura, 'America/Caracas') AS dia_venezuela,
+  c.captura, r.batch_id, r.payload_hash, r.object_uri,
+  r.record_count AS filas_esperadas, c.filas_cargadas,
+  CASE
+    WHEN r.status IS DISTINCT FROM 'success' THEN 'SIN_RECIBO_SUCCESS'
+    WHEN r.object_uri IS NULL OR NOT STARTS_WITH(r.object_uri, 'gs://')
+      OR NULLIF(r.payload_hash, '') IS NULL THEN 'RECIBO_INCOMPLETO'
+    WHEN r.record_count IS NULL OR r.record_count <= 0 THEN 'CAPTURA_VACIA_NO_CERTIFICADA'
+    WHEN c.filas_cargadas IS NULL OR c.filas_cargadas != r.record_count THEN 'CONTEO_NO_CONCILIA'
+    WHEN c.claves_distintas != c.filas_cargadas THEN 'CLAVES_DUPLICADAS'
+    WHEN c.marcas_ingesta != 1 OR c.filas_invalidas != 0 THEN 'DATOS_INVALIDOS'
+    ELSE 'COMPLETA'
+  END AS estado
+FROM cargadas c
+FULL JOIN recibos r USING (source_empresa, run_id)

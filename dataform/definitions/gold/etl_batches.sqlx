@@ -1,0 +1,5 @@
+config {
+  type: "declaration",
+  schema: dataform.projectConfig.vars.controlDataset || "factory_etl_control",
+  name: "etl_batches"
+}
