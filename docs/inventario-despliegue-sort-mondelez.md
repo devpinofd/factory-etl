@@ -6,6 +6,75 @@ No se desplegaron recursos, ejecutaron consultas de datos ni modificaron permiso
 
 ## 1. Resumen
 
+### Despliegue inicial completado y verificado, 2026-10-22 23:00 Venezuela
+
+Tras resolver la sincronizacion de maestros, se reejecuto la compilacion
+administrada 31d2e9ea-8e11-4375-8278-b2d21a0481f1 de la revision Git
+2374d3e431be2df4e8ec89b2ab9929d627a4502a, con la misma seleccion
+acotada y la cuenta de servicio interna. Invocacion:
+1792724476-9d02d8ab-95d1-40bb-93f2-22ae224c7e96.
+Resultado SUCCEEDED, 51 acciones SUCCEEDED, ninguna omitida ni fallida.
+
+Las cuatro vistas publicas existen y fueron consultadas sin cache, con
+limite de 2 GiB por consulta. Ninguna fila tiene NULL en campos publicos.
+
+| Vista | Esquema publico, incluida source_empresa | ctb | ctm | tinito |
+|---|---|---:|---:|---:|
+| vw_mondelez_clientes | 18 STRING | 8350 | 5333 | 15745 |
+| vw_mondelez_ventas | 25 STRING | 102160 | 58281 | 283284 |
+| vw_mondelez_articulos | 6 STRING | 95 | 122 | 189 |
+| vw_mondelez_existencias | 8 STRING y 2 NUMERIC | 6911 | 7566 | 35260 |
+
+En existencias, DISPONIBLE y UNIDAD_SIMPLE_X_EMPAQUE conservan NUMERIC
+segun el contrato aprobado; no deben convertirse a STRING por analogia
+con los otros contratos. La comprobacion inicial que exigia todos STRING
+era incorrecta y se corrigio en la verificacion, sin cambiar el SQL.
+No se exponen claves ni columnas tecnicas en las cuatro interfaces.
+
+Existencias publica 80 cortes por empresa, del 2026-08-03 al 2026-10-22:
+una captura por empresa/dia y cero claves publicas duplicadas dentro
+de cada corte. Ultimos FECHA_DATA UTC:
+ctb 20261023015917, ctm 20261023015925, tinito 20261023015918.
+La fecha local del corte es el 22; la captura UTC corresponde al 23.
+
+Se comprobo idempotencia mediante una segunda invocacion Dataform de
+solo pub_mondelez_existencias, sin reconstruir sus dependencias:
+1792724702-0a97-45db-b48c-e14eecf2ac23, SUCCEEDED.
+No cambiaron filas, capturas ni timestamps de publicacion respecto
+de la verificacion anterior.
+
+ACL de sort verificado: projectOwners OWNER y cuenta interna WRITER.
+No se crean usuarios, no se conceden permisos del consumidor y no se
+modifica la politica de organizacion. La consulta por un tercero sigue
+fuera del alcance actual y no esta certificada.
+
+Se completa el despliegue inicial, no la automatizacion recurrente.
+La rama aun no se integra en main; antes de activar recurrencia se debe
+desacoplar el flag de modelos del flag de API y revisar el cambio de
+orquestacion. Las vistas logicas leen sus fuentes actuales; los nuevos
+cortes de existencias necesitan otra ejecucion de su publicador Dataform.
+
+### Verificacion posterior al full manual, 2026-10-22
+
+Se detecto una ejecucion full ya activa y no se lanzo otra:
+0086cc75-bee9-40a1-85c6-a20d6e1b9ddc, SUCCEEDED.
+Inicio 2026-10-23T01:57:08Z, fin 2026-10-23T02:03:51Z
+(21:57 a 22:03 del 22 de octubre en Venezuela).
+
+Los maestros dim_articulo y dim_almacen se actualizaron a las
+02:02:29Z, despues del inicio. El hecho validado Mondelez conserva
+su modificacion previa de 01:49:22Z: no se reconstruyo ni se publico.
+Al repetir exactamente el control de cobertura de maestros contra
+ese mismo hecho y los maestros actualizados, quedan cero filas
+sin cobertura, frente a las tres observadas antes del full.
+Job de verificacion: job_236Mwt4jFlt5EzARhKJlyFm_UhOY, completado.
+La ausencia queda resuelta tras la sincronizacion de maestros, sin
+modificar ni relajar el control.
+
+No se reejecuto Dataform ni se publico existencias en esta comprobacion.
+Queda pendiente la reejecucion administrada y su aceptacion completa;
+resolver esta causa no equivale a certificar todas las validaciones.
+
 ### Resultado administrado verificado, 2026-10-22
 
 Revision publicada: 2374d3e431be2df4e8ec89b2ab9929d627a4502a en
