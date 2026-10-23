@@ -1,0 +1,31 @@
+config {
+  type: "assertion",
+  tags: ["inventario"],
+  description: "Gold conserva exactamente una captura completa ganadora por empresa y dia Venezuela, con su conteo integro."
+}
+
+WITH esperadas AS (
+  SELECT source_empresa, dia_venezuela, run_id, filas_cargadas
+  FROM ${ref("vw_inventario_capturas_qa")}
+  WHERE estado = 'COMPLETA'
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY source_empresa, dia_venezuela
+    ORDER BY captura DESC, run_id DESC
+  ) = 1
+),
+actuales AS (
+  SELECT source_empresa, snapshot_date, MIN(run_id) AS run_id,
+    COUNT(DISTINCT run_id) AS capturas, COUNT(*) AS filas
+  FROM ${ref("fct_inventario_snapshot")}
+  GROUP BY 1, 2
+)
+SELECT
+  COALESCE(e.source_empresa, a.source_empresa) AS source_empresa,
+  COALESCE(e.dia_venezuela, a.snapshot_date) AS dia_venezuela,
+  e.run_id AS captura_esperada, a.run_id AS captura_actual,
+  e.filas_cargadas AS filas_esperadas, a.filas AS filas_actuales
+FROM esperadas e
+FULL JOIN actuales a
+  ON e.source_empresa = a.source_empresa AND e.dia_venezuela = a.snapshot_date
+WHERE e.run_id IS NULL OR a.run_id IS NULL OR a.capturas != 1
+  OR a.run_id != e.run_id OR a.filas != e.filas_cargadas
