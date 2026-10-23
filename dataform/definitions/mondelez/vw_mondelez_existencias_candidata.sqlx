@@ -22,7 +22,7 @@ SELECT
   'UNI' AS TIPO_UNIDADES,
   IF(a.fraccion >= 0, a.fraccion,
     ERROR(CONCAT('Fraccion nula o negativa: ', i.source_empresa, '/', i.cod_art))) AS UNIDAD_SIMPLE_X_EMPAQUE,
-  FORMAT_TIMESTAMP('%Y%m%d%H%M%S', i.captura, 'UTC') AS FECHA_DATA
+  FORMAT_TIMESTAMP('%Y%m%d%H%M%S', i.captura, 'America/Caracas') AS FECHA_DATA
 FROM ${ref("fct_inventario_diario_validado")} i
 LEFT JOIN ${ref("dim_articulo")} a
   ON i.source_empresa = a.source_empresa AND i.cod_art = a.cod_art
