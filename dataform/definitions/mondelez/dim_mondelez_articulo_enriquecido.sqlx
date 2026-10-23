@@ -1,0 +1,29 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "factory_etl_gold",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  description: "Articulos locales 0301 con atributos canonicos por modelo exacto; conserva no correspondidos.",
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_art"],
+    nonNull: ["source_empresa", "cod_art", "estado_correspondencia"]
+  }
+}
+
+SELECT
+  a.*,
+  c.modelo AS modelo_canonico,
+  c.descripcion AS descripcion_canonica,
+  c.clase_producto AS clase_producto_canonica,
+  c.marca AS marca_canonica,
+  c.peso_caja_kg AS peso_caja_kg_canonico,
+  c.peso_unidad_kg AS peso_unidad_kg_canonico,
+  c.unidades_por_empaque AS unidades_por_empaque_canonicas,
+  c._source_sha256 AS _canonico_source_sha256,
+  IF(c.modelo IS NULL, 'SIN_CORRESPONDENCIA', 'COINCIDENCIA_EXACTA') AS estado_correspondencia
+FROM ${ref("dim_articulo")} AS a
+LEFT JOIN ${ref("dim_mondelez_producto_canonico")} AS c
+  ON TRIM(a.modelo) = c.modelo
+WHERE a.source_empresa IN ('ctb', 'ctm', 'tinito')
+  AND a.cod_pro = '0301'

@@ -1,0 +1,21 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  description: "Maestro de productos 0301 de cinco campos; clase canonica por modelo, sin costes ni precios.",
+  assertions: {
+    uniqueKey: ["source_empresa", "CODIGO_SKU"],
+    nonNull: ["CODIGO_SKU", "NOMBRE_SKU", "CLASE_DE_PRODUCTO", "UNIDAD_MEDIDA", "CODIGO_BARRA"]
+  }
+}
+
+SELECT
+  source_empresa,
+  TRIM(LEFT(cod_art, 20), ' ') AS CODIGO_SKU,
+  TRIM(LEFT(nom_art, 40), ' ') AS NOMBRE_SKU,
+  TRIM(LEFT(COALESCE(clase_producto_canonica, ''), 20), ' ') AS CLASE_DE_PRODUCTO,
+  TRIM(LEFT(cod_uni1, 20), ' ') AS UNIDAD_MEDIDA,
+  TRIM(LEFT(COALESCE(modelo, ''), 13), ' ') AS CODIGO_BARRA
+FROM ${ref("dim_mondelez_articulo_enriquecido")}

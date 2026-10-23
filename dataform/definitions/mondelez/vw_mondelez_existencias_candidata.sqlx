@@ -1,0 +1,36 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  description: "Candidata consolidada por captura/grupo/SKU. Solo filas capturadas, sin completar catalogo con ceros."
+}
+
+SELECT
+  i.source_empresa,
+  i.dia_venezuela AS FECHA_SNAPSHOT,
+  i.run_id AS _capture_id,
+  i.captura AS _captured_at,
+  g.codigo_grupo AS CODIGO_GRUPO,
+  g.nombre_grupo AS NOMBRE_GRUPO,
+  i.cod_art AS _cod_art,
+  TRIM(LEFT(i.cod_art, 20), ' ') AS CODIGO_SKU,
+  TRIM(LEFT(a.nom_art, 40), ' ') AS DESCRIPCION_SKU,
+  TRIM(LEFT(COALESCE(a.modelo, ''), 13), ' ') AS CODIGO_BARRA,
+  SUM(i.unidades_disponibles) AS DISPONIBLE,
+  'UNI' AS TIPO_UNIDADES,
+  IF(a.fraccion >= 0, a.fraccion,
+    ERROR(CONCAT('Fraccion nula o negativa: ', i.source_empresa, '/', i.cod_art))) AS UNIDAD_SIMPLE_X_EMPAQUE,
+  FORMAT_TIMESTAMP('%Y%m%d%H%M%S', i.captura, 'UTC') AS FECHA_DATA
+FROM ${ref("fct_inventario_diario_validado")} i
+LEFT JOIN ${ref("dim_articulo")} a
+  ON i.source_empresa = a.source_empresa AND i.cod_art = a.cod_art
+LEFT JOIN ${ref("dim_almacen")} alm
+  ON i.source_empresa = alm.source_empresa AND i.cod_alm = alm.cod_alm
+JOIN ${ref("vw_mondelez_grupos")} g
+  ON alm.source_empresa = g.source_empresa AND alm.cod_suc = g.cod_suc
+WHERE a.cod_pro = '0301'
+  AND UPPER(TRIM(i.cod_alm)) != 'TRANSITO'
+GROUP BY i.source_empresa, i.dia_venezuela, i.run_id, i.captura,
+  g.codigo_grupo, g.nombre_grupo, i.cod_art, a.nom_art, a.modelo, a.fraccion

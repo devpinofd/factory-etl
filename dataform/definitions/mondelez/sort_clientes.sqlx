@@ -1,0 +1,15 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  name: "vw_mondelez_clientes",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  description: "Consumo SQL externo: empresa y 17 campos aprobados, sin claves internas."
+}
+
+SELECT
+  source_empresa, CODIGO_GRUPO, RIF, SOCIO_NEGOCIO, PAIS, ESTADO,
+  MUNICIPIO, CIUDAD, DIRECCION, GPS, DIRECCION_FISCAL, CANAL_VENTAS,
+  RUTA, CLASIFICACION_NEGOCIO, ESTATUS, CODIGO_VENDEDOR, NOMBRE_VENDEDOR, PARROQUA
+FROM ${ref("vw_mondelez_clientes_interna")}

@@ -1,0 +1,33 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  tags: ["mondelez"],
+  description: "Mapeo proporcionado por negocio de empresa/sucursal a grupo Mondelez. Conserva ceros iniciales.",
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_suc"],
+    nonNull: ["source_empresa", "cod_suc", "codigo_grupo", "nombre_grupo"]
+  }
+}
+
+SELECT 'tinito' AS source_empresa, '02' AS cod_suc,
+  '100123571' AS codigo_grupo, 'CCIAL TINITO EL TIGRE, VLPC' AS nombre_grupo,
+  'CENTRO' AS region
+UNION ALL
+SELECT 'ctb', '01', '100216067', 'COMERCIAL TINITO BARCELONA MESONES', 'ORIENTE'
+UNION ALL
+SELECT 'ctb', '02', '100216067', 'COMERCIAL TINITO BARCELONA MESONES', 'ORIENTE'
+UNION ALL
+SELECT 'tinito', '01', '100596186', 'CCIAL TINITO EL TIGRE, APURE', 'CENTRO'
+UNION ALL
+SELECT 'tinito', '04', '100676254', 'CCIAL TINITO EL TIGRE, BOLIVAR', 'ORIENTE'
+UNION ALL
+SELECT 'tinito', '06', '101068889', 'COMERCIAL TINITO ARAGUA', 'CENTRO'
+UNION ALL
+SELECT 'ctm', '01', '156143416', 'COMERCIAL TINITO C.A', 'ORIENTE'
+UNION ALL
+SELECT 'ctm', '02', '156143416', 'COMERCIAL TINITO C.A', 'ORIENTE'
+UNION ALL
+SELECT 'tinito', '03', '156180907', 'COMERCIAL TINITO EL TIGRE C.A', 'ORIENTE'
+UNION ALL
+SELECT 'ctb', '06', '300004760', 'COMERCIAL TINITO CARACAS', 'CENTRO'

@@ -1,0 +1,59 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  name: "vw_mondelez_clientes_interna",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  dependencies: ["assert_mondelez_clientes_maestro"],
+  description: "Maestro de clientes con sucursal mapeada, un cliente por empresa. Campos publicos con longitudes contractuales y RIF normalizado; Gold conserva valores completos.",
+  assertions: {
+    uniqueKey: ["source_empresa", "_cod_cli"],
+    nonNull: ["source_empresa", "CODIGO_GRUPO", "_cod_cli"]
+  }
+}
+
+SELECT
+  c.source_empresa,
+  c.cod_cli AS _cod_cli,
+  TRIM(LEFT(g.codigo_grupo, 20), ' ') AS CODIGO_GRUPO,
+  TRIM(LEFT(REPLACE(REPLACE(COALESCE(c.rif, ''), '.', ''), '-', ''), 10), ' ') AS RIF,
+  TRIM(LEFT(c.nom_cli, 40), ' ') AS SOCIO_NEGOCIO,
+  TRIM(LEFT(COALESCE(p.nom_pai, ''), 20), ' ') AS PAIS,
+  TRIM(LEFT(COALESCE(e.nom_est, ''), 20), ' ') AS ESTADO,
+  TRIM(LEFT(COALESCE(c.nom_mun, ''), 20), ' ') AS MUNICIPIO,
+  TRIM(LEFT(COALESCE(ci.nom_ciu, ''), 20), ' ') AS CIUDAD,
+  TRIM(LEFT(COALESCE(c.dir_fis, ''), 50), ' ') AS DIRECCION,
+  TRIM(LEFT(COALESCE(c.gps, ''), 40), ' ') AS GPS,
+  'SI' AS DIRECCION_FISCAL,
+  TRIM(LEFT(COALESCE(c.segmentacion2, ''), 20), ' ') AS CANAL_VENTAS,
+  TRIM(LEFT(COALESCE(UPPER(c.cod_ven), ''), 20), ' ') AS RUTA,
+  TRIM(LEFT(COALESCE(c.segmentacion2, ''), 20), ' ') AS CLASIFICACION_NEGOCIO,
+  CASE UPPER(c.status)
+    WHEN 'A' THEN '1'
+    WHEN 'I' THEN '0'
+    WHEN 'S' THEN '0'
+    ELSE ERROR(CONCAT('Estatus de cliente no soportado: ', COALESCE(c.status, 'NULL')))
+  END AS ESTATUS,
+  TRIM(LEFT(COALESCE(UPPER(c.cod_ven), ''), 10), ' ') AS CODIGO_VENDEDOR,
+  TRIM(LEFT(COALESCE(ven.nom_ven, ''), 20), ' ') AS NOMBRE_VENDEDOR,
+  TRIM(LEFT(COALESCE(c.nom_par, ''), 20), ' ') AS PARROQUA
+FROM ${ref("dim_cliente")} c
+INNER JOIN ${ref("vw_mondelez_grupos")} g
+  ON c.source_empresa = g.source_empresa AND c.cod_suc = g.cod_suc
+LEFT JOIN ${ref("dim_pais")} p
+  ON c.source_empresa = p.source_empresa AND c.cod_pai = p.cod_pai
+LEFT JOIN ${ref("dim_estado")} e
+  ON c.source_empresa = e.source_empresa AND c.cod_est = e.cod_est
+LEFT JOIN ${ref("dim_ciudad")} ci
+  ON c.source_empresa = ci.source_empresa AND c.cod_ciu = ci.cod_ciu
+LEFT JOIN (
+  SELECT
+    source_empresa,
+    UPPER(cod_ven) AS cod_ven,
+    IF(COUNT(*) = 1, ANY_VALUE(nom_ven),
+      ERROR(CONCAT('Codigo de vendedor ambiguo al normalizar: ', source_empresa))) AS nom_ven
+  FROM ${ref("dim_vendedor")}
+  GROUP BY 1, 2
+) ven
+  ON c.source_empresa = ven.source_empresa AND UPPER(c.cod_ven) = ven.cod_ven

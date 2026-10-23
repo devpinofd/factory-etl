@@ -1,0 +1,20 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  name: "vw_mondelez_existencias_interna",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  description: "Publicacion validada de nueve campos, una captura por empresa/dia Venezuela. Metadata tecnica fuera del JSON.",
+  assertions: {
+    uniqueKey: ["source_empresa", "FECHA_SNAPSHOT", "CODIGO_GRUPO", "CODIGO_SKU"],
+    nonNull: ["source_empresa", "FECHA_SNAPSHOT", "_capture_id", "CODIGO_GRUPO", "CODIGO_SKU", "DISPONIBLE", "FECHA_DATA"]
+  }
+}
+
+SELECT * EXCEPT (_published_at)
+FROM ${ref("pub_mondelez_existencias")}
+QUALIFY DENSE_RANK() OVER (
+  PARTITION BY source_empresa, FECHA_SNAPSHOT
+  ORDER BY _captured_at DESC, _capture_id DESC
+) = 1
