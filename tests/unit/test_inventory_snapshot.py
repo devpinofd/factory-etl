@@ -33,6 +33,14 @@ def test_capture_quality_is_generic_and_available_in_regular_consolidation() -> 
         assert condition in sql
 
 
+def test_capture_receipts_are_declared_without_sort_models() -> None:
+    sql = (GOLD / "etl_batches.sqlx").read_text(encoding="utf-8")
+    assert 'type: "declaration"' in sql
+    assert 'name: "etl_batches"' in sql
+    assert 'dataform.projectConfig.vars.controlDataset || "factory_etl_control"' in sql
+    assert not (DEFINITIONS / "mondelez" / "mondelez_etl_batches.sqlx").exists()
+
+
 def test_gold_assertion_reconciles_capture_identity_and_row_count() -> None:
     sql = (GOLD / "assert_inventario_snapshot_captura_unica.sqlx").read_text(encoding="utf-8")
     assert "disabled:" not in sql
