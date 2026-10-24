@@ -4,9 +4,15 @@
 > aplicada y verificada, sin modificar otros grants. Adopcion productiva de
 > estado Gold aplicada con bloqueo y backup: BI READER y runtime WRITER
 > gestionados por dataset_access, ACL preservadas y plan selectivo sin cambios.
-> SQL y grants de Magdalena aun pendientes. Workspace Dataform no creado
-> (POST500 en v1/v1beta1, GET404); usuario autorizo commit/push selectivo
-> de rama dedicada para compilacion Git inmutable, sin fusionar main.
+> SQL y grants de Magdalena ya aplicados. Workspace Dataform no creado
+> (POST500 en v1/v1beta1, GET404); se uso rama dedicada publicada
+> feat/sort-magdalena-minimum-access, SHA564e622a, sin fusionar main.
+> Dataform: 32/32 assertions y 4/4 vistas SUCCEEDED. Contratos reales
+> 18/25/6/10 campos y consultas verificadas. Terraform: nueve altas,
+> cero cambios/bajas; cuatro autorizaciones Gold, cuatro dataViewer por
+> vista y un jobUser. ACL previas de Gold/SORT/Silver/Control preservadas,
+> sin agregar consumidor a datasets. Plan selectivo posterior cero cambios.
+> Falta prueba con login normal de Magdalena; no se uso impersonacion.
 > No aplicar los gestores IAM Gold antiguos. Nunca dataViewer del dataset
 > completo. No es prueba de consumidor ni de frescura. Las notas anteriores
 > conservadas debajo son historicas.

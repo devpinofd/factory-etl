@@ -14,13 +14,20 @@ y sin force: BI READER y runtime WRITER ahora usan dataset_access.
 Plan selectivo posterior sin cambios y ACL Gold intactas.
 No volver a aplicar configuraciones antiguas con dataset_iam_member en Gold.
 
-El SQL autonomo y los nueve grants siguen pendientes. Dataform devolvio
-HTTP500 creando un workspace por v1beta1 y v1; GET posterior404 confirma
-que no se creo. Se autorizo usar Git inmutable como fuente alternativa
-para Dataform, con exactamente las fuentes revisadas, sin ejecutar SQL
-directo ni reconstruir tablas. No habilitar consumidor antes de verificar
-las cuatro vistas desplegadas. Magdalena sigue siendo la unica identidad
-objetivo, sin MFA por decision expresa; nunca lectura al dataset completo.
+SQL autonomo y nueve grants ya aplicados. Dataform uso Git inmutable
+564e622a408dfe5604ee125ad3583a4e4c31eb9a en la rama dedicada
+feat/sort-magdalena-minimum-access tras fallar el workspace con HTTP500.
+Compilacion ad619e92-7af6-4627-8f29-0b34d9729a75:
+32/32 assertions y 4/4 vistas SUCCEEDED, sin reconstruir fuentes.
+Consultas y contratos 18/25/6/10 verificados en metadatos reales.
+Terraform agrego exactamente cuatro autorizaciones Gold, cuatro
+dataViewer por vista y un jobUser del proyecto. ACL previas preservadas:
+Gold seis originales mas cuatro vistas; SORT dos, Silver/Control intactos.
+Plan selectivo posterior cero cambios. Configuracion local prod conserva
+enable_sort_consumer_access=true; no reaplicar defaults false ni codigo
+antiguo. No se fusiono main. Falta prueba con login normal de Magdalena:
+verificacion administrativa no equivale a prueba del consumidor.
+Sin MFA por decision expresa; nunca lectura al dataset completo.
 Las notas del 23 siguientes son historicas y no describen el estado actual.
 
 ### Acceso del tercero: actualizacion 2026-10-23

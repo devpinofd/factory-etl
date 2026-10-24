@@ -102,7 +102,30 @@ general del worktree compartido. La habilitacion de una API no concede
 los scopes OAuth ni los privilegios administrativos del directorio.
 
 Ver el [inventario de acceso](../docs/propuesta-acceso-bigquery-sorti-mondelez.md)
-antes de proponer permisos del consumidor. El acceso aun no esta habilitado.
+para el resultado productivo y las verificaciones pendientes del consumidor.
+
+## Acceso minimo del consumidor SORT
+
+`sort_consumer_access.tf` administra exclusivamente cuatro autorizaciones
+de vistas en Gold, cuatro grants `dataViewer` por vista y `jobUser` en
+`factory-etl-prod` para `magdalena.mateu@tinitot.com`. Nunca otorga lectura
+al dataset completo. `enable_sort_consumer_access` sigue `false` por
+defecto y en el ejemplo; la configuracion local productiva usa `true`.
+No reaplicar los defaults sobre prod sin revisar el plan.
+
+Requisitos ya ejecutados el 2026-10-24: consultas publicas autonomas
+desplegadas por Dataform y dos gestores Gold adoptados a `dataset_access`
+preservando ACL. No combinar gestores `dataset_iam_member` con autorizaciones
+en Gold ni volver al codigo previo a la adopcion. Los bloques `removed`
+usan `destroy=false`; no equivalen a una importacion automatica.
+
+La ejecucion autorizada uso un plan guardado con solo estos targets:
+`google_bigquery_dataset_access.sort_public_views_gold_authorized`,
+`google_bigquery_table_iam_member.sort_consumer_viewer` y
+`google_project_iam_member.sort_consumer_job_user`. Nueve altas, cero cambios
+o bajas. Verificacion posterior incluye tambien
+`module.service_account.google_bigquery_dataset_access.gold_editor`:
+cero cambios. No usar un apply general del worktree compartido.
 
 ## Convenciones
 

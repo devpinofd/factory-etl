@@ -15,20 +15,38 @@ ejecutar la adopcion de gestion ACL Gold y habilitar el acceso minimo.
   comprobados, state push con bloqueo y sin force. No se recrearon grants;
   plan selectivo posterior cero cambios cloud y seis ACL Gold preservadas.
   Nunca volver a aplicar gestores dataset_iam_member antiguos sobre Gold.
-- SQL autonomo aun no desplegado; ningun grant del consumidor aplicado.
-  Crear workspace Dataform fallo con HTTP500 en v1beta1 y v1; GET posterior
-  devuelve404. No se creo workspace ni se invoco SQL en esos intentos.
-- El usuario autorizo commit y push de una rama dedicada con solo las
-  fuentes aprobadas y configuracion de esta tarea, sin fusionar main.
-  Se continuara con compilacion Dataform desde SHA inmutable y cuatro
-  targets explicitos, sin transitivas, reconstruccion ni publicador.
-- Despues de verificar SQL: plan selectivo esperado de nueve altas,
-  cuatro autorizaciones Gold, cuatro dataViewer por vista y un jobUser
-  del proyecto de ejecucion factory-etl-prod. Cero lectura del dataset
-  SORT completo, auxiliares, Gold, Silver o Control para Magdalena.
+- SQL autonomo desplegado desde la rama dedicada
+  feat/sort-magdalena-minimum-access, SHA
+  564e622a408dfe5604ee125ad3583a4e4c31eb9a, sin fusionar main.
+  Crear workspace Dataform habia fallado con HTTP500; se uso compilacion
+  Git inmutable ad619e92-7af6-4627-8f29-0b34d9729a75, sin workspace.
+  Consultas remotas coinciden con las cuatro revisadas. Controles previos:
+  invocacion 1792866182-3a8616e4-f2d9-454d-9a8d-a7fca4ce0999,
+  32/32 assertions SUCCEEDED, sin reconstruir fuentes.
+  Despliegue 1792866248-25ab0313-255d-4381-9b2e-5af1086c1525:
+  4/4 vistas SUCCEEDED, sin transitivas, reconstruccion ni publicador.
+  Metadatos productivos: consultas iguales salvo whitespace exterior
+  eliminado por DDL; esquemas ordenados de 18/25/6/10 campos exactos.
+- Aplicado el plan selectivo revisado: nueve altas, cero cambios/bajas.
+  Cuatro autorizaciones Gold, cuatro dataViewer por vista y un jobUser
+  de factory-etl-prod para user:magdalena.mateu@tinitot.com.
+  Comparacion administrativa antes/despues: seis ACL Gold previas intactas
+  mas cuatro vistas; SORT conserva sus dos ACL, Silver y Control intactos.
+  IAM de cada vista y del proyecto solo agrega el miembro/rol previsto;
+  no se observaron cambios en otros bindings o condiciones.
+  Ninguna ACL de dataset agrega a Magdalena. Plan selectivo posterior,
+  incluidos los dos gestores Gold adoptados: cero cambios.
+  Configuracion local de prod conserva enable_sort_consumer_access=true;
+  los defaults y el ejemplo siguen false, no son valores para reaplicar
+  prod sin revisar. No usar configuracion antigua ni apply general.
 - Prueba con login normal de magdalena.mateu@tinitot.com pendiente.
   Sin impersonacion ni solicitud de credenciales; no afirmar frescura.
   MFA no se exige por decision expresa; riesgo residual documentado.
+
+Verificacion automatizada local: compilacion aislada correcta, cuatro
+consultas identicas al manifiesto, 11 pruebas Terraform aisladas y 28
+pruebas focalizadas de contratos SQL correctas. Una prueba documental
+historica excluida; no se certifica todo el worktree compartido.
 
 ## Inventario actual y acceso pendiente, 2026-10-23
 
