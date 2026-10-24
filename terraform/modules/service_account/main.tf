@@ -64,11 +64,23 @@ resource "google_bigquery_dataset_iam_member" "silver_editor" {
   member     = "serviceAccount:${google_service_account.runtime.email}"
 }
 
-resource "google_bigquery_dataset_iam_member" "gold_editor" {
-  project    = var.project_id
-  dataset_id = var.gold_dataset_id
-  role       = "roles/bigquery.dataEditor"
-  member     = "serviceAccount:${google_service_account.runtime.email}"
+removed {
+  from = google_bigquery_dataset_iam_member.gold_editor
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+resource "google_bigquery_dataset_access" "gold_editor" {
+  project       = var.project_id
+  dataset_id    = var.gold_dataset_id
+  role          = "WRITER"
+  user_by_email = google_service_account.runtime.email
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # --- Secret Manager: accessor sobre secretos declarados -----------------------

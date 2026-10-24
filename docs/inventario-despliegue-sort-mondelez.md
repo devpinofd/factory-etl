@@ -1,5 +1,44 @@
 # Inventario para despliegue de vistas y acceso aislado SORT
 
+> Estado vigente, 2026-10-24: retirada global de los dos miembros de dominio
+> aplicada y verificada, sin modificar otros grants. Adopcion productiva de
+> estado Gold aplicada con bloqueo y backup: BI READER y runtime WRITER
+> gestionados por dataset_access, ACL preservadas y plan selectivo sin cambios.
+> SQL y grants de Magdalena aun pendientes. Workspace Dataform no creado
+> (POST500 en v1/v1beta1, GET404); usuario autorizo commit/push selectivo
+> de rama dedicada para compilacion Git inmutable, sin fusionar main.
+> No aplicar los gestores IAM Gold antiguos. Nunca dataViewer del dataset
+> completo. No es prueba de consumidor ni de frescura. Las notas anteriores
+> conservadas debajo son historicas.
+
+> Acceso, 2026-10-23: la identidad vigente es
+> magdalena.mateu@tinitot.com, cuenta administrada ya creada.
+> Ver el [inventario cloud actual y bloqueos de acceso](./propuesta-acceso-bigquery-sorti-mondelez.md).
+> Solo se habilito la API Organization Policy con Terraform bajo
+> autorizacion expresa; no se aplicaron grants del consumidor.
+> Se preparo despues una adaptacion local Dataform, validada sin desplegar:
+> consultas publicas directas a tablas Gold, sin fuentes auxiliares SORT.
+> Cuenta activa y sin grupos/roles administrativos observados en consola;
+> Decision posterior 2026-10-23 21:15 America/Caracas: no aplicar ni exigir
+> MFA, con riesgo residual documentado. Accesos por dominio aun pendientes;
+> retirarlos globalmente requiere aprobacion de ese alcance.
+> El usuario autorizo preparar (no aplicar) esa retirada global: plan de
+> dos miembros de dominio y manifiesto SQL listos para revisar.
+> Migracion ACL Gold bloqueada por adopcion no soportada en proveedor6.50:
+> incluye tanto lector BI como WRITER runtime; no ejecutar create sobre
+> ACL existentes ni revocar/recrear permisos. Ver propuesta de acceso.
+> Investigacion posterior autorizada: adopcion de estado ensayada solo
+> localmente, cinco pruebas aprobadas y plan selectivo completo16no-op,
+> sin drift. Estado remoto intacto. Escritura de estado requiere otra
+> aprobacion y el protocolo de la propuesta de acceso; no se aplico.
+> Las identidades, conteos y mecanismos de las secciones siguientes
+> son historicos, no evidencia actual ni autorizacion de IAM.
+
+> Registro historico de la sesion del 2026-10-22; no es una instruccion
+> de despliegue vigente. Los intentos fallidos y alternativas sustituidas
+> se conservan como evidencia. Consultar el
+> [alcance actual de vistas SQL](./despliegue-vistas-sort-mondelez.md).
+
 Fecha de inspeccion: 2026-10-22
 Estado: inventario verificado por metadatos y revision del repositorio.
 No se desplegaron recursos, ejecutaron consultas de datos ni modificaron permisos.
@@ -593,7 +632,7 @@ dependencias antes de programar la publicacion.
 
 ### Acoplamiento actual a la API
 
-[mondelez.tf](../terraform/mondelez.tf) usa enable_mondelez_api para crear
+[mondelez.tf historico](../archive/mondelez/mondelez.tf) usaba enable_mondelez_api para crear
 dataset interno, identidad API y secretos. Aunque imagen vacia evita Cloud Run,
 no evita esos otros recursos HTTP.
 

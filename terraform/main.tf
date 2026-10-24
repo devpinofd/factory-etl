@@ -483,12 +483,24 @@ resource "google_bigquery_dataset_iam_member" "runtime_assertions_editor" {
   member     = "serviceAccount:${module.service_account.email}"
 }
 
-resource "google_bigquery_dataset_iam_member" "powerbi_group_gold_reader" {
-  count      = var.environment == "prod" ? 1 : 0
-  project    = var.project_id
-  dataset_id = var.gold_dataset_id
-  role       = "roles/bigquery.dataViewer"
-  member     = "group:${var.powerbi_group_email}"
+removed {
+  from = google_bigquery_dataset_iam_member.powerbi_group_gold_reader
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+resource "google_bigquery_dataset_access" "powerbi_group_gold_reader" {
+  count          = var.environment == "prod" ? 1 : 0
+  project        = var.project_id
+  dataset_id     = var.gold_dataset_id
+  role           = "READER"
+  group_by_email = var.powerbi_group_email
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_bigquery_dataset_access" "powerbi_sales_views_silver_authorized" {

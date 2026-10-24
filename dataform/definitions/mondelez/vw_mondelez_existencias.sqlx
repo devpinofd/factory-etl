@@ -12,24 +12,4 @@ config {
   }
 }
 
-WITH candidata AS (
-  SELECT *,
-    COUNT(*) OVER (
-      PARTITION BY source_empresa, FECHA_SNAPSHOT, CODIGO_GRUPO, CODIGO_SKU
-    ) AS claves_publicas
-  FROM ${ref("vw_mondelez_existencias_candidata")}
-)
-SELECT
-  * EXCEPT (FECHA_DATA, claves_publicas, _cod_art)
-  REPLACE (
-    IF(claves_publicas = 1 AND CODIGO_SKU IS NOT NULL
-      AND DISPONIBLE IS NOT NULL AND ABS(DISPONIBLE) < 10000000000
-      AND DISPONIBLE * 100 = TRUNC(DISPONIBLE * 100),
-      DISPONIBLE, ERROR('Contrato inventario invalido: cantidad o clave publica')) AS DISPONIBLE,
-    IF(UNIDAD_SIMPLE_X_EMPAQUE IS NOT NULL AND UNIDAD_SIMPLE_X_EMPAQUE >= 0
-      AND UNIDAD_SIMPLE_X_EMPAQUE < 10000000000
-      AND UNIDAD_SIMPLE_X_EMPAQUE * 100 = TRUNC(UNIDAD_SIMPLE_X_EMPAQUE * 100),
-      UNIDAD_SIMPLE_X_EMPAQUE, ERROR('Contrato inventario invalido: empaque')) AS UNIDAD_SIMPLE_X_EMPAQUE
-  ),
-  FORMAT_TIMESTAMP('%Y%m%d%H%M%S', _captured_at, 'America/Caracas') AS FECHA_DATA
-FROM candidata
+${mondelez_queries.existencias(ref)}

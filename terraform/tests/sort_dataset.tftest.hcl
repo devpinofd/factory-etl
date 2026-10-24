@@ -1,6 +1,14 @@
 mock_provider "google" {}
 mock_provider "google-beta" {}
 
+override_module {
+  target = module.service_account
+  outputs = {
+    email = "factory-etl-runtime-prod@factory-etl-prod.iam.gserviceaccount.com"
+    name  = "projects/factory-etl-prod/serviceAccounts/factory-etl-runtime-prod@factory-etl-prod.iam.gserviceaccount.com"
+  }
+}
+
 variables {
   project_id                  = "factory-etl-prod"
   region                      = "us-central1"
@@ -15,7 +23,6 @@ run "dataset_independent_of_api" {
 
   variables {
     enable_sort_dataset = true
-    enable_mondelez_api = false
   }
 
   assert {
@@ -43,10 +50,6 @@ run "dataset_independent_of_api" {
     error_message = "El ACL inicial solo debe incluir projectOwners; no debe anadir al creador ni al tercero."
   }
 
-  assert {
-    condition     = length(google_bigquery_dataset.mondelez) == 0 && length(google_service_account.mondelez) == 0 && length(google_secret_manager_secret.mondelez) == 0 && length(google_cloud_run_v2_service.mondelez) == 0
-    error_message = "El dataset sort no debe activar recursos de API ni el dataset anterior."
-  }
 }
 
 run "dataset_disabled_by_default" {
@@ -56,6 +59,7 @@ run "dataset_disabled_by_default" {
     condition     = length(google_bigquery_dataset.sort) == 0
     error_message = "Sin habilitacion explicita no debe crearse sort."
   }
+
 }
 
 run "reject_non_production" {
@@ -67,4 +71,53 @@ run "reject_non_production" {
   }
 
   expect_failures = [google_bigquery_dataset.sort]
+}
+
+run "access_audit_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(google_project_service.sort_access_org_policy) == 0
+    error_message = "La auditoria de acceso no debe habilitar APIs sin autorizacion explicita."
+  }
+}
+
+run "access_audit_api_only" {
+  command = plan
+
+  variables {
+    enable_sort_access_audit_api = true
+  }
+
+  assert {
+    condition     = google_project_service.sort_access_org_policy[0].project == "factory-etl-prod" && google_project_service.sort_access_org_policy[0].service == "orgpolicy.googleapis.com" && google_project_service.sort_access_org_policy[0].disable_on_destroy == false
+    error_message = "Solo se autoriza Organization Policy en prod, sin deshabilitarla al retirar el recurso."
+  }
+
+  assert {
+    condition     = length(google_bigquery_dataset.sort) == 0 && length(google_bigquery_dataset_iam_member.sort_runtime_editor) == 0
+    error_message = "La auditoria no debe crear datasets, conceder IAM ni habilitar modelos."
+  }
+}
+
+run "reject_access_audit_in_dev" {
+  command = plan
+
+  variables {
+    environment                  = "dev"
+    enable_sort_access_audit_api = true
+  }
+
+  expect_failures = [google_project_service.sort_access_org_policy]
+}
+
+run "reject_access_audit_in_other_project" {
+  command = plan
+
+  variables {
+    project_id                   = "factory-etl-dev"
+    enable_sort_access_audit_api = true
+  }
+
+  expect_failures = [google_project_service.sort_access_org_policy]
 }

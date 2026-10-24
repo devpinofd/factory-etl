@@ -5,6 +5,15 @@ project_id             = "factory-etl-prod-XXXXXX"
 region                 = "us-central1"
 environment            = "prod"
 
+# Vistas SQL Mondelez: infraestructura y modelos se habilitan por separado.
+enable_sort_dataset   = false
+
+# Inventario de politicas de acceso, sin grants ni acceso al directorio.
+enable_sort_access_audit_api = false
+
+# Solo tras desplegar las cuatro vistas autonomas y adoptar las ACL Gold.
+enable_sort_consumer_access = false
+
 bronze_bucket_name     = "factory-etl-prod-bronze-XXXXXX"
 quarantine_bucket_name = "factory-etl-prod-quarantine-XXXXXX"
 

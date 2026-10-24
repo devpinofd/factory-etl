@@ -1,5 +1,5 @@
 variable "enable_sort_dataset" {
-  description = "Aprovisiona sort y el acceso de su ejecutor interno en produccion, sin recursos API ni permisos del consumidor."
+  description = "Aprovisiona sort y el acceso de su ejecutor interno en produccion, sin permisos del consumidor."
   type        = bool
   default     = false
 }

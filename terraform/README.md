@@ -88,6 +88,22 @@ terraform apply dev.tfplan
 
 Para producción se repite con `envs/prod.tfvars` y `-backend-config="prefix=prod"`.
 
+## Inventario de acceso SORT
+
+`sort_access_audit.tf` permite habilitar exclusivamente Organization Policy
+en `factory-etl-prod`, con `enable_sort_access_audit_api = true`.
+El valor predeterminado es `false`. No habilita Directory, concede IAM,
+crea usuarios ni modifica vistas. Retirar el recurso no deshabilita la API.
+
+Para este cambio acotado, usar un directorio `TF_DATA_DIR` aislado, verificar
+el backend prod y revisar un plan guardado con el unico target
+`google_project_service.sort_access_org_policy[0]`. Nunca aplicar el plan
+general del worktree compartido. La habilitacion de una API no concede
+los scopes OAuth ni los privilegios administrativos del directorio.
+
+Ver el [inventario de acceso](../docs/propuesta-acceso-bigquery-sorti-mondelez.md)
+antes de proponer permisos del consumidor. El acceso aun no esta habilitado.
+
 ## Convenciones
 
 - **Ningún secreto en Terraform**: `google_secret_manager_secret_version` NO se crea desde IaC. Terraform provisiona el `secret` (contenedor); las versiones se cargan manualmente con `gcloud secrets versions add` y quedan fuera del repo.

@@ -1,11 +1,9 @@
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[2] / "dataform" / "definitions" / "mondelez"
+from tests.unit.mondelez_sql import read_mondelez_sql
 
 
 def test_sort_reads_the_gold_capture_without_another_publication() -> None:
-    candidate = (ROOT / "vw_mondelez_existencias_candidata.sqlx").read_text(encoding="utf-8")
-    internal = (ROOT / "vw_mondelez_existencias.sqlx").read_text(encoding="utf-8")
+    candidate = read_mondelez_sql("vw_mondelez_existencias_candidata")
+    internal = read_mondelez_sql("vw_mondelez_existencias")
     assert 'FROM ${ref("fct_inventario_snapshot")}' in candidate
     assert "_ingested_at AS captura" in candidate
     assert "fct_inventario_diario_validado" not in candidate
@@ -18,8 +16,8 @@ def test_sort_reads_the_gold_capture_without_another_publication() -> None:
 
 
 def test_dynamic_inventory_keeps_capture_boundaries_and_explicit_contract_errors() -> None:
-    candidate = (ROOT / "vw_mondelez_existencias_candidata.sqlx").read_text(encoding="utf-8")
-    internal = (ROOT / "vw_mondelez_existencias.sqlx").read_text(encoding="utf-8")
+    candidate = read_mondelez_sql("vw_mondelez_existencias_candidata")
+    internal = read_mondelez_sql("vw_mondelez_existencias")
     assert "GROUP BY i.source_empresa, i.dia_venezuela, i.run_id, i.captura" in candidate
     assert "PARTITION BY source_empresa, FECHA_SNAPSHOT, CODIGO_GRUPO, CODIGO_SKU" in internal
     assert "Maestro de articulo ambiguo" in candidate
