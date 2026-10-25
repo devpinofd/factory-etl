@@ -16,10 +16,10 @@ WITH parsed AS (
   SELECT
     source_empresa,
     ${helpers.trimStr("cod_cli")} AS cod_cli,
-    ${helpers.trimStr("nom_cli")} AS nom_cli,
+    ${helpers.singleLineStr("nom_cli")} AS nom_cli,
     ${helpers.trimStr("rif")} AS rif,
-    ${helpers.trimStr("dir_fis")} AS dir_fis,
-    ${helpers.trimStr("dir_exa")} AS dir_exa,
+    ${helpers.singleLineStr("dir_fis")} AS dir_fis,
+    ${helpers.singleLineStr("dir_exa")} AS dir_exa,
     ${helpers.trimStr("cod_pai")} AS cod_pai,
     ${helpers.trimStr("cod_est")} AS cod_est,
     ${helpers.trimStr("cod_ciu")} AS cod_ciu,
