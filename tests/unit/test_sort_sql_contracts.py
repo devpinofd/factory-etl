@@ -81,11 +81,20 @@ def test_managed_dataform_gates_dependency_assertions(filename: str) -> None:
     assert "dependOnDependencyAssertions: true" in sql
 
 
+def test_current_deployment_documentation_has_no_http_scope() -> None:
+    for relative in (
+        "docs/despliegue-vistas-sort-mondelez.md",
+        "docs/handoff-sort-mondelez.md",
+    ):
+        text = (REPO_ROOT / relative).read_text(encoding="utf-8").lower()
+        assert not re.search(r"\bapi\b|mondelez[_-]api", text)
+
+
 @pytest.mark.parametrize(
     ("filename", "timestamp", "field"),
     [
-        ("vw_mondelez_ventas", "v.registro", "FECHA_ACTUALIZACION"),
-        ("sort_ventas", "v.registro", "FECHA_ACTUALIZACION"),
+        ("vw_mondelez_ventas", "CURRENT_TIMESTAMP()", "FECHA_ACTUALIZACION"),
+        ("sort_ventas", "CURRENT_TIMESTAMP()", "FECHA_ACTUALIZACION"),
         ("vw_mondelez_existencias_candidata", "i.captura", "FECHA_DATA"),
         ("vw_mondelez_existencias", "_captured_at", "FECHA_DATA"),
     ],
@@ -96,6 +105,8 @@ def test_contract_datetimes_use_venezuela_time(filename: str, timestamp: str, fi
     assert f"FORMAT_TIMESTAMP('%Y%m%d%H%M%S', {timestamp}, 'UTC') AS {field}" not in sql
     if field == "FECHA_DATA":
         assert "CURRENT_TIMESTAMP()" not in sql
+    else:
+        assert "FORMAT_TIMESTAMP('%Y%m%d%H%M%S', v.registro," not in sql
 
 
 def test_inventory_reads_dynamic_gold_without_rewriting_published_history() -> None:

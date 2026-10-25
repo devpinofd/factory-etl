@@ -122,7 +122,7 @@ SELECT
     FORMAT('%.2f', v.precio_unitario)) AS PRECIO,
   v.cod_mon AS MONEDA,
   FORMAT('%.2f', ROUND(v.precio_unitario * ABS(CAST(v.unidades_vendidas AS NUMERIC)), 2)) AS NETO_MONEDA,
-  FORMAT_TIMESTAMP('%Y%m%d%H%M%S', v.registro, 'America/Caracas') AS FECHA_ACTUALIZACION
+  FORMAT_TIMESTAMP('%Y%m%d%H%M%S', CURRENT_TIMESTAMP(), 'America/Caracas') AS FECHA_ACTUALIZACION
 FROM ventas v
 INNER JOIN ${gruposSource} g
   ON v.source_empresa = g.source_empresa AND v.cod_suc = g.cod_suc
