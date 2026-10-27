@@ -1,0 +1,14 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "factory_etl_gold",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  description: "Articulos locales 0301 con atributos canonicos por modelo exacto; conserva no correspondidos.",
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_art"],
+    nonNull: ["source_empresa", "cod_art", "estado_correspondencia"]
+  }
+}
+
+${mondelez_queries.articulosEnriquecidos(ref)}

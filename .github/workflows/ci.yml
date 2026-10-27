@@ -123,3 +123,7 @@ jobs:
       - name: Compile Dataform Definitions & Assertions
         working-directory: dataform
         run: npx --yes @dataform/cli compile
+
+      - name: Compile Mondelez Contract Views & Assertions
+        working-directory: dataform
+        run: npx --yes @dataform/cli compile --vars=enableMondelez=true

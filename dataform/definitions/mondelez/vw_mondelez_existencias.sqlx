@@ -1,0 +1,15 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  name: "vw_mondelez_existencias_interna",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  description: "Consumo dinamico del ultimo snapshot Gold por empresa/dia Venezuela, con contrato numerico y sin persistencia adicional.",
+  assertions: {
+    uniqueKey: ["source_empresa", "FECHA_SNAPSHOT", "CODIGO_GRUPO", "CODIGO_SKU"],
+    nonNull: ["source_empresa", "FECHA_SNAPSHOT", "_capture_id", "CODIGO_GRUPO", "CODIGO_SKU", "DISPONIBLE", "FECHA_DATA"]
+  }
+}
+
+${mondelez_queries.existencias(ref)}

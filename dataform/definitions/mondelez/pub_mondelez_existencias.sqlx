@@ -1,0 +1,91 @@
+config {
+  type: "operations",
+  hasOutput: true,
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  description: "Publicacion atomica append-only por captura; valida antes de persistir y no altera lotes publicados."
+}
+
+CREATE TABLE IF NOT EXISTS ${self()} (
+  source_empresa STRING, FECHA_SNAPSHOT DATE, _capture_id STRING,
+  _captured_at TIMESTAMP, _published_at TIMESTAMP,
+  CODIGO_GRUPO STRING, NOMBRE_GRUPO STRING, CODIGO_SKU STRING,
+  DESCRIPCION_SKU STRING, CODIGO_BARRA STRING, DISPONIBLE NUMERIC,
+  TIPO_UNIDADES STRING, UNIDAD_SIMPLE_X_EMPAQUE NUMERIC, FECHA_DATA STRING
+)
+PARTITION BY FECHA_SNAPSHOT
+CLUSTER BY source_empresa, CODIGO_GRUPO, _capture_id;
+
+CREATE TABLE IF NOT EXISTS
+  `${dataform.projectConfig.defaultDatabase}.sort.inventario_publication_lock`
+AS SELECT 0 AS revision;
+
+BEGIN TRANSACTION;
+
+UPDATE `${dataform.projectConfig.defaultDatabase}.sort.inventario_publication_lock`
+SET revision = revision + 1 WHERE TRUE;
+
+ASSERT NOT EXISTS (
+  SELECT a.source_empresa, a.cod_art
+  FROM ${ref("dim_articulo")} a
+  JOIN (
+    SELECT DISTINCT source_empresa, cod_art
+    FROM ${ref("fct_inventario_diario_validado")}
+  ) i USING (source_empresa, cod_art)
+  GROUP BY 1, 2 HAVING COUNT(*) > 1
+) AS 'Maestro de articulo ambiguo: no multiplicar existencias';
+
+ASSERT NOT EXISTS (
+  SELECT alm.source_empresa, alm.cod_alm
+  FROM ${ref("dim_almacen")} alm
+  JOIN (
+    SELECT DISTINCT source_empresa, cod_alm
+    FROM ${ref("fct_inventario_diario_validado")}
+  ) i USING (source_empresa, cod_alm)
+  GROUP BY 1, 2 HAVING COUNT(*) > 1
+) AS 'Maestro de almacen ambiguo: no multiplicar existencias';
+
+CREATE TEMP TABLE candidata AS
+SELECT c.*
+FROM ${ref("vw_mondelez_existencias_candidata")} c
+WHERE NOT EXISTS (
+  SELECT 1 FROM ${self()} p
+  WHERE p.source_empresa = c.source_empresa AND p._capture_id = c._capture_id
+);
+
+ASSERT NOT EXISTS (
+  SELECT 1 FROM candidata
+  WHERE CODIGO_SKU IS NULL OR DESCRIPCION_SKU IS NULL
+    OR DISPONIBLE IS NULL OR ABS(DISPONIBLE) >= 10000000000
+    OR DISPONIBLE * 100 != TRUNC(DISPONIBLE * 100)
+    OR UNIDAD_SIMPLE_X_EMPAQUE IS NULL OR UNIDAD_SIMPLE_X_EMPAQUE < 0
+    OR UNIDAD_SIMPLE_X_EMPAQUE >= 10000000000
+    OR UNIDAD_SIMPLE_X_EMPAQUE * 100 != TRUNC(UNIDAD_SIMPLE_X_EMPAQUE * 100)
+) AS 'Contrato inventario invalido: no se publica la candidata';
+
+ASSERT NOT EXISTS (
+  SELECT 1 FROM candidata
+  GROUP BY source_empresa, _capture_id, CODIGO_GRUPO, CODIGO_SKU
+  HAVING COUNT(*) > 1
+) AS 'Claves publicas duplicadas o colision de SKU truncado';
+
+ASSERT NOT EXISTS (
+  SELECT 1
+  FROM ${ref("fct_inventario_diario_validado")} i
+  LEFT JOIN ${ref("dim_articulo")} a
+    ON a.source_empresa = i.source_empresa AND a.cod_art = i.cod_art
+  LEFT JOIN ${ref("dim_almacen")} alm
+    ON alm.source_empresa = i.source_empresa AND alm.cod_alm = i.cod_alm
+  WHERE UPPER(TRIM(i.cod_alm)) != 'TRANSITO'
+    AND (a.cod_art IS NULL OR (a.cod_pro = '0301' AND alm.cod_alm IS NULL))
+) AS 'Maestro faltante: cobertura de inventario no verificable';
+
+INSERT INTO ${self()}
+SELECT source_empresa, FECHA_SNAPSHOT, _capture_id, _captured_at, CURRENT_TIMESTAMP(),
+  CODIGO_GRUPO, NOMBRE_GRUPO, CODIGO_SKU, DESCRIPCION_SKU, CODIGO_BARRA,
+  DISPONIBLE, TIPO_UNIDADES, UNIDAD_SIMPLE_X_EMPAQUE, FECHA_DATA
+FROM candidata;
+
+COMMIT TRANSACTION;

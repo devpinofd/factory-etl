@@ -1,0 +1,11 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  dependencies: ["assert_inventario_snapshot_captura_unica"],
+  description: "Inventario dinamico desde el snapshot Gold Venezuela; agrega almacenes solo dentro del mismo corte, sin completar catalogo con ceros."
+}
+
+${mondelez_queries.existenciasCandidata(ref)}

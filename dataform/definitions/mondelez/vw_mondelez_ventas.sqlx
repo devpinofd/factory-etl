@@ -1,0 +1,15 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  name: "vw_mondelez_ventas_interna",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  description: "Facturacion SORT: 24 campos STRING por renglon, cantidades absolutas y precio descontado. Gold conserva signos. Elegibilidad por sucursal del documento, independiente de la sucursal actual del cliente; claves tecnicas fuera del JSON.",
+  assertions: {
+    uniqueKey: ["ID_LINEA"],
+    nonNull: ["ID_LINEA", "source_empresa", "TIPO_DOCUMENTO", "NUMERO_DOCUMENTO", "_renglon", "_fecha", "CODIGO_GRUPO"]
+  }
+}
+
+${mondelez_queries.ventas(ref)}

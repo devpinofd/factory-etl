@@ -1,0 +1,24 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  name: "vw_mondelez_existencias",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  dependencies: ["vw_mondelez_existencias_interna"],
+  description: "Consumo SQL externo: empresa y nueve campos publicados, sin auditoria interna."
+}
+
+WITH grupos AS (
+  ${mondelez_queries.grupos()}
+),
+existencias_candidata AS (
+  ${mondelez_queries.existenciasCandidata(ref, "grupos")}
+),
+existencias AS (
+  ${mondelez_queries.existencias(ref, "existencias_candidata")}
+)
+SELECT
+  source_empresa, CODIGO_GRUPO, NOMBRE_GRUPO, CODIGO_SKU, DESCRIPCION_SKU,
+  CODIGO_BARRA, DISPONIBLE, TIPO_UNIDADES, UNIDAD_SIMPLE_X_EMPAQUE, FECHA_DATA
+FROM existencias

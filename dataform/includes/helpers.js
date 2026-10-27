@@ -7,6 +7,10 @@ function trimStr(columnName) {
   return `RTRIM(LTRIM(CAST(${columnName} AS STRING)))`;
 }
 
+function singleLineStr(columnName) {
+  return trimStr(`REGEXP_REPLACE(CAST(${columnName} AS STRING), r'[\\r\\n]+', ' ')`);
+}
+
 // Casteo seguro a TIMESTAMP (.NET eFactory de 7 decimales de subsegundo)
 function toTimestamp(columnName) {
   return `COALESCE(SAFE.PARSE_TIMESTAMP('%Y-%m-%dT%H:%M:%E*S', ${columnName}), SAFE_CAST(${columnName} AS TIMESTAMP))`;
@@ -24,6 +28,7 @@ function toNumeric(columnName) {
 
 module.exports = {
   trimStr,
+  singleLineStr,
   toTimestamp,
   toDate,
   toNumeric

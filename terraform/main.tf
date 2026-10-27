@@ -79,6 +79,7 @@ locals {
   full_scheduler_name          = var.environment == "prod" ? "factory-etl-full-scheduler-prod" : "factory-etl-daily-scheduler-full-dev-scd2"
   consolidation_scheduler_name = var.environment == "prod" ? "factory-etl-consolidation-scheduler-prod-scd2" : "factory-etl-consolidation-scheduler-dev-scd2"
   effective_daily_queries = var.environment == "prod" ? [
+    { id = "clientes_v1", has_param = false },
     { id = "renglones_almacenes_v1", has_param = false },
     { id = "ventas_diarias_v3", has_param = true },
     { id = "renglones_monedas_v1", has_param = true },
@@ -97,7 +98,6 @@ locals {
     { id = "vendedores_v1", has_param = false },
     { id = "sucursales_v1", has_param = false },
     { id = "almacenes_v1", has_param = false },
-    { id = "clientes_v1", has_param = false },
     { id = "clases_clientes_v1", has_param = false },
     { id = "conceptos_v1", has_param = false },
   ]) : var.daily_queries_full
@@ -358,7 +358,7 @@ module "cloud_run_job" {
 # -----------------------------------------------------------------------------
 # Cloud Workflows: orquestador de ejecucion
 # -----------------------------------------------------------------------------
-# WF1 (transaccional, 5:30 PM): sync de tablas transaccionales hasta Bronze.
+# WF1: sync transaccional y snapshot de clientes hasta Bronze, luego consolidacion.
 # WF2 (full, 11:30 PM): sync de tablas transaccionales + maestras hasta Bronze.
 # WF3 (12:30 AM): Bronze -> staging -> Dataform Silver/Gold.
 
@@ -483,12 +483,24 @@ resource "google_bigquery_dataset_iam_member" "runtime_assertions_editor" {
   member     = "serviceAccount:${module.service_account.email}"
 }
 
-resource "google_bigquery_dataset_iam_member" "powerbi_group_gold_reader" {
-  count      = var.environment == "prod" ? 1 : 0
-  project    = var.project_id
-  dataset_id = var.gold_dataset_id
-  role       = "roles/bigquery.dataViewer"
-  member     = "group:${var.powerbi_group_email}"
+removed {
+  from = google_bigquery_dataset_iam_member.powerbi_group_gold_reader
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+resource "google_bigquery_dataset_access" "powerbi_group_gold_reader" {
+  count          = var.environment == "prod" ? 1 : 0
+  project        = var.project_id
+  dataset_id     = var.gold_dataset_id
+  role           = "READER"
+  group_by_email = var.powerbi_group_email
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_bigquery_dataset_access" "powerbi_sales_views_silver_authorized" {
