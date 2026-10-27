@@ -1,4 +1,4 @@
-from tests.unit.mondelez_sql import read_mondelez_sql
+from .mondelez_sql import read_mondelez_sql
 
 
 def test_sort_reads_the_gold_capture_without_another_publication() -> None:

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.unit.mondelez_sql import read_mondelez_sql
+from .mondelez_sql import read_mondelez_sql
 
 ROOT = Path(__file__).parents[2] / "dataform" / "definitions" / "mondelez"
 REPO_ROOT = Path(__file__).resolve().parents[2]
