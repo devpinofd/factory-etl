@@ -3,6 +3,7 @@ defaultDataset: factory_etl_silver
 defaultAssertionDataset: factory_etl_assertions
 defaultLocation: us-central1
 vars:
+  enableMondelez: "false"
   enableScd2: "true"
   enableLegacyFacts: "true"
   gcpProject: factory-etl-dev-0y1dhf

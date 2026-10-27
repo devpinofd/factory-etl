@@ -1,0 +1,16 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  name: "vw_mondelez_clientes_interna",
+  tags: ["mondelez"],
+  dependOnDependencyAssertions: true,
+  dependencies: ["assert_mondelez_clientes_maestro"],
+  description: "Maestro de clientes con sucursal mapeada, un cliente por empresa. Campos publicos con longitudes contractuales y RIF normalizado; Gold conserva valores completos.",
+  assertions: {
+    uniqueKey: ["source_empresa", "_cod_cli"],
+    nonNull: ["source_empresa", "CODIGO_GRUPO", "_cod_cli"]
+  }
+}
+
+${mondelez_queries.clientes(ref)}

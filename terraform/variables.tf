@@ -223,12 +223,13 @@ variable "extractor_parallelism" {
 }
 
 variable "daily_queries" {
-  description = "Lista de query_ids ejecutados por el Cloud Workflow diario, con has_param indicando si se le inyectan --parameter fec_des/fec_has."
+  description = "Consultas transaccionales y snapshot de clientes del workflow diario; has_param indica si se inyectan fec_des/fec_has."
   type = list(object({
     id        = string
     has_param = bool
   }))
   default = [
+    { id = "clientes_v1", has_param = false },
     { id = "renglones_almacenes_v1", has_param = false },
     { id = "ventas_diarias_v3", has_param = true },
     { id = "renglones_monedas_v1", has_param = true },
@@ -282,4 +283,3 @@ variable "max_staleness_days" {
   type        = number
   default     = 2
 }
-

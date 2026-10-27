@@ -1,0 +1,13 @@
+config {
+  type: "view",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  schema: "sort",
+  tags: ["mondelez"],
+  description: "Mapeo proporcionado por negocio de empresa/sucursal a grupo Mondelez. Conserva ceros iniciales.",
+  assertions: {
+    uniqueKey: ["source_empresa", "cod_suc"],
+    nonNull: ["source_empresa", "cod_suc", "codigo_grupo", "nombre_grupo"]
+  }
+}
+
+${mondelez_queries.grupos()}

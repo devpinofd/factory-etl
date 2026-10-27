@@ -1,0 +1,35 @@
+config {
+  type: "assertion",
+  disabled: dataform.projectConfig.vars.enableMondelez !== "true",
+  tags: ["mondelez"],
+  description: "Bloquea estatus desconocidos y codigos de vendedor ambiguos al normalizar a mayusculas en clientes con sucursal mapeada."
+}
+
+SELECT
+  c.source_empresa,
+  'ESTATUS_DESCONOCIDO' AS motivo,
+  COUNT(*) AS filas
+FROM ${ref("dim_cliente")} c
+INNER JOIN ${ref("vw_mondelez_grupos")} g
+  ON c.source_empresa = g.source_empresa AND c.cod_suc = g.cod_suc
+WHERE c.status IS NULL
+  OR UPPER(c.status) NOT IN ('A', 'I', 'S')
+GROUP BY c.source_empresa, motivo
+
+UNION ALL
+
+SELECT
+  c.source_empresa,
+  'VENDEDOR_AMBIGUO_NORMALIZADO' AS motivo,
+  COUNT(*) AS filas
+FROM ${ref("dim_cliente")} c
+INNER JOIN ${ref("vw_mondelez_grupos")} g
+  ON c.source_empresa = g.source_empresa AND c.cod_suc = g.cod_suc
+INNER JOIN (
+  SELECT source_empresa, UPPER(cod_ven) AS cod_ven
+  FROM ${ref("dim_vendedor")}
+  GROUP BY 1, 2
+  HAVING COUNT(*) > 1
+) ven
+  ON c.source_empresa = ven.source_empresa AND UPPER(c.cod_ven) = ven.cod_ven
+GROUP BY c.source_empresa, motivo

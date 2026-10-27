@@ -5,6 +5,13 @@ project_id             = "factory-etl-prod-XXXXXX"
 region                 = "us-central1"
 environment            = "prod"
 
+# Flags del ejemplo: no representan los valores del estado productivo existente.
+# Preservar la configuracion real habilitada y revisar un plan antes de aplicar.
+enable_sort_dataset          = false
+enable_sort_access_audit_api = false
+enable_sort_consumer_access  = false
+enable_sort_consumer_exports = false
+
 bronze_bucket_name     = "factory-etl-prod-bronze-XXXXXX"
 quarantine_bucket_name = "factory-etl-prod-quarantine-XXXXXX"
 

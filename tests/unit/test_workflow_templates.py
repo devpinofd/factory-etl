@@ -456,3 +456,35 @@ main:
     assert not errors, f"El snippet válido '{snippet}' fue rechazado con errores:\n" + "\n".join(
         errors
     )
+
+
+def test_transactional_queries_refresh_customers_without_duplicating_full() -> None:
+    main = (TERRAFORM_DIR / "main.tf").read_text(encoding="utf-8")
+    variables = (TERRAFORM_DIR / "variables.tf").read_text(encoding="utf-8")
+    daily_prod = main.split('effective_daily_queries = var.environment == "prod" ? [', 1)[1]
+    daily_prod = daily_prod.split("] : var.daily_queries", 1)[0]
+    daily_default = variables.split('variable "daily_queries" {', 1)[1]
+    daily_default = daily_default.split('variable "daily_queries_full"', 1)[0]
+    full_default = variables.split('variable "daily_queries_full" {', 1)[1]
+    full_default = full_default.split('variable "adopt_existing_data_quality"', 1)[0]
+    full_extra = main.split("concat(local.effective_daily_queries, [", 1)[1]
+    full_extra = full_extra.split("]) : var.daily_queries_full", 1)[0]
+    customer = r'\{\s*id\s*=\s*"clientes_v1",\s*has_param\s*=\s*false\s*\}'
+    for queries in (daily_prod, daily_default, full_default):
+        assert len(re.findall(customer, queries)) == 1
+    assert "clientes_v1" not in re.findall(r'id\s*=\s*"([^"]+)"', full_extra)
+    for queries in (daily_prod, daily_default):
+        ids = re.findall(r'id\s*=\s*"([^"]+)"', queries)
+        assert len(ids) == len(set(ids)) == 5
+
+
+def test_transactional_extraction_finishes_before_triggering_consolidation() -> None:
+    template = (
+        TERRAFORM_DIR / "modules" / "workflows" / "templates" / "workflow.yaml.tftpl"
+    ).read_text(encoding="utf-8")
+    assert template.index("- run_fanout_job:") < template.index("- trigger_consolidation:")
+    assert "call: googleapis.run.v2.projects.locations.jobs.run" in template
+    main = (TERRAFORM_DIR / "main.tf").read_text(encoding="utf-8")
+    module = main.split('module "workflows" {', 1)[1].split('module "workflows_full"', 1)[0]
+    assert "queries                     = local.effective_daily_queries" in module
+    assert "consolidation_workflow_name = local.consolidation_workflow_name" in module
